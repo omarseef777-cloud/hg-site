@@ -420,14 +420,17 @@ function parseSummary(rows){const groups=[];let cur=null,tagc=0;const num=v=>typ
 document.getElementById('xl').addEventListener('change',async e=>{const f=e.__f||e.target.files[0];if(!f)return;
   try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});const map={},sh={},meta={};let date=null,sum=null;
     try{const s=XLSX.utils.sheet_to_json(wb.Sheets['Summary'],{header:1,defval:null});for(const r of s.slice(0,4))for(const c of r||[])if(typeof c==='string'&&/Date/i.test(c))date=c.replace(/Date:\s*/i,'').trim();sum=parseSummary(s)}catch(_){}
+    const XC={dup:[],odd:[],unk:[]},XNOT=/\b(not|no|un)[ -]?cast/;
     for(const name of ['Duct Banks','Pits','Sokaways','Earthing Pits','Etisalat Pits']){const ws=wb.Sheets[name];if(!ws)continue;
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});const hdr=(rows[2]||[]).map(h=>h?String(h).trim():'');
       const ti=hdr.findIndex(h=>/TAG/i.test(h)&&h.toUpperCase()!=='TYPE'),ci=hdr.indexOf('Cast Status'),li=hdr.indexOf('Location');const hc=n=>hdr.findIndex(h=>h.toLowerCase().startsWith(n));const iu=hc('last update'),ia=hc('aq-da'),ir=hc('rfi'),im=hc('remarks');
       if(ti<0||ci<0||li<0)continue;
-      for(const r of rows.slice(3)){const t=r[ti];if(!t)continue;const cs=String(r[ci]||'').toLowerCase(),lo=String(r[li]||'').toLowerCase();const k=String(t).trim();
-        map[k]=(cs.includes('cast')||lo)?(lo.includes('install')?'Installed':(lo.includes('yard')||lo.includes('precast'))?'Precast Yard':'Casted'):'Not Cast';sh[k]=name;const m={};const u=iu>=0?r[iu]:null;if(u instanceof Date&&!isNaN(u))m.u=new Date(u.getTime()-u.getTimezoneOffset()*6e4+432e5).toISOString().slice(0,10);if(ia>=0&&r[ia])m.aq=[String(r[ia]).trim()];if(ir>=0&&r[ir])m.rfi=String(r[ir]).trim();if(im>=0&&r[im])m.rem=String(r[im]).trim();if(Object.keys(m).length)meta[k]=m}}
+      for(const r of rows.slice(3)){const t=r[ti];if(!t)continue;const cs=String(r[ci]||'').toLowerCase().trim(),lo=String(r[li]||'').toLowerCase().trim();const k=String(t).trim();
+        if(k in map)XC.dup.push([k,sh[k]+' · '+name]);if(!/^(MM\d{7}U-[A-Z0-9]+(-[A-Z0-9]+)+|\d{6}-[A-Z]+-\d+|TAG-NOT-CLEAR-\d+)$/.test(k))XC.odd.push([k,name]);
+        if((cs&&!/^cast(ed)?$/.test(cs))||(lo&&!/install|yard|precast/.test(lo)))XC.unk.push([k,[r[ci],r[li]].filter(Boolean).join(' · ')]);
+        map[k]=((cs.includes('cast')&&!XNOT.test(cs))||lo)?(lo.includes('install')?'Installed':(lo.includes('yard')||lo.includes('precast'))?'Precast Yard':'Casted'):'Not Cast';sh[k]=name;const m={};const u=iu>=0?r[iu]:null;if(u instanceof Date&&!isNaN(u))m.u=new Date(u.getTime()-u.getTimezoneOffset()*6e4+432e5).toISOString().slice(0,10);if(ia>=0&&r[ia])m.aq=[String(r[ia]).trim()];if(ir>=0&&r[ir])m.rfi=String(r[ir]).trim();if(im>=0&&r[im])m.rem=String(r[im]).trim();if(Object.keys(m).length)meta[k]=m}}
     const n=Object.keys(map).length; if(n<100)throw new Error('Could not find the status sheets in this file.');
-    if(!await xlReview({map,meta,date:date||f.name}))return;
+    window.__XLCHK=XC;if(!await xlReview({map,meta,date:date||f.name}))return;
     const nd=date||f.name;const loadDate=isNaN(Date.parse(nd))?today():nd;
     for(const k in map){if(map[k]!==status[k]||!SINCE[k])SINCE[k]={s:map[k],date:(map[k]!==status[k]?loadDate:(SINCE[k]&&SINCE[k].date)||loadDate)}}
     save('scope.since',SINCE);

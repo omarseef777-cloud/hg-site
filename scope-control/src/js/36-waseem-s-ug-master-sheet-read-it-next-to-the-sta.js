@@ -66,7 +66,7 @@ async function sheetExportXl(){let JSZ;try{JSZ=await xJSZip()}catch(e){toast(e.m
     const setS=(c,s)=>{clear(c);if(!s)return;c.setAttribute('t','inlineStr');const is=c.ownerDocument.createElementNS(XNS,'is'),t=c.ownerDocument.createElementNS(XNS,'t');t.setAttribute('xml:space','preserve');t.textContent=s;is.appendChild(t);c.appendChild(is)};
     const setN=(c,n)=>{clear(c);const v=c.ownerDocument.createElementNS(XNS,'v');v.textContent=String(n);c.appendChild(v)};
     const cell=(row,col)=>{const ref=xLet(col)+row.getAttribute('r');let prev=null;for(const c of row.getElementsByTagName('c')){const k=xRC(c.getAttribute('r'))[0];if(k===col)return c;if(k>col){prev=c;break}}const c=row.ownerDocument.createElementNS(XNS,'c');c.setAttribute('r',ref);row.insertBefore(c,prev);return c};
-    const rowStat=(cs,loc)=>{cs=String(cs).toLowerCase();loc=String(loc).toLowerCase();return (cs.includes('cast')||loc)?(loc.includes('install')?'Installed':loc.includes('precast')?'Precast Yard':'Casted'):'Not Cast'};
+    const rowStat=(cs,loc)=>{cs=String(cs).toLowerCase();loc=String(loc).toLowerCase();return ((cs.includes('cast')&&!/\b(not|no|un)[ -]?cast/.test(cs))||loc)?(loc.includes('install')?'Installed':loc.includes('precast')?'Precast Yard':'Casted'):'Not Cast'};
     const seen=new Set(),ren=D.aqren||{},docs={},stats={chg:0,ren:0,add:0,rem:0,keep:0};
     const inWb=new Set();
     for(const nm of XSH){const p=SP[nm];if(!p||!zip.file(p))continue;const d=await rd(p);const rows=[...d.getElementsByTagName('row')],hr=rows.find(r=>r.getAttribute('r')==='3');if(!hr)continue;const H={};[...hr.getElementsByTagName('c')].forEach(c=>{H[String(val(c)).replace(/\s+/g,' ').trim().toLowerCase()]=xRC(c.getAttribute('r'))[0]});

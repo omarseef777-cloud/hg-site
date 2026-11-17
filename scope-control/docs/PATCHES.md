@@ -8,67 +8,67 @@ Before changing a function below, read every wrapper listed for it.
 
 | Function | Defined in | Wrappers (oldest first) |
 |---|---|---|
-| `drawNotes` (16) | 00-core.js:781 | 03:63 → 03:132 → 04:103 → 08:62 → 09:140 → 10:45 → 16:173 → 18:62 → 18:118 → 19:51 → 20:65 → 21:48 → 22:51 *before / around* → 23:288 → 30:3 → 34:34 |
+| `drawNotes` (16) | 00-core.js:784 | 03:63 → 03:132 → 04:103 → 08:62 → 09:140 → 10:45 → 16:173 → 18:62 → 18:118 → 19:51 → 20:65 → 21:48 → 22:51 *before / around* → 23:288 → 30:3 → 34:34 |
 | `goView` (11) | 01-home-report.js:101 | 04:94 *before / around* → 14:17 → 15:20 → 33:63 *before / around* → 39:133 *before / around* → 39:145 *before / around* → 40:71 *before / around* → 55:13 → 57:35 *before / around* → 60:4 → 60:24 *before / around* |
-| `showInfo` (10) | 00-core.js:567 | 03:83 → 07:34 → 09:101 → 10:53 → 29:69 → 30:7 → 30:8 → 35:53 → 36:169 *before / around* → 48:81 *before / around* |
-| `restoreKey` (8) | 00-core.js:1081 | 08:4 *before / around* → 09:13 *before / around* → 16:4 *before / around* → 22:4 *before / around* → 29:4 *before / around* → 35:4 *before / around* → 39:3 *before / around* → 40:3 *before / around* |
-| `drawTrn` (6) | 00-core.js:914 | 00:987 → 23:319 → 36:107 → 36:170 → 48:56 → 49:20 |
-| `draw` (6) | 00-core.js:469 | 07:30 → 12:18 → 17:17 → 28:35 → 42:67 → 42:81 |
-| `showPart` (5) | 00-core.js:997 | 00:1060 → 20:123 → 21:104 → 35:63 → 46:25 |
+| `showInfo` (10) | 00-core.js:570 | 03:83 → 07:34 → 09:101 → 10:53 → 29:69 → 30:7 → 30:8 → 35:53 → 36:169 *before / around* → 48:81 *before / around* |
+| `restoreKey` (8) | 00-core.js:1084 | 08:4 *before / around* → 09:13 *before / around* → 16:4 *before / around* → 22:4 *before / around* → 29:4 *before / around* → 35:4 *before / around* → 39:3 *before / around* → 40:3 *before / around* |
+| `drawTrn` (6) | 00-core.js:917 | 00:990 → 23:319 → 36:107 → 36:170 → 48:56 → 49:20 |
+| `draw` (6) | 00-core.js:472 | 07:30 → 12:18 → 17:17 → 28:35 → 42:67 → 42:81 |
+| `showPart` (5) | 00-core.js:1000 | 00:1063 → 20:123 → 21:104 → 35:63 → 46:25 |
 | `renderHome` (5) | 01-home-report.js:98 | 08:66 → 39:192 → 43:131 → 47:8 → 47:22 |
-| `showPipe` (5) | 00-core.js:1212 | 09:102 → 20:126 → 21:58 → 35:64 → 46:26 |
+| `showPipe` (5) | 00-core.js:1215 | 09:102 → 20:126 → 21:58 → 35:64 → 46:26 |
 | `cancelAction` (5) | 13-right-click-cancels-the-current-action-like-cad.js:2 | 16:164 *before / around* → 18:124 *before / around* → 19:50 *before / around* → 20:73 *before / around* → 39:26 *before / around* |
 | `setAdd` (4) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:37 | 11:15 → 12:19 *before / around* → 20:77 *before / around* → 29:71 |
-| `setCable` (3) | 00-core.js:1023 | 11:15 → 18:73 *before / around* → 20:78 *before / around* |
+| `setCable` (3) | 00-core.js:1026 | 11:15 → 18:73 *before / around* → 20:78 *before / around* |
 | `urUndo` (3) | 12-undo-redo-buttons-ctrl-z-ctrl-y-on-any-keyboard-.js:5 | 16:165 *before / around* → 18:125 *before / around* → 20:74 *before / around* |
-| `metaHtml` (3) | 00-core.js:526 | 22:188 *before / around* → 44:11 *before / around* → 45:42 *before / around* |
-| `placeMove` (3) | 00-core.js:590 | 22:234 *before / around* → 35:70 *before / around* → 42:100 *before / around* |
+| `metaHtml` (3) | 00-core.js:529 | 22:188 *before / around* → 44:11 *before / around* → 45:42 *before / around* |
+| `placeMove` (3) | 00-core.js:593 | 22:234 *before / around* → 35:70 *before / around* → 42:100 *before / around* |
 | `renderReport` (3) | 01-home-report.js:65 | 36:216 → 53:30 → 60:6 |
-| `buildRuns` (2) | 00-core.js:99 | 00:892 → 38:13 |
+| `buildRuns` (2) | 00-core.js:99 | 00:895 → 38:13 |
 | `render` (2) | 00-core.js:339 | 03:15 *before / around* → 50:4 *before / around* |
 | `sumTotals` (2) | 00-core.js:167 | 03:16 → 29:10 |
 | `syBadge` (2) | 02-shared-online-data-claude-ai-db.js:81 | 07:51 → 14:19 |
 | `osNear` (2) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:100 | 18:24 *before / around* → 21:8 *before / around* |
-| `renderCable` (2) | 00-core.js:1025 | 18:87 → 20:30 *before / around* |
+| `renderCable` (2) | 00-core.js:1028 | 18:87 → 20:30 *before / around* |
 | `drawJob` (2) | 17-drawing-bar-done-undo-point-cancel-for-any-point.js:2 | 18:123 *before / around* → 20:71 *before / around* |
 | `tfFinish` (2) | 18-adjustable-everywhere-trench-outlines-corner-ver.js:75 | 20:19 → 21:108 |
 | `shpStart` (2) | 10-edit-the-shape-of-an-item-drag-corners-straighte.js:3 | 20:83 *before / around* → 35:71 *before / around* |
-| `applyTRE` (2) | 00-core.js:965 | 23:286 → 31:24 |
+| `applyTRE` (2) | 00-core.js:968 | 23:286 → 31:24 |
 | `openStd` (2) | 22-pit-details-from-the-pit-schedules-walls-opening.js:180 | 33:115 *before / around* → 45:40 |
 | `docRender` (2) | 33-documents-aq-da-structural-details-schedules-rfi.js:37 | 52:34 *before / around* → 60:7 |
 | `drawAdd` (1) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:59 | 03:114 |
 | `applyAdded` (1) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:5 | 09:11 |
-| `pInv` (1) | 00-core.js:1112 | 09:12 *before / around* |
+| `pInv` (1) | 00-core.js:1115 | 09:12 *before / around* |
 | `vSel` (1) | 00-core.js:333 | 09:104 *before / around* |
 | `siteOn` (1) | 07-site-mode-phone-layout-gps.js:48 | 14:18 |
 | `renderPrt` (1) | 01-home-report.js:83 | 16:180 |
 | `prtPage` (1) | 01-home-report.js:75 | 16:192 *before / around* |
 | `urCanU` (1) | 12-undo-redo-buttons-ctrl-z-ctrl-y-on-any-keyboard-.js:3 | 20:75 *before / around* |
-| `setPipe` (1) | 00-core.js:1236 | 20:79 *before / around* |
+| `setPipe` (1) | 00-core.js:1239 | 20:79 *before / around* |
 | `measSet` (1) | 09-item-properties-inspector-overrides-multi-edit-d.js:121 | 20:80 *before / around* |
 | `mpSet` (1) | 19-match-properties-one-tool-for-pits-duct-banks-tr.js:17 | 20:81 *before / around* |
 | `secStart` (1) | 16-section-anywhere-cut-line-on-the-map-longitudina.js:151 | 20:82 *before / around* |
-| `renderPipe` (1) | 00-core.js:1238 | 20:85 |
+| `renderPipe` (1) | 00-core.js:1241 | 20:85 |
 | `addClick` (1) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:58 | 20:115 *before / around* |
 | `renderAdd` (1) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:41 | 20:116 *before / around* |
-| `buildPParts` (1) | 00-core.js:1132 | 21:13 |
-| `pipePU` (1) | 00-core.js:1270 | 21:42 *before / around* |
+| `buildPParts` (1) | 00-core.js:1135 | 21:13 |
+| `pipePU` (1) | 00-core.js:1273 | 21:42 *before / around* |
 | `paFinish` (1) | 20-add-item-add-only-cable-trench-pipe-trench-pit-d.js:41 | 21:65 |
 | `paSave` (1) | 20-add-item-add-only-cable-trench-pipe-trench-pit-d.js:51 | 21:68 *before / around* |
 | `mpApply` (1) | 19-match-properties-one-tool-for-pits-duct-banks-tr.js:19 | 21:72 |
-| `cablePU` (1) | 00-core.js:1052 | 21:96 *before / around* |
-| `ductSec` (1) | 00-core.js:540 | 22:164 *before / around* |
+| `cablePU` (1) | 00-core.js:1055 | 21:96 *before / around* |
+| `ductSec` (1) | 00-core.js:543 | 22:164 *before / around* |
 | `itHandles` (1) | 18-adjustable-everywhere-trench-outlines-corner-ver.js:52 | 22:208 *before / around* |
 | `pdDrawPlan` (1) | 22-pit-details-from-the-pit-schedules-walls-opening.js:24 | 22:231 |
 | `pdSyncFoot` (1) | 22-pit-details-from-the-pit-schedules-walls-opening.js:202 | 22:233 |
 | `pState` (1) | 00-core.js:113 | 22:237 *before / around* |
-| `pSize` (1) | 00-core.js:1108 | 22:238 *before / around* |
-| `fitBox` (1) | 00-core.js:451 | 26:41 *before / around* |
+| `pSize` (1) | 00-core.js:1111 | 22:238 *before / around* |
+| `fitBox` (1) | 00-core.js:454 | 26:41 *before / around* |
 | `pass` (1) | 00-core.js:129 | 29:9 *before / around* |
-| `aqFind` (1) | 00-core.js:841 | 33:114 |
-| `openAQ` (1) | 00-core.js:842 | 33:115 *before / around* |
+| `aqFind` (1) | 00-core.js:844 | 33:114 |
+| `openAQ` (1) | 00-core.js:845 | 33:115 *before / around* |
 | `setStatus` (1) | 00-core.js:351 | 35:40 *before / around* |
-| `setPart` (1) | 00-core.js:996 | 35:41 *before / around* |
+| `setPart` (1) | 00-core.js:999 | 35:41 *before / around* |
 | `revRetag` (1) | 29-review-first-confirm-every-item-then-every-statu.js:42 | 35:72 *before / around* |
 | `dAq` (1) | 33-documents-aq-da-structural-details-schedules-rfi.js:23 | 39:186 *before / around* |
 | `dEmpty` (1) | 33-documents-aq-da-structural-details-schedules-rfi.js:31 | 45:39 *before / around* |

@@ -22,5 +22,3 @@
    if(t||(e.target.closest('.main>.panel:first-child button')&&/show on map/i.test(e.target.closest('button').textContent)))setTimeout(()=>{B.classList.remove('drawer');try{resize()}catch(_){}},60)});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&B.classList.contains('mtop'))mtop(false)});
  const _gv3=goView;goView=function(v){if(v!=='dash')mtop(false);return _gv3.apply(this,arguments)}}
-try{render()}catch(_){}
-})();
