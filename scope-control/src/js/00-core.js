@@ -472,11 +472,11 @@ function lblPlan(L,fs,r0,sig,pr){const cw=fs*.6,lh=fs+2,C=56,G=new Map(),K=(i,j)
 function draw(){if(!W)return;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle=css('--map-bg');ctx.fillRect(0,0,W,H);
   const vis=(x,y)=>x>-50&&x<W+50&&y>-50&&y<H+50;
   ctx.lineCap=(!PR&&sc<3)?'butt':'round';
-  const FAR=!PR&&sc<2.5;const segs=(arr,col,w)=>{ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();for(const s of arr){let x1=X(s[0]),y1=Y(s[1]),x2=X(s[2]),y2=Y(s[3]);if(Math.max(x1,x2)<-50||Math.min(x1,x2)>W+50||Math.max(y1,y2)<-50||Math.min(y1,y2)>H+50)continue;if(FAR){x1=Math.round(x1*2)/2;y1=Math.round(y1*2)/2;x2=Math.round(x2*2)/2;y2=Math.round(y2*2)/2;if(x1===x2&&y1===y2)continue}ctx.moveTo(x1,y1);ctx.lineTo(x2,y2)}ctx.stroke()};
+  const FAR=!PR&&sc<2.5;const segs=(arr,col,w)=>{if(!arr)return;ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();for(const s of arr){let x1=X(s[0]),y1=Y(s[1]),x2=X(s[2]),y2=Y(s[3]);if(Math.max(x1,x2)<-50||Math.min(x1,x2)>W+50||Math.max(y1,y2)<-50||Math.min(y1,y2)>H+50)continue;if(FAR){x1=Math.round(x1*2)/2;y1=Math.round(y1*2)/2;x2=Math.round(x2*2)/2;y2=Math.round(y2*2)/2;if(x1===x2&&y1===y2)continue}ctx.moveTo(x1,y1);ctx.lineTo(x2,y2)}ctx.stroke()};
   const L=k=>PR?true:layers[k];
   const FOC=focusOn();if(FOC)ctx.globalAlpha=(window.SET&&window.SET.fade!=null)?+window.SET.fade:.3;
   if(L('road'))segs(D.road,css('--map-road'),1);
-  const DT=D.det;
+  const DT=D.det||{}; // CAD detail arrives a moment after the first paint (62-lazy-detail)
   if(L('bld')){if(sc>1.2)segs(DT.m,css('--map-minor'),.6);segs(DT.w,css('--map-bld-line'),Math.max(.6,Math.min(1.4,sc*.18)))}
   if(L('found')&&sc>0.8){ctx.setLineDash([3,2]);segs(DT.f,css('--map-found'),.7);ctx.setLineDash([])}
   if(L('net'))segs(D.net,css('--map-net'),Math.max(.5,Math.min(1.2,sc*.15)));
