@@ -27,7 +27,7 @@ Before changing a function below, read every wrapper listed for it.
 | `buildRuns` (2) | 00-core.js:99 | 00:895 → 38:13 |
 | `render` (2) | 00-core.js:339 | 03:15 *before / around* → 50:4 *before / around* |
 | `sumTotals` (2) | 00-core.js:167 | 03:16 → 29:10 |
-| `syBadge` (2) | 02-shared-online-data-claude-ai-db.js:81 | 07:51 → 14:19 |
+| `syBadge` (2) | 02-shared-online-data-claude-ai-db.js:140 | 07:51 → 14:19 |
 | `osNear` (2) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:100 | 18:24 *before / around* → 21:8 *before / around* |
 | `renderCable` (2) | 00-core.js:1028 | 18:87 → 20:30 *before / around* |
 | `drawJob` (2) | 17-drawing-bar-done-undo-point-cancel-for-any-point.js:2 | 18:123 *before / around* → 20:71 *before / around* |
