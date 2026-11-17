@@ -283,16 +283,16 @@ async function gfApply(list,o){o=o||{};list=list.filter(c=>c.tag);if(!list.lengt
     else if(bad)toast('Fill gaps did not run: '+bad.err)};
   setTimeout(tick,4000)})();
 // keep the list current after undo / sync / other edits
-{const _a=applyTRE;applyTRE=function(){_a();if(GF){clearTimeout(GF.rt);GF.rt=setTimeout(()=>{if(GF){gfCompute();if(GF.sel&&!gfFind(GF.sel))GF.sel=null;gfPan();draw()}},80)}}}
+{hkAfter('applyTRE',function(){if(GF){clearTimeout(GF.rt);GF.rt=setTimeout(()=>{if(GF){gfCompute();if(GF.sel&&!gfFind(GF.sel))GF.sel=null;gfPan();draw()}},80)}});}
 // map overlay
-{const _dn=drawNotes;drawNotes=function(){_dn();if(!GF||(typeof PR!=='undefined'&&PR))return;ctx.save();
+{hkAfter('drawNotes',function(){if(!GF||(typeof PR!=='undefined'&&PR))return;ctx.save();
   const band=(s,W,col,on,show,fillA)=>{const [u,L]=gfU(s);if(L<0.01)return;const n=[-u[1]*W/2,u[0]*W/2],P=[[s[0]+n[0],s[1]+n[1]],[s[2]+n[0],s[3]+n[1]],[s[2]-n[0],s[3]-n[1]],[s[0]-n[0],s[1]-n[1]]];
       ctx.beginPath();P.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));ctx.closePath();
       ctx.fillStyle=col;ctx.globalAlpha=(show?1:.35)*(on?.45:fillA);ctx.fill();ctx.globalAlpha=show?1:.35;
       ctx.setLineDash(on?[]:[6,4]);ctx.lineWidth=on?3:1.6;ctx.strokeStyle=on?'#111827':col;ctx.stroke()};
   if(GF.tab!=='o')for(const c of GF.c){const on=GF.sel===c.id,show=c.conf===GF.tab||on;const col=c.sys?TCOL[c.sys]||'#555':'#555';for(const s of c.segs)band(s,c.W,col,on,show,.22)}
   else for(const o of GF.o||[]){const on=GF.sel===o.id;band(gfSegsOf(o)[0],o.cut.W,'#d6336c',on,true,.35)}
-  ctx.setLineDash([]);ctx.restore()}}
+  ctx.setLineDash([]);ctx.restore()});}
 // click on a dashed outline picks it in the list
 {let dn=null;cv.addEventListener('pointerdown',e=>{if(!GF||e.button)return;dn=[e.clientX,e.clientY]},{capture:true});
   cv.addEventListener('pointerup',e=>{if(!GF||!dn)return;const mv=Math.hypot(e.clientX-dn[0],e.clientY-dn[1]);dn=null;if(mv>6)return;
@@ -316,8 +316,8 @@ function gfCaps(){const PP=window.__PARTS||[];if(GFCAP.P===PP)return GFCAP.L;con
     if(tA<-0.05||tB<-0.05||tA>qb.W/2+0.1||tB>qa.W/2+0.1)continue;
     out.push({p:qa.p,X,oA:A.o,oB:B.o,WA:qa.W,WB:qb.W})}}
   GFCAP={P:PP,L:out};return out}
-{const _dt=drawTrn;drawTrn=function(){_dt();if(!D.trn||(!PR&&layers.trn===0)||(sc<0.25&&!PR)||cat==='PIT')return;
+{hkAfter('drawTrn',function(){if(!D.trn||(!PR&&layers.trn===0)||(sc<0.25&&!PR)||cat==='PIT')return;
   for(const c of gfCaps()){const st=pState(c.p),on=!selTrn||selTrn===c.p.tr,a=[c.X[0]+c.oB[0]*c.WA/4,c.X[1]+c.oB[1]*c.WA/4],b=[a[0]+c.oA[0]*c.WB/2,a[1]+c.oA[1]*c.WB/2];
     stRun([[X(a[0]),Y(a[1])],[X(b[0]),Y(b[1])]],TCOL[c.p.tr[1]]||'#555',Math.max(1,c.WA/2*sc),st,on?1:.12)}
-  ctx.globalAlpha=1;ctx.lineCap='round'}}
+  ctx.globalAlpha=1;ctx.lineCap='round'});}
 try{Object.assign(window.__T,{gfCaps:()=>gfCaps(),gfCalc:()=>gfCalc()})}catch(_){}

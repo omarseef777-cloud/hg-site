@@ -114,7 +114,7 @@ function h2Build(){const hv=document.getElementById('homev');if(!hv||document.ge
     if(t.closest('#h2map')||t.closest('#h2md')){goView('dash');return}if(t.closest('#h2la')){repSel='log';save('scope.rep2',repSel);goView('rep');renderReport();return}
     const a=t.closest('.al');if(a){const k=a.dataset.k;if(k==='au')auOpen('');else if(k==='al'){repSel='alerts';save('scope.rep2','alerts');goView('rep')}else if(k==='dec')goView('dec');return}
     const ev=t.closest('.ev');if(ev&&ev.dataset.id){const g=logTarget(ev.dataset.id);if(!g)return;goView('dash');if(g.k==='item')focusTag(g.id);else{const p=g.p;if(p.pts){const xs=p.pts.map(q=>q[0]),ys=p.pts.map(q=>q[1]);fitBox(Math.min(...xs)-10,Math.max(...xs)+10,Math.min(...ys)-10,Math.max(...ys)+10);showPipe(p)}else{fitBox(Math.min(p.x0,p.x1)-10,Math.max(p.x0,p.x1)+10,Math.min(p.y0,p.y1)-10,Math.max(p.y0,p.y1)+10);showPart(p)}}}})}
-function h2Ref(){try{h2Build();const hv=document.getElementById('homev');if(!hv||hv.hidden)return;hv.classList.toggle('lt',H2.th==='light');document.getElementById('h2th').textContent=H2.th==='dark'?'☀ Light':'☾ Dark';
+function h2Ref__base(){try{h2Build();const hv=document.getElementById('homev');if(!hv||hv.hidden)return;hv.classList.toggle('lt',H2.th==='light');document.getElementById('h2th').textContent=H2.th==='dark'?'☀ Light':'☾ Dark';
   let nA=0,nC=0;try{const A=alertsCalc(),LV=alAct(A.lvl);nA=LV.length+alAct(A.seq).length;nC=LV.filter(a=>a.gap<0).length}catch(_){}
   let au=[];try{au=auList()}catch(_){}const cn=t=>au.filter(z=>z.t===t).length,nS=cn('short'),nT=cn('thru'),nD=(()=>{try{return decCount()}catch(_){return 0}})();
   const E=h2Events(),e0=E[0],onl=!!(SYN&&SYN.user),who=e=>e.uid?(onl?`<span data-uid="${esc(e.uid)}">…</span>`:''):esc(e.by||'');
@@ -128,7 +128,8 @@ function h2Ref(){try{h2Build();const hv=document.getElementById('homev');if(!hv|
   const ev=document.getElementById('h2ev');ev.innerHTML=E.slice(0,8).map(e=>`<button class="ev" type="button" data-id="${esc(String(e.id||''))}"><span class="t">${esc(tm(e.t))}</span><span class="m"><b>${esc(e.nm||e.k||'')}</b><span>${[esc(e.k||''),who(e)].filter(Boolean).join(' · ')}</span></span>${e.v?`<span class="st" style="background:${col(e.raw)}">${esc(e.v)}</span>`:''}</button>`).join('')||'<div class="evn">No updates recorded yet.</div>';
   try{syNames(document.getElementById('h2x'))}catch(_){}
   clearTimeout(H2.t);H2.t=setTimeout(h2Snap,120)}catch(e){console.warn('home2',e)}}
-{const _rh=renderHome;renderHome=function(){_rh();setTimeout(h2Ref,0)}}
+function h2Ref(){const h=HK.h2Ref,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=h2Ref__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+{hkAfter('renderHome',function(){setTimeout(h2Ref,0)});}
 addEventListener('resize',()=>{clearTimeout(H2.t);H2.t=setTimeout(h2Snap,400)});
 h2Build();try{drawRings()}catch(_){}setTimeout(h2Ref,0);
 

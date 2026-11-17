@@ -1,6 +1,6 @@
 // ================= 3D model of a selected area (built from the program's own data) =================
 let M3S=LS('scope.m3d',{})||{};SYMAP['scope.m3d']={col:'m3d',t:'map',lab:'3D model'};
-{const _rk=restoreKey;restoreKey=function(k,s){if(k==='scope.m3d'){try{M3S=(s?JSON.parse(s):{})||{}}catch(_){M3S={}}setTimeout(()=>{try{m3List();p1Refresh()}catch(_){}},0)}return _rk(k,s)}}
+{hkBefore('restoreKey',function(k,s){if(k==='scope.m3d'){try{M3S=(s?JSON.parse(s):{})||{}}catch(_){M3S={}}setTimeout(()=>{try{m3List();p1Refresh()}catch(_){}},0)}});}
 const M3={pick:null,box:null,view:null};window.__M3pick=()=>!!(M3.pick||M3.box);
 {const s=document.createElement('style');s.textContent=`#m3v{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;flex-direction:column}#m3v[hidden]{display:none}
 #m3v .m3bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel)}#m3v .m3bar h1{font-size:15px;margin:0 8px 0 0;letter-spacing:.06em;text-transform:uppercase}
@@ -189,5 +189,5 @@ dvEl.addEventListener('change',e=>{if(e.target.id==='cmpin'&&e.target.files[0]){
 {const mk=(id,ico,t,p,go,attr)=>{const b=document.createElement('button');b.className='hcard';b.id=id;if(attr)b.setAttribute(attr[0],attr[1]);b.innerHTML=`<span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ico}</svg></span><h2>${t}</h2><p>${p}</p><span class="go">${go}</span>`;return b};
   const m3c=mk('hm3d','<path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12"/><path d="M21 7l-9 5-9-5"/>','3D models','Saved 3D views of selected areas. Open, print or delete them.','Open →',['data-home','m3list']);document.querySelector('.hcard[data-home="docs"]').after(m3c);
   const a=document.querySelector('a.hcard[href*="hg-site"]');if(a){const b=document.createElement('button');b.className='hcard';b.id='hsite';b.setAttribute('data-site','1');b.innerHTML=a.innerHTML;const h=b.querySelector('h2'),p=b.querySelector('p'),g=b.querySelector('.go');if(h)h.textContent='Site update';if(p)p.textContent='Update status from the phone with the work date, source and a photo.';if(g)g.textContent='Open →';a.replaceWith(b)}}
-{const _rh=renderHome;renderHome=function(){_rh();p1Refresh()}}
+{hkAfter('renderHome',function(){p1Refresh()});}
 window.__delOut=delOut;

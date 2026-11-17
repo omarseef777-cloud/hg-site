@@ -31,8 +31,8 @@ function gpsUi(){document.querySelectorAll('[data-gps]').forEach(b=>{b.classList
   const r=Math.max(10,(GPS.acc||0)*sc);ctx.fillStyle='rgba(26,115,232,.12)';ctx.strokeStyle='rgba(26,115,232,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.fillStyle='#1a73e8';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.stroke();ctx.fill();ctx.restore()}}
 // "I'm standing at this item" – shifts the GPS dot to match the drawing (kept on this phone)
-{const _si=showInfo;showInfo=function(it){_si(it);if(!GPS.on||!GPS.raw||GPS.pasted)return;const el=document.getElementById('info');const d=document.createElement('div');d.className='acts gpsfix';
-  d.innerHTML=`<button class="btn sm" data-gpshere="1">I'm standing at this item</button>${GPS.off[0]||GPS.off[1]?'<button class="btn sm ghost" data-gpsreset="1">Reset GPS shift</button>':''}`;el.appendChild(d)}}
+{hkAfter('showInfo',function(it){if(!GPS.on||!GPS.raw||GPS.pasted)return;const el=document.getElementById('info');const d=document.createElement('div');d.className='acts gpsfix';
+  d.innerHTML=`<button class="btn sm" data-gpshere="1">I'm standing at this item</button>${GPS.off[0]||GPS.off[1]?'<button class="btn sm ghost" data-gpsreset="1">Reset GPS shift</button>':''}`;el.appendChild(d)});}
 document.getElementById('info').addEventListener('click',e=>{const t=e.target;
   if(t.closest('[data-gpshere]')&&GPS.raw&&focusKey&&byKey[focusKey]){const it=byKey[focusKey];GPS.off=[it.e-GPS.raw[0],it.n-GPS.raw[1]];save('scope.gpsoff',GPS.off);GPS.pos=[it.e,it.n];toast('GPS matched to '+short(it.key)+' (shift '+Math.round(Math.hypot(...GPS.off))+' m)');gpsUi();draw();showInfo(it)}
   if(t.closest('[data-gpsreset]')){GPS.off=[0,0];save('scope.gpsoff',GPS.off);if(GPS.raw)GPS.pos=GPS.raw.slice();gpsUi();draw();if(focusKey&&byKey[focusKey])showInfo(byKey[focusKey])}});
@@ -45,10 +45,11 @@ document.getElementById('info').addEventListener('click',e=>{const t=e.target;
   const up=e=>{if(!TP.has(e.pointerId))return;TP.delete(e.pointerId);if(pin){e.stopImmediatePropagation();drag=null;moved=true;if(TP.size<2)pin=null}};
   cv.addEventListener('pointerup',up,{capture:true});cv.addEventListener('pointercancel',up,{capture:true})}
 // site bar
-function siteOn(on){document.body.classList.toggle('site',on);if(on)document.body.classList.add('ro');else syBadge();if(focusKey&&byKey[focusKey]&&!document.getElementById('info').hidden)showInfo(byKey[focusKey]);if(on){goView('dash');try{if(pipeMode)setPipe(null);if(cableMode)setCable(null);setEdit(false);setBox(false)}catch(_){}}
+function siteOn__base(on){document.body.classList.toggle('site',on);if(on)document.body.classList.add('ro');else syBadge();if(focusKey&&byKey[focusKey]&&!document.getElementById('info').hidden)showInfo(byKey[focusKey]);if(on){goView('dash');try{if(pipeMode)setPipe(null);if(cableMode)setCable(null);setEdit(false);setBox(false)}catch(_){}}
   else{const r=document.getElementById('siteres');if(r)r.hidden=true}
   try{localStorage.setItem('scope.site',on?'1':'0')}catch(_){}setTimeout(()=>{resize();draw()},30);gpsUi()}
-{const _sb=syBadge;syBadge=function(){_sb();if(document.body.classList.contains('site'))document.body.classList.add('ro')}}
+function siteOn(){const h=HK.siteOn,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=siteOn__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+{hkAfter('syBadge',function(){if(document.body.classList.contains('site'))document.body.classList.add('ro')});}
 document.getElementById('info').addEventListener('click',e=>{if(!document.body.classList.contains('site'))return;if(e.target.closest('.sitest'))return;if(e.target.closest('[data-setst],[data-pst],[data-move],[data-unmove],[data-planone],[data-xone],[data-sarea],select,input')){e.stopImmediatePropagation();e.preventDefault()}},{capture:true});
 document.getElementById('info').addEventListener('change',e=>{if(document.body.classList.contains('site')&&!e.target.closest('.sitest'))e.stopImmediatePropagation()},{capture:true});
 {const mw=document.getElementById('mapwrap');const bar=document.createElement('div');bar.id='sitebar';bar.className='sitebar';

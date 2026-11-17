@@ -17,4 +17,4 @@
    const g=c.getContext('2d');g.setTransform(1,0,0,1,0,0);g.fillStyle='#d9c3a5';g.fillRect(0,0,c.width,c.height);if(!SAT.on)return;satPaint(g,W,H,dpr,sc,ox,oy,0)};
  SATL.add(()=>{if(SAT.cv&&SAT.on&&!SAT.raf)SAT.raf=requestAnimationFrame(satDraw)});
  // draw the imagery in the same frame as the drawing (smooth zoom and pinch skip draw(), so hook the frame itself)
- {const _dt=drawTrn;drawTrn=function(){const r=_dt.apply(this,arguments);if(SAT.cv&&SAT.on&&!PR&&ctx===cv.getContext('2d'))try{satDraw()}catch(_){}return r}}}
+ {hkAfter('drawTrn',function(){if(SAT.cv&&SAT.on&&!PR&&ctx===cv.getContext('2d'))try{satDraw()}catch(_){}});}}

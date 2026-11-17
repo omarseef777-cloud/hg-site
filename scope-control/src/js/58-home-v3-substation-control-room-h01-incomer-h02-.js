@@ -157,6 +157,6 @@ function h3Ref(){try{h3Build();const hv=document.getElementById('homev');if(!hv|
   document.getElementById('h3met').innerHTML=L.map(([tg,n,d,t,u,c])=>`<div class="sm" title="${esc(n)}: ${fmt(d)} of ${fmt(t)} ${u}">${h3Meter(t>0?d/t*100:0,c)}<span class="pl">${tg}</span><span class="nm">${esc(n)}</span><span class="rd">${fmt(d)} / ${fmt(t)} ${u}</span></div>`).join('');
   try{syNames(lg)}catch(_){}
  }catch(e){console.warn('home3',e)}}
-{const _r=h2Ref;h2Ref=function(){_r.apply(this,arguments);h3Ref()}}
+{hkAfter('h2Ref',function(){h3Ref()});}
 h3Build();setTimeout(h3Ref,0);
 

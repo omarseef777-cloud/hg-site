@@ -53,7 +53,7 @@
    p.onclick=ev=>{const t=ev.target;if(t.closest('[data-cdx]')){close();return}if(t.closest('[data-cdgo]')){const [e,n]=val();goTo(e,n);if(!tool)close();return}if(t.closest('[data-cdadd]')){const [e,n]=val();addPointAt(e,n);toast('Point added at E '+e.toFixed(3)+'  N '+n.toFixed(3))}};
    p.onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();const b=p.querySelector(tool?'[data-cdadd]':'[data-cdgo]');if(b)b.click()}else if(ev.key==='Escape'){ev.stopPropagation();close()}};
    ie.addEventListener('paste',ev=>{const s=(ev.clipboardData||window.clipboardData).getData('text');const m=coordRe.exec(s||'');if(m){ev.preventDefault();ie.value=m[1];inn.value=m[2]}})}
- {const _dt=drawTrn;drawTrn=function(){_dt.apply(this,arguments);if(!CT.mark||!W||PR)return;const x=X(CT.mark.e),y=Y(CT.mark.n);ctx.save();ctx.strokeStyle='#e8590c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,10,0,7);ctx.moveTo(x-16,y);ctx.lineTo(x-4,y);ctx.moveTo(x+4,y);ctx.lineTo(x+16,y);ctx.moveTo(x,y-16);ctx.lineTo(x,y-4);ctx.moveTo(x,y+4);ctx.lineTo(x,y+16);ctx.stroke();ctx.font='600 11px JetBrains Mono, monospace';ctx.fillStyle='#e8590c';ctx.fillText('E '+CT.mark.e.toFixed(2)+'  N '+CT.mark.n.toFixed(2),x+14,y-12);ctx.restore()}}
+ {hkAfter('drawTrn',function(){if(!CT.mark||!W||PR)return;const x=X(CT.mark.e),y=Y(CT.mark.n);ctx.save();ctx.strokeStyle='#e8590c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,10,0,7);ctx.moveTo(x-16,y);ctx.lineTo(x-4,y);ctx.moveTo(x+4,y);ctx.lineTo(x+16,y);ctx.moveTo(x,y-16);ctx.lineTo(x,y-4);ctx.moveTo(x,y+4);ctx.lineTo(x,y+16);ctx.stroke();ctx.font='600 11px JetBrains Mono, monospace';ctx.fillStyle='#e8590c';ctx.fillText('E '+CT.mark.e.toFixed(2)+'  N '+CT.mark.n.toFixed(2),x+14,y-12);ctx.restore()});}
  // ---- select similar / select all visible
  const famK=k=>{try{return famOf(k)}catch(_){return short(k).split('-').slice(0,2).join('-')}};
  function selSet(keys,parts){MSI.clear();MSP.clear();(keys||[]).forEach(k=>MSI.add(k));(parts||[]).forEach(id=>MSP.add(id));if(!msOn()){toast('Nothing to select');msClear();return}msSync();msCard()}
@@ -78,7 +78,7 @@
    else if(k==='v'&&CT.clip){e.preventDefault();e.stopImmediatePropagation();if(roNow()){toast('View only');return}if(busy()){toast('Finish or cancel the current tool first');return}startDup(CT.clip)}
    else if(k==='a'&&!busy()){e.preventDefault();e.stopImmediatePropagation();selectAll()}
    else if(k==='g'){e.preventDefault();e.stopImmediatePropagation();coordPop()}},true);
- {const _si=showInfo;showInfo=function(it){CT.cardKey=it&&it.key;return _si.apply(this,arguments)}}
+ {hkBefore('showInfo',function(it){CT.cardKey=it&&it.key;});}
  // ---- repeat the last tool: tap Space (hold Space still pans)
  const TOOLS={measbtn:'Measure',secbtn:'Section',notebtn:'Comment',matchbtn:'Match properties',gfbtn:'Fill gaps',boxbtn:'Select area'};
  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(!b||!e.isTrusted&&!b.dataset.ctlRep)return;if(b.id&&TOOLS[b.id]&&!b.classList.contains('on'))CT.last={id:b.id,lab:TOOLS[b.id]};else if(b.dataset.addk)CT.last={addk:b.dataset.addk,lab:({Pit:'Add pit',DB:'Add duct bank',pipe:'Add pipe trench',cable:'Add cable trench'})[b.dataset.addk]}},true);
@@ -113,7 +113,7 @@
  function kpiOne(k,f){k.style.cursor='pointer';k.tabIndex=0;k.title=f?'Show only these on the map and lists (click again to show all)':'Show all';const on=f&&stEq(filt.st,f);k.classList.toggle('kon',!!on);
    const go=()=>{const cur=f&&stEq(filt.st,f);filt.st=(!f||cur)?FDEF().st:f.slice();try{saveAll()}catch(_){}render();toast(!f||cur?'Showing all statuses':'Showing: '+f.map(s=>ST_LABEL[s]||s).join(', '))};k.onclick=go;k.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}}
  {const s=document.createElement('style');s.textContent='.msq span{color:var(--muted)}.msq b{text-align:right;font-family:var(--f-mono);font-weight:600}.kpi.kon{box-shadow:0 0 0 2px var(--c,var(--accent)) inset}.kpi[tabindex]:hover{transform:translateY(-1px)}#viewsbtn{white-space:nowrap}';document.head.appendChild(s)}
- {const _rk=renderKPIs;renderKPIs=function(){_rk.apply(this,arguments);try{kpiWire()}catch(_){}}}try{kpiWire()}catch(_){}
+ {hkAfter('renderKPIs',function(){try{kpiWire()}catch(_){}});}try{kpiWire()}catch(_){}
  if(location.protocol==='file:')window.__ctlT={cs:(x,y)=>cornerSnap(x,y),XY:(e,n)=>[X(e),Y(n)],it:k=>byKey[k],items:()=>items.filter(showIt).map(i=>[i.key,i.e,i.n]),meas:()=>MEAS&&MEAS.pts.slice(),ms:()=>[MSI.size,MSP.size],filt:()=>filt.st.slice(),dup:()=>!!dupMode,add:()=>[!!addMode,!!PADD,cableMode],view:()=>[ox,oy,sc],busy,pst:q=>pState(q),open:(t,id)=>{if(t==='item')showInfo(items.find(i=>i.key.includes(id)));else if(t==='part')showPart(window.__PARTS.find(q=>q.id===id));else showPipe(window.__PP.find(q=>q.id===id))},sel:()=>[selTrn&&selTrn[0],selPart&&selPart.id,typeof selPipe!=='undefined'&&selPipe&&selPipe.id],hit:(x,y)=>mmHit(x,y),fk:()=>focusKey,setSc:v=>{const c=[SX(W/2),SY(H/2)];sc=v;ox=c[0]-W/2/sc;oy=c[1]+H/2/sc;draw()}};
  Object.assign(CT,{lastPt,coordPop,goTo,addPointAt,selectAll,zoomSel,addKind,repeatTool,viewMenu:viewsKey,views,viewGo,similarItems,similarParts,selSet});
 }

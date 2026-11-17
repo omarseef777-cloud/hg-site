@@ -22,6 +22,6 @@
    const a=el.querySelector('.acts');if(a)a.before(d);else el.appendChild(d);
    d.querySelectorAll('[data-bfm]').forEach(b=>b.onclick=()=>{const v=d.querySelector('#bfm').value;if(!/^\d{4}-\d\d$/.test(v)){toast('Choose a month first');return}
      const L=(b.dataset.bfm==='one'?[p]:many()).filter(x=>pState(x)==='R');L.forEach(x=>{const cur=((EVT[x.id]&&EVT[x.id].L)||[]).filter(e=>e.src!=='Month record');EVT[x.id]={L:cur};evtAdd(x.id,'R',v+'-01','Month record')});evtSave();toast(L.length+' backfilled part'+(L.length===1?'':'s')+' → '+mLab(v));again()})};
- const _sp=showPart;showPart=function(p){_sp(p);try{box(p,()=>(window.__PARTS||[]).filter(x=>x.tr===p.tr),'Whole trench',()=>showPart(p))}catch(_){}};
- const _sq=showPipe;showPipe=function(p){_sq(p);try{box(p,()=>(window.__PP||[]).filter(x=>x.util===p.util&&bmOf(x)==='No date'),'All '+p.util+' with no month',()=>showPipe(p))}catch(_){}};
+ hkAfter('showPart',function(p){try{box(p,()=>(window.__PARTS||[]).filter(x=>x.tr===p.tr),'Whole trench',()=>showPart(p))}catch(_){}});
+ hkAfter('showPipe',function(p){try{box(p,()=>(window.__PP||[]).filter(x=>x.util===p.util&&bmOf(x)==='No date'),'All '+p.util+' with no month',()=>showPipe(p))}catch(_){}});
  try{if(/[?&]p1test/.test(location.search))window.__prodT={bmOf,box:()=>{const p=(window.__PP||[]).find(x=>pState(x)==='R');showPipe(p);return !!document.getElementById('bfm')},rep:()=>prodHtml().length,q:()=>{const Q=qtyAll();return [Q.T.pipe.bfD,Q.T.cable.bfD,Q.T.pipe.sandD,Q.T.cable.sandD,Q.T.cable.tileD]}}}catch(_){}}

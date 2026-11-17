@@ -59,21 +59,22 @@ cv.addEventListener('pointermove',e=>{if(e.buttons||TRH||SHP)return;const r=cv.g
 function hSq(x,y,fill){ctx.fillStyle=fill;ctx.strokeStyle=css('--accent');ctx.lineWidth=1.6;ctx.beginPath();ctx.rect(x-5,y-5,10,10);ctx.fill();ctx.stroke()}
 function hMid(x,y){ctx.fillStyle='#fff';ctx.strokeStyle=css('--accent');ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,4.5,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-2.5,y);ctx.lineTo(x+2.5,y);ctx.moveTo(x,y-2.5);ctx.lineTo(x,y+2.5);ctx.stroke()}
 function hCen(x,y){ctx.fillStyle='#fff';ctx.strokeStyle=css('--accent');ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-4,y);ctx.lineTo(x+4,y);ctx.moveTo(x,y-4);ctx.lineTo(x,y+4);ctx.stroke()}
-{const _dn=drawNotes;drawNotes=function(){_dn();if(typeof PR!=='undefined'&&PR)return;ctx.save();
+{hkAfter('drawNotes',function(){if(typeof PR!=='undefined'&&PR)return;ctx.save();
   if(selPart&&(adjOK()||TRH)&&(window.__PARTS||[]).includes(selPart)){const p=selPart;if(p.poly){ctx.strokeStyle=css('--ink');ctx.lineWidth=1.2;ctx.setLineDash([5,4]);trPolyPath(p.poly);ctx.stroke();ctx.setLineDash([])}
     trHandles(p).forEach(h=>h.k==='v'?hSq(h.x,h.y,css('--accent')):h.k==='m'?hMid(h.x,h.y):hCen(h.x,h.y));if(TRH&&SNAPH)try{drawSnapMark(SNAPH)}catch(_){}
     if(p.poly&&sc>2){const c=[(X(p.x0)+X(p.x1))/2,(Y(p.y0)+Y(p.y1))/2];ctx.font='600 11px '+css('--f-mono');ctx.textAlign='center';const t=f2(p.area)+' m²',w=ctx.measureText(t).width+8;ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(c[0]-w/2,c[1]+10,w,15);ctx.fillStyle=css('--ink');ctx.fillText(t,c[0],c[1]+21)}}
   if(selPipe&&adjOK()){const P=selPipe.pts;for(let i=0;i<P.length-1;i++){const ax=X(P[i][0]),ay=Y(P[i][1]),bx=X(P[i+1][0]),by=Y(P[i+1][1]);if(Math.hypot(bx-ax,by-ay)>=44)hMid((ax+bx)/2,(ay+by)/2)}}
   if(focusKey&&itAdjOK(focusKey))itHandles(focusKey).forEach(h=>h.k==='v'?hSq(h.x,h.y,'#fff'):hCen(h.x,h.y));
-  ctx.restore()}}
+  ctx.restore()});}
 // ---- new cable trench by points (fill an outline) ----
 {const keep=Object.entries(CM);keep.forEach(([k])=>delete CM[k]);CM.fill=['New trench','Existing trenches are locked while you add. Click the corners of the new outline – every point snaps to the drawing.'];keep.forEach(([k,v])=>CM[k]=v);
   CM.ends[1]='Drag the end of a part to make it longer or shorter. Select a part to drag its corners too.'}
 function tfStart(){TF={pts:[],hov:null,form:null};partDrag=null;TRH=null;cv.style.cursor='crosshair';selPart=null;document.getElementById('info').hidden=true;draw()}
 {const _sc=setCable;setCable=function(m){if(m!=='fill'){TF=null}_sc(m);if(m==='fill')tfStart();renderCable()}}
 function tfGuess(P){const ax=trAxis(P);let best=null,bd=4;(window.__PARTS||[]).forEach(p=>{const d=dseg(ax.c[0],ax.c[1],[p.x0,p.y0],[p.x1,p.y1])-(p.tr[2]||0)/2;if(d<bd){bd=d;best=p}});return {ax,tr:best?best.tr:null}}
-function tfFinish(){if(!TF)return;if(TF.pts.length<3){toast('Click at least 3 corners of the trench');return}const g=tfGuess(TF.pts);
+function tfFinish__base(){if(!TF)return;if(TF.pts.length<3){toast('Click at least 3 corners of the trench');return}const g=tfGuess(TF.pts);
   TF.form={tag:g.tr?short(g.tr[0]):'',sys:g.tr?g.tr[1]:'EY',W:+(g.tr?g.tr[2]:Math.max(0.3,Math.round(g.ax.W*20)/20)).toFixed(2),st:'N',ax:g.ax};cv.style.cursor='';renderCable();draw();setTimeout(()=>{const i=document.getElementById('tftag');if(i)i.focus()},40)}
+function tfFinish(){const h=HK.tfFinish,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=tfFinish__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 const tfTag=v=>{let t=String(v||'').trim().toUpperCase().replace(/\s+/g,'');if(t&&!/^MM\d/.test(t))t='MM5100790U-'+t;return t};
 function tfFormHtml(){const f=TF.form,tg=tfTag(f.tag),ex=(D.trn||[]).find(t=>t[0]===tg);const STL=[['N','Not started'],['Y','Excavated'],['R','Backfilled']];
   return `<div class="tff"><div class="hint">Outline · ${TF.pts.length} points · area <b>${f2(f.ax.A)} m²</b> · ${f2(f.ax.L)} × ${f2(f.ax.W)} m</div>
@@ -115,11 +116,11 @@ function confirmTag(tag){toast('Tag '+short(tag)+' does not look like a cable tr
   cv.addEventListener('pointermove',e=>{if(!TF||TF.form||e.buttons)return;const r=cv.getBoundingClientRect();mvq=[e.clientX-r.left,e.clientY-r.top];if(mvr)return;mvr=requestAnimationFrame(()=>{mvr=0;if(!TF||TF.form||!mvq)return;TF.hov=osn(mvq[0],mvq[1]);draw()})},{capture:true});
   cv.addEventListener('dblclick',e=>{if(!TF||TF.form)return;e.stopImmediatePropagation();e.preventDefault();const a=TF.pts[TF.pts.length-1],b=TF.pts[TF.pts.length-2];if(a&&b&&Math.hypot(a[0]-b[0],a[1]-b[1])<0.05)TF.pts.pop();tfFinish()},{capture:true});
   document.addEventListener('keydown',e=>{if(!TF||TF.form||(e.target.closest&&e.target.closest('input,textarea,select')))return;if(e.key==='Enter'){e.preventDefault();tfFinish()}else if(e.key==='Escape'){setCable(null);e.stopImmediatePropagation()}},true)}
-{const _dn=drawNotes;drawNotes=function(){_dn();if(!TF||(typeof PR!=='undefined'&&PR))return;const P=TF.pts.concat(!TF.form&&TF.hov?[TF.hov]:[]);if(!P.length)return;ctx.save();
+{hkAfter('drawNotes',function(){if(!TF||(typeof PR!=='undefined'&&PR))return;const P=TF.pts.concat(!TF.form&&TF.hov?[TF.hov]:[]);if(!P.length)return;ctx.save();
   ctx.beginPath();P.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));if(P.length>2)ctx.closePath();ctx.globalAlpha=.25;ctx.fillStyle='#e8590c';if(P.length>2)ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle='#e8590c';ctx.lineWidth=2;ctx.setLineDash(TF.form?[]:[6,4]);ctx.stroke();ctx.setLineDash([]);
   TF.pts.forEach((q,i)=>{ctx.fillStyle=i===0&&TF.pts.length>=3&&!TF.form?'#fff':'#e8590c';ctx.strokeStyle='#e8590c';ctx.lineWidth=2;ctx.beginPath();ctx.rect(X(q[0])-4.5,Y(q[1])-4.5,9,9);ctx.fill();ctx.stroke()});
   for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L*sc<46)continue;const x=(X(a[0])+X(b[0]))/2,y=(Y(a[1])+Y(b[1]))/2,t=f2(L),w=ctx.measureText(t).width+8;ctx.font='600 11px '+css('--f-mono');ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(x-w/2,y-8,w,15);ctx.fillStyle='#b4470a';ctx.fillText(t,x,y+3)}
-  if(SNAPH&&!TF.form)try{drawSnapMark(SNAPH)}catch(_){}ctx.restore()}}
+  if(SNAPH&&!TF.form)try{drawSnapMark(SNAPH)}catch(_){}ctx.restore()});}
 {const _dj=drawJob;drawJob=function(){if(TF&&!TF.form)return {n:TF.pts.length,min:3,lab:'Trench outline',done:tfFinish,undo:()=>{TF.pts.pop();renderCable()},cancel:()=>setCable(null)};return _dj()}}
 {const _ca=cancelAction;cancelAction=function(){if(TF){const had=TF.pts.length||TF.form;setCable(null);toast('New trench cancelled');return true}return _ca()}}
 {const _uu=urUndo;urUndo=function(){if(TF&&!TF.form){if(TF.pts.length){TF.pts.pop();renderCable();draw()}return}_uu()}}

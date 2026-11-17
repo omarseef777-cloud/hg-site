@@ -15,7 +15,7 @@ function uiSet(p){UIT.pref=p;try{localStorage.setItem('scope.mode',p)}catch(_){}
   document.querySelectorAll('.rep .rbar').forEach(r=>r.appendChild(mk()));
   document.addEventListener('click',e=>{if(e.target.closest('[data-uisw]'))uiSet(UIT.pref==='present'?'edit':'present')})}
 {const _gv=goView;goView=function(v){_gv(v);uiApply()}}
-{const _so=siteOn;siteOn=function(on){_so(on);uiApply()}}try{window.__T.siteOn=siteOn;window.__T.uiSet=uiSet}catch(_){}
-{const _sb=syBadge;syBadge=function(){_sb();if(document.body.classList.contains('pres'))document.body.classList.add('ro')}}
+{hkAfter('siteOn',function(on){uiApply()});}try{window.__T.siteOn=siteOn;window.__T.uiSet=uiSet}catch(_){}
+{hkAfter('syBadge',function(){if(document.body.classList.contains('pres'))document.body.classList.add('ro')});}
 uiApply();
 

@@ -31,7 +31,7 @@
  const _dn=docNav;docNav=function(){const L=E(),on=id=>(DV.sec===id&&!DV.q)?' on':'';let h='';
    LS6.forEach(([sid,lab,col])=>{h+=`<div class="lnh" style="--lc:${col}">${esc(lab)}</div>`;L.forEach((e,i)=>{if(e[0]!==sid)return;const doc=!!e[8];h+=`<button class="rnav lni${doc?on(e[8]):''}" ${doc?`data-docsec="${e[8]}"`:`data-lgo="${i}"`}><b>${esc(e[2])}</b><span>${esc(e[6]==='Current'?e[5]():e[3])}</span></button>`})});
    document.getElementById('docnav').innerHTML=h};
- const _dr=docRender;docRender=function(){if(DV.sec==='lib'||!DV.sec)DV.sec='aq';return _dr.apply(this,arguments)};
+ hkBefore('docRender',function(){if(DV.sec==='lib'||!DV.sec)DV.sec='aq';});
  // fix: the meta line of documents in the nav shows the count; reports show their kind
  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-lgo]');if(!b)return;e.preventDefault();e.stopPropagation();const x=E()[+b.dataset.lgo];if(x)x[7]()},true);
  document.addEventListener('input',e=>{if(e.target&&e.target.id==='libq'){DV.lq=e.target.value;const b=document.getElementById('docbody'),pos=e.target.selectionStart;b.innerHTML=libHtml();const i=document.getElementById('libq');i.focus();try{i.setSelectionRange(pos,pos)}catch(_){}}});

@@ -10,7 +10,7 @@ cv.addEventListener('pointermove',e=>{JALT=!!e.altKey},{capture:true});cv.addEve
     if(Math.max(a[0],b[0])<e-r||Math.min(a[0],b[0])>e+r||Math.max(a[1],b[1])<n-r||Math.min(a[1],b[1])>n+r)continue;out.push([a[0],a[1],b[0],b[1]])}}return out}}
 const jTol=()=>Math.max(0.05,5/sc);
 // ---------- pipes ----------
-{const _bp=buildPParts;buildPParts=function(){_bp();const O=window.__PPO||{};(window.__PP||[]).forEach(p=>{const o=O[p.id];p.line=(o&&o.line)||null;p.jn=(o&&o.jn)||null})}}
+{hkAfter('buildPParts',function(){const O=window.__PPO||{};(window.__PP||[]).forEach(p=>{const o=O[p.id];p.line=(o&&o.line)||null;p.jn=(o&&o.jn)||null})});}
 buildPParts();
 const pjO=id=>window.__PPO[id]||(window.__PPO[id]={});
 const pjSz=o=>(window.__PSZ||{})[o.id]||(o.sz&&o.sz.t)||null;
@@ -45,7 +45,7 @@ function pjSeparate(p){const o=pjO(p.id),pre=o.pre||{},L=p.line;
   const t=pjTouch(np,ei);if(!t)return;if(t.kind==='end')pjJoinEnd(np,ei,t);else pjJoinTee(np,t)}}
 // live hint while dragging an end
 function jHint(x,y,txt,warn){ctx.save();ctx.font='600 12px '+css('--f-mono');const w=ctx.measureText(txt).width+12;ctx.fillStyle=warn?'#fff4e5':'rgba(255,255,255,.95)';ctx.strokeStyle=warn?'#e8590c':css('--accent');ctx.lineWidth=1.2;ctx.beginPath();ctx.rect(x+12,y-26,w,20);ctx.fill();ctx.stroke();ctx.fillStyle=css('--ink');ctx.textAlign='left';ctx.fillText(txt,x+18,y-12);ctx.restore()}
-{const _dn=drawNotes;drawNotes=function(){_dn();if(typeof PR!=='undefined'&&PR)return;
+{hkAfter('drawNotes',function(){if(typeof PR!=='undefined'&&PR)return;
   if(typeof pipeDrag!=='undefined'&&pipeDrag&&pipeDrag.i!=null){const p=pipeDrag.p,i=pipeDrag.i;if(i===0||i===p.pts.length-1){const t=pjTouch(p,i);if(t){const q=p.pts[i];
     ctx.save();ctx.strokeStyle=css('--accent');ctx.globalAlpha=.35;ctx.lineWidth=Math.max(8,(t.o.W||0.6)*sc+6);ctx.lineCap='round';ctx.beginPath();t.o.pts.forEach((r,k)=>k?ctx.lineTo(X(r[0]),Y(r[1])):ctx.moveTo(X(r[0]),Y(r[1])));ctx.stroke();ctx.restore();
     const s=pjSz(t.o);jHint(X(q[0]),Y(q[1]),JALT?'Connect only (Alt)':t.kind==='end'?'Join '+t.o.util+(s?' · '+s:''):'Branch of '+t.o.util+' · network only',JALT)}}}
@@ -53,18 +53,18 @@ function jHint(x,y,txt,warn){ctx.save();ctx.font='600 12px '+css('--f-mono');con
     if(t&&(t.o.tr[1]!==p.tr[1]||Math.abs(t.o.tr[2]-p.tr[2])>0.004)){ctx.save();ctx.strokeStyle=css('--accent');ctx.lineWidth=2;ctx.setLineDash([6,4]);trPolyPath(t.o.poly||trRect(t.o));ctx.stroke();ctx.restore();
       jHint(X(E[0]),Y(E[1]),JALT?'Connect only (Alt)':'Join '+short(t.o.tr[0])+' · '+t.o.tr[1]+' '+f2(t.o.tr[2])+' m',JALT)}}
   // the rest of the selected pipe's line
-  if(selPipe&&selPipe.line){const L=(window.__PP||[]).filter(x=>x.line===selPipe.line&&x.id!==selPipe.id);if(L.length){ctx.save();ctx.strokeStyle=css('--accent');ctx.lineWidth=2;ctx.setLineDash([7,5]);L.forEach(m=>{ctx.beginPath();m.pts.forEach((r,k)=>k?ctx.lineTo(X(r[0]),Y(r[1])):ctx.moveTo(X(r[0]),Y(r[1])));ctx.stroke()});ctx.restore()}}}}
+  if(selPipe&&selPipe.line){const L=(window.__PP||[]).filter(x=>x.line===selPipe.line&&x.id!==selPipe.id);if(L.length){ctx.save();ctx.strokeStyle=css('--accent');ctx.lineWidth=2;ctx.setLineDash([7,5]);L.forEach(m=>{ctx.beginPath();m.pts.forEach((r,k)=>k?ctx.lineTo(X(r[0]),Y(r[1])):ctx.moveTo(X(r[0]),Y(r[1])));ctx.stroke()});ctx.restore()}}});}
 // pipe card: line / branch row, Separate, and size changes go to the whole line
-{const _sh=showPipe;showPipe=function(p){_sh(p);if(!p)return;const el=document.getElementById('info'),o=(window.__PPO||{})[p.id]||{},L=pjLine(p);
+{hkAfter('showPipe',function(p){if(!p)return;const el=document.getElementById('info'),o=(window.__PPO||{})[p.id]||{},L=pjLine(p);
   if(L.length>1||o.jn){const to=o.jn&&(window.__PP||[]).find(x=>x.id===o.jn.to),tot=L.reduce((s,x)=>s+x.L,0);const d=document.createElement('div');d.className='pjrow';
     d.innerHTML=(L.length>1?`<span><b>${esc(p.util)} line</b> · ${L.length} segments · ${f2(tot)} m</span>`:`<span><b>Branch</b> of ${to?esc(to.util+' · '+pipeName(to)):'another pipe'}</span>`)
       +(o.jn&&o.jn.step?`<span class="warn">Level step ${f2(o.jn.step)} m at joint</span>`:'')+(!nwRO()&&o.pre?'<button class="lnk" data-pjsep="1">Separate</button>':'');
     const hd=el.querySelector('.hd');if(hd)hd.after(d);else el.prepend(d);const b=d.querySelector('[data-pjsep]');if(b)b.onclick=()=>pjSeparate(p)}
-  const sel=el.querySelector('#psz');if(sel&&L.length>1)sel.onchange=()=>{L.forEach(m=>window.__PSZ[m.id]=sel.value);save('scope.psz',window.__PSZ);pjRefresh(p.id);toast('Size '+sel.value+' · whole '+p.util+' line ('+L.length+' segments)')}}}
+  const sel=el.querySelector('#psz');if(sel&&L.length>1)sel.onchange=()=>{L.forEach(m=>window.__PSZ[m.id]=sel.value);save('scope.psz',window.__PSZ);pjRefresh(p.id);toast('Size '+sel.value+' · whole '+p.util+' line ('+L.length+' segments)')}});}
 // new pipe from Add item: touching an existing pipe decides the defaults, and joins it on save
-{const _pf=paFinish;paFinish=function(){_pf();if(!PADD||!PADD.form)return;const P=PADD.pts,f=PADD.form,fk={id:'__new',pts:P},tt=[];
+{hkAfter('paFinish',function(){if(!PADD||!PADD.form)return;const P=PADD.pts,f=PADD.form,fk={id:'__new',pts:P},tt=[];
   [0,P.length-1].forEach(i=>{const t=pjTouch(fk,i);if(t)tt.push(Object.assign(t,{i}))});f.touch=tt;const e=tt.find(t=>t.kind==='end')||tt[0];
-  if(e){f.util=e.o.util;if(e.kind==='end'){const s=pjSz(e.o);if(s)f.sz=s}f.ref={id:e.o.id,name:pipeName(e.o),d:0,kind:e.kind}}nwRender()}}
+  if(e){f.util=e.o.util;if(e.kind==='end'){const s=pjSz(e.o);if(s)f.sz=s}f.ref={id:e.o.id,name:pipeName(e.o),d:0,kind:e.kind}}nwRender()});}
 {const _ps=paSave;paSave=function(){const f=PADD&&PADD.form,n=window.__PPA.length;_ps();if(!f||!f.touch||!f.touch.length||window.__PPA.length===n)return;
   const a=window.__PPA[window.__PPA.length-1],np=(window.__PP||[]).find(x=>x.id===a.id);if(!np)return;
   const e=f.touch.find(t=>t.kind==='end'&&t.o.util===f.util&&(f.sz||'')===(pjSz(t.o)||''));if(e){const o=(window.__PP||[]).find(x=>x.id===e.o.id);if(o)pjJoinEnd(np,e.i===0?0:np.pts.length-1,Object.assign({},e,{o}),true);toast(f.util+' pipe saved · joined '+f.util+' line')}}}
@@ -101,12 +101,12 @@ document.addEventListener('pointerup',e=>{if(typeof TRH==='undefined'||!TRH||TRH
   setTimeout(()=>{if(alt||nwRO())return;const np=(window.__PARTS||[]).find(q=>q.id===d.id);if(!np||!np.poly||!np.poly[d.i])return;const v=np.poly[d.i],A=[np.x0,np.y0],B=[np.x1,np.y1];
     const E=Math.hypot(v[0]-A[0],v[1]-A[1])<=Math.hypot(v[0]-B[0],v[1]-B[1])?A:B;if(Math.hypot(v[0]-E[0],v[1]-E[1])>(+np.tr[2]||1)+jTol())return;const t=tjTouch(np,E);if(t&&t.kind==='end'&&tjDiff(t.o.tr,np.tr))tjJoin(np,t.o)},0)},true);
 // part card: joined row + Separate
-{const _sp=showPart;showPart=function(p){_sp(p);if(!p)return;const r=tjSrc(p);if(!r)return;const el=document.getElementById('info');const d=document.createElement('div');d.className='pjrow';
+{hkAfter('showPart',function(p){if(!p)return;const r=tjSrc(p);if(!r)return;const el=document.getElementById('info');const d=document.createElement('div');d.className='pjrow';
   d.innerHTML=`<span><b>Joined</b> from ${esc(short(r.s.id.split('|')[0]))}</span>${nwRO()?'':'<button class="lnk" data-tjsep="1">Separate</button>'}`;const hd=el.querySelector('.hd');if(hd)hd.after(d);else el.prepend(d);
-  const b=d.querySelector('[data-tjsep]');if(b)b.onclick=()=>tjSeparate(p)}}
+  const b=d.querySelector('[data-tjsep]');if(b)b.onclick=()=>tjSeparate(p)});}
 // new cable trench from Add item: touching a trench end = join it; touching a trench side = its system
-{const _tf=tfFinish;tfFinish=function(){_tf();if(!TF||!TF.form)return;const f=TF.form,ax=f.ax,fk={id:'__new',tr:[null,f.sys,f.W]};let te=null,tb=null;
+{hkAfter('tfFinish',function(){if(!TF||!TF.form)return;const f=TF.form,ax=f.ax,fk={id:'__new',tr:[null,f.sys,f.W]};let te=null,tb=null;
   for(const E of [[ax.x0,ax.y0],[ax.x1,ax.y1]]){const t=tjTouch(fk,E);if(!t)continue;if(t.kind==='end'){if(!te||t.d<te.d)te=t}else if(!tb||t.d<tb.d)tb=t}
-  if(te){f.tag=short(te.o.tr[0]);f.ref={tag:te.o.tr[0],d:0};f.st=pState(te.o)}else if(tb&&NWSYS.includes(tb.o.tr[1])){nwTrnDefaults(tb.o.tr[1]);f.W=+Math.max(0.3,Math.round(ax.W*20)/20).toFixed(2);f.ref={tag:tb.o.tr[0],d:0}}nwRender()}}
+  if(te){f.tag=short(te.o.tr[0]);f.ref={tag:te.o.tr[0],d:0};f.st=pState(te.o)}else if(tb&&NWSYS.includes(tb.o.tr[1])){nwTrnDefaults(tb.o.tr[1]);f.W=+Math.max(0.3,Math.round(ax.W*20)/20).toFixed(2);f.ref={tag:tb.o.tr[0],d:0}}nwRender()});}
 try{Object.assign(window.__T,{pjTouch,pjLine,pjSeparate,tjTouch,tjSeparate,tjSrc,ppo:()=>window.__PPO,psz:()=>window.__PSZ})}catch(_){}
 

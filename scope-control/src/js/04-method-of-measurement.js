@@ -100,7 +100,7 @@ const cEndHit=(x,y)=>{const p=selPart;if(!p||p.poly||(typeof TF!=='undefined'&&T
 cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const k=cEndHit(x,y);if(!k)return;
   e.stopImmediatePropagation();const p=selPart;partDrag={p,kind:k,o:[p.x0,p.y0,p.x1,p.y1]};cv.setPointerCapture(e.pointerId)},{capture:true});
 cv.addEventListener('pointermove',e=>{if(e.buttons||addMode)return;const r=cv.getBoundingClientRect();if(cEndHit(e.clientX-r.left,e.clientY-r.top))cv.style.cursor='grab'},{capture:true});
-{const _dn=drawNotes;drawNotes=function(){_dn();const p=selPart;if(p&&!p.poly&&!TF&&!PR&&!document.body.classList.contains('ro')){ctx.save();[[p.x0,p.y0],[p.x1,p.y1]].forEach(q=>{ctx.fillStyle='#fff';ctx.strokeStyle=css('--ink');ctx.lineWidth=2;ctx.beginPath();ctx.rect(X(q[0])-5,Y(q[1])-5,10,10);ctx.fill();ctx.stroke()});ctx.restore()}
-  if(partDrag&&window.__ENDHV)drawSnapMark(window.__ENDHV)}}
+{hkAfter('drawNotes',function(){const p=selPart;if(p&&!p.poly&&!TF&&!PR&&!document.body.classList.contains('ro')){ctx.save();[[p.x0,p.y0],[p.x1,p.y1]].forEach(q=>{ctx.fillStyle='#fff';ctx.strokeStyle=css('--ink');ctx.lineWidth=2;ctx.beginPath();ctx.rect(X(q[0])-5,Y(q[1])-5,10,10);ctx.fill();ctx.stroke()});ctx.restore()}
+  if(partDrag&&window.__ENDHV)drawSnapMark(window.__ENDHV)});}
 
 

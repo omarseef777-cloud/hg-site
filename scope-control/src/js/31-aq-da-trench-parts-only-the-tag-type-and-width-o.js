@@ -21,7 +21,7 @@ function trnAudit(){trnDedupe();const P=window.__PARTS||[];TRA.set=[];TRA.open=[
     C.forEach(p=>{claimed[p.id]=1;claimed['t'+tag]=1;TRA.set.push({id:p.id,from:p.tr[0],to:tag,L:p.L,pg});p.tr=trvRow(tag,p.tr)})});
   TRA.open=TRA.open.filter(o=>!claimed['t'+o[0]]);
   const touched=new Set(TRA.set.flatMap(x=>[x.to,x.from]));(D.trn||[]).forEach(tr=>{if(touched.has(tr[0])){const ps=P.filter(p=>p.tr===tr);tr[3]=ps.length?ps.reduce((s,p)=>s+p.L,0):null}});TRS=null;buildRuns()}
-{const _a=applyTRE;applyTRE=function(){_a();trnAudit()}}
+{hkAfter('applyTRE',function(){trnAudit()});}
 trnAudit();
 function trnChecks(){const P=window.__PARTS||[],wd=[],nb=[];P.forEach(p=>{const b=bandW(p);if(!b||p.poly)return;if(b.cov<.2){if(p.L>=2)nb.push(p)}else if(b.w!=null&&b.share>=.7&&Math.abs(b.w-p.tr[2])>.11)wd.push([p,b.w])});return {wd,nb}}
 const stLab={R:'Backfilled',Y:'Excavated',N:'Not started'};

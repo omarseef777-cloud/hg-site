@@ -2,7 +2,7 @@
 let ADDI=LS('scope.addi',[]);const ADDK=new Set(),ADDS=new Set();window.__ADDK=ADDK;
 const normTag=t=>{t=String(t||'').trim().toUpperCase().replace(/\s+/g,'');if(t&&!/^MM\d/.test(t)&&/^[A-Z]+-[A-Z]+-\d+/.test(t))t='MM5100790U-'+t;return t};
 const polyC=P=>[P.reduce((a,p)=>a+p[0],0)/P.length,P.reduce((a,p)=>a+p[1],0)/P.length];
-function applyAdded(){
+function applyAdded__base(){
   for(const k of ADDK){const i=items.findIndex(x=>x.key===k);if(i>=0)items.splice(i,1);delete byKey[k];if(!ADDS.has(k)){delete status[k];delete sheet[k]}if(D.foot)delete D.foot[k];if(D.qdb)delete D.qdb[k];if(D.dbc)delete D.dbc[k]}
   ADDK.clear();ADDS.clear();
   (ADDI||[]).concat((D.aqadd||[]).filter(s=>!(ADDI||[]).some(a=>a.id===s.id)&&!((window.__REV||{})[s.tag]||{}).x)).forEach(a0=>{if(!a0||!a0.tag||!a0.poly)return;const a=Object.assign({},a0,{tag:normTag(a0.tag)});if(byKey[a.tag])return;const c=polyC(a.poly);const inSheet=a.tag in status;
@@ -12,7 +12,8 @@ function applyAdded(){
     if(a.kind==='DB'){(D.qdb=D.qdb||{})[a.tag]=[a.L,a.W,a.toc??null,a.boc??null,null,null,a.hs??null,null,a.phi||null,a.r||null,a.c||null];
       if(a.r&&a.c)(D.dbc=D.dbc||{})[a.tag]=[a.r,a.c,a.size||'',a.toc??null,a.boc??null]}
     ADDK.add(a.tag)})}
-{const _r=render;render=function(){applyAdded();_r()}}
+function applyAdded(){const h=HK.applyAdded,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=applyAdded__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+{hkBefore('render',function(){applyAdded();});}
 {const _st=sumTotals;sumTotals=function(){const t=_st();
   for(const k of ADDK){if(!inCatKey(k)||ADDS.has(k))continue;const o=OV[k];if(o){const p=o.prev,s=o.s;const wc=p!=='Not Cast'&&p!=='Unknown',ic=s!=='Not Cast';t.cast-=ic-wc;t.toCast+=ic-wc;t.inst-=(s==='Installed')-(p==='Installed');t.toInst+=(s==='Installed')-(p==='Installed')}
     const s=S(k),cast=s!=='Not Cast'&&s!=='Unknown',inst=s==='Installed';t.total++;t.cast+=cast;t.toCast+=!cast;t.inst+=inst;t.toInst+=!inst;
@@ -34,9 +35,10 @@ function rectFrom(P,o){const c=polyC(P);let e=0,ang=0;for(let i=0;i<P.length;i++
 function rectPoly(cx,cy,L,W,ang){const ux=Math.cos(ang),uy=Math.sin(ang),r=(u,v)=>[+(cx+u*ux-v*uy).toFixed(3),+(cy+u*uy+v*ux).toFixed(3)];return [r(-L/2,-W/2),r(L/2,-W/2),r(L/2,W/2),r(-L/2,W/2)]}
 function quadDims(P){const d=(a,b)=>Math.hypot(b[0]-a[0],b[1]-a[1]);const L=(d(P[0],P[1])+d(P[2],P[3]))/2,W=(d(P[1],P[2])+d(P[3],P[0]))/2;return L>=W?{L,W,ang:Math.atan2(P[1][1]-P[0][1],P[1][0]-P[0][0])}:{L:W,W:L,ang:Math.atan2(P[2][1]-P[1][1],P[2][0]-P[1][0])}}
 function addPop(){let p=document.getElementById('addpop');if(!p){p=document.createElement('div');p.className='pop';p.id='addpop';p.hidden=true;document.getElementById('mapwrap').appendChild(p)}return p}
-function setAdd(on,edit){addMode=on;addPts=[];addEdit=edit||null;const b=document.getElementById('addbtn');if(b)b.classList.toggle('on',on);
+function setAdd__base(on,edit){addMode=on;addPts=[];addEdit=edit||null;const b=document.getElementById('addbtn');if(b)b.classList.toggle('on',on);
   if(on){try{if(pipeMode)setPipe(null);if(cableMode)setCable(null);setEdit(false);setBox(false);if(noteMode)setNote(false)}catch(_){}moveKey=null;cv.style.cursor='crosshair';
     if(edit){addPts=edit.poly.map(q=>q.slice())}}else cv.style.cursor='';renderAdd();draw()}
+function setAdd(){const h=HK.setAdd,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=setAdd__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function addShape(){if(addPts.length<4)return null;if(addEdit&&addEdit._typed)return {poly:addPts,...quadDims(addPts)};return ADDOPT.sq?rectFrom(addPts,{al:ADDOPT.al}):{poly:addPts.map(q=>[+q[0].toFixed(3),+q[1].toFixed(3)]),...quadDims(addPts),snapped:false}}
 function renderAdd(){const p=addPop();if(!addMode){p.hidden=true;return}p.hidden=false;const sh=addShape();const e=addEdit||{};const kind=e.kind||'Pit';
   p.innerHTML=`<div class="row" style="margin:0;justify-content:space-between"><h4>${addEdit&&addEdit.tag?'Edit '+esc(short(addEdit.tag)):'Add missing item'}</h4><button class="x" data-acl="1" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
@@ -56,11 +58,12 @@ function renderAdd(){const p=addPop();if(!addMode){p.hidden=true;return}p.hidden
   const ks=p.querySelector('[data-af="kind"]');ks.onchange=()=>{addEdit=Object.assign(addEdit||{},readAddForm());renderAdd()}}
 function readAddForm(){const p=addPop(),o={};p.querySelectorAll('[data-af]').forEach(i=>{const k=i.dataset.af;let v=i.value.trim();if(['r','c','phi','toc','boc'].includes(k))v=v===''?null:+v;o[k]=v});return o}
 function addClick(x,y){if(addPts.length>=4)return;addPts.push(snap(x,y));if(addEdit)addEdit._typed=false;renderAdd();draw()}
-function drawAdd(){if(!addMode||!addPts.length)return;const sh=addShape();ctx.save();ctx.lineWidth=1.5;ctx.strokeStyle=css('--accent');ctx.setLineDash([5,4]);ctx.beginPath();addPts.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));if(addPts.length===4)ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+function drawAdd__base(){if(!addMode||!addPts.length)return;const sh=addShape();ctx.save();ctx.lineWidth=1.5;ctx.strokeStyle=css('--accent');ctx.setLineDash([5,4]);ctx.beginPath();addPts.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));if(addPts.length===4)ctx.closePath();ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle=css('--accent');addPts.forEach(q=>{ctx.beginPath();ctx.arc(X(q[0]),Y(q[1]),3.5,0,7);ctx.fill()});
   if(sh){ctx.globalAlpha=.25;ctx.fillStyle='#8e24aa';ctx.beginPath();sh.poly.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));ctx.closePath();ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle='#8e24aa';ctx.lineWidth=2;ctx.stroke()}
   ctx.restore()}
-{const _dn=drawNotes;drawNotes=function(){_dn();try{drawAdd()}catch(e){console.warn(e)}}}
+function drawAdd(){const h=HK.drawAdd,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=drawAdd__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+{hkAfter('drawNotes',function(){try{drawAdd()}catch(e){console.warn(e)}});}
 document.addEventListener('click',e=>{const t=e.target;if(!t.closest||!t.closest('#addpop'))return;
   if(t.closest('[data-acl]')){setAdd(false);return}
   if(t.closest('[data-aredo]')){addPts=[];if(addEdit)addEdit=Object.assign(addEdit,readAddForm());renderAdd();draw();return}
@@ -80,9 +83,9 @@ document.addEventListener('change',e=>{const t=e.target;if(!t.closest||!t.closes
 document.addEventListener('keydown',e=>{if(!addMode)return;const tg=e.target;if(tg&&tg.matches&&tg.matches('input,textarea,select'))return;
   if(e.key==='Escape'){setAdd(false);e.stopPropagation()}if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')&&addPts.length){e.preventDefault();e.stopImmediatePropagation();addPts.pop();renderAdd();draw()}},true);
 // info panel for added items
-{const _si=showInfo;showInfo=function(it){_si(it);try{if(it&&it.added){const a=it.added,el=document.getElementById('info');const d=document.createElement('div');d.className='addbox';
+{hkAfter('showInfo',function(it){try{if(it&&it.added){const a=it.added,el=document.getElementById('info');const d=document.createElement('div');d.className='addbox';
   d.innerHTML=`<div><b>${it.inSheet?'Drawn on site (tag is in the status sheet)':'Added on site'}</b> <span class="hint">${esc(fdate(a.added||a.date))}${a.by?' · <span data-uid="'+esc(a.by)+'">…</span>':''} · ${f2(a.L)} × ${f2(a.W)} m${a.note?' · '+esc(a.note):''}</span></div><div class="sel-row" style="margin:6px 0 0"><button class="btn sm" data-aedit="${esc(a.id)}">Edit shape &amp; details</button><button class="btn sm" data-adel="${esc(a.id)}" style="color:var(--nc)">Delete item</button></div>`;
-  el.insertBefore(d,el.children[1]||null);el.querySelectorAll('.qh .hint').forEach(h=>{if(/from CAD/.test(h.textContent))h.textContent='drawn on site'});try{syNames(d)}catch(_){}}}catch(e){console.warn(e)}}}
+  el.insertBefore(d,el.children[1]||null);el.querySelectorAll('.qh .hint').forEach(h=>{if(/from CAD/.test(h.textContent))h.textContent='drawn on site'});try{syNames(d)}catch(_){}}}catch(e){console.warn(e)}});}
 document.getElementById('info').addEventListener('click',e=>{const ed=e.target.closest('[data-aedit]');if(ed){const a=ADDI.find(x=>x.id===ed.dataset.aedit)||(D.aqadd||[]).find(x=>x.id===ed.dataset.aedit);if(a){setAdd(true,Object.assign({},a,{_typed:true}))}return}
   const dl=e.target.closest('[data-adel]');if(dl){const a=ADDI.find(x=>x.id===dl.dataset.adel);if(!a)return;if(!dl.dataset.sure){dl.dataset.sure='1';dl.textContent='Sure? Delete';return}
     ADDI=ADDI.filter(x=>x.id!==a.id);if(OV[a.tag]){delete OV[a.tag];save('scope.ov',OV)}save('scope.addi',ADDI);document.getElementById('info').hidden=true;focusKey=null;render();toast(short(a.tag)+' deleted (Ctrl+Z to bring back)')}});
@@ -111,9 +114,9 @@ let addHover=null,addDragI=-1;
 function drawSnapMark(h){if(!h||!h.t)return;const x=X(h.p[0]),y=Y(h.p[1]);ctx.save();ctx.strokeStyle='#e8590c';ctx.lineWidth=2;ctx.beginPath();
   if(h.t==='end')ctx.rect(x-6,y-6,12,12);else if(h.t==='int'){ctx.moveTo(x-6,y-6);ctx.lineTo(x+6,y+6);ctx.moveTo(x+6,y-6);ctx.lineTo(x-6,y+6)}else{ctx.moveTo(x-6,y-6);ctx.lineTo(x+6,y-6);ctx.lineTo(x-6,y+6);ctx.lineTo(x+6,y+6);ctx.closePath()}
   ctx.stroke();ctx.font='600 11px Barlow, sans-serif';ctx.fillStyle='#e8590c';ctx.fillText({end:'Endpoint',int:'Intersection',near:'Nearest'}[h.t],x+10,y-8);ctx.restore()}
-{const _da=drawAdd;drawAdd=function(){_da();if(!addMode)return;
+{hkAfter('drawAdd',function(){if(!addMode)return;
   if(addPts.length===4){ctx.save();addPts.forEach((q,i)=>{ctx.fillStyle=i===addDragI?'#e8590c':'#fff';ctx.strokeStyle='#8e24aa';ctx.lineWidth=2;ctx.beginPath();ctx.rect(X(q[0])-5,Y(q[1])-5,10,10);ctx.fill();ctx.stroke()});ctx.restore()}
-  drawSnapMark(addHover)}}
+  drawSnapMark(addHover)});}
 addClick=function(x,y){if(addPts.length>=4)return;const h=cornerSnap(x,y);addPts.push(h.p);if(addEdit)addEdit._typed=false;addHover=null;renderAdd();draw()};
 const hitHandle=(x,y)=>addPts.length===4?addPts.findIndex(q=>Math.hypot(X(q[0])-x,Y(q[1])-y)<10):-1;
 cv.addEventListener('pointerdown',e=>{if(!addMode)return;const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const i=hitHandle(x,y);if(i<0)return;
@@ -129,6 +132,6 @@ const pEndHit=(x,y)=>{if(!selPipe||document.body.classList.contains('ro')||addMo
 cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const i=pEndHit(x,y);if(i<0)return;
   e.stopImmediatePropagation();pipeDrag={p:selPipe,i,o:selPipe.pts.map(q=>q.slice())};cv.setPointerCapture(e.pointerId)},{capture:true});
 cv.addEventListener('pointermove',e=>{if(e.buttons||addMode)return;const r=cv.getBoundingClientRect();const h=pEndHit(e.clientX-r.left,e.clientY-r.top)>=0;if(h)cv.style.cursor='grab';else if(cv.style.cursor==='grab')cv.style.cursor=''},{capture:true});
-{const _dn=drawNotes;drawNotes=function(){_dn();if(selPipe&&!PR&&!document.body.classList.contains('ro')){const P=selPipe.pts;ctx.save();P.forEach((q,ii)=>{const end=ii===0||ii===P.length-1,s=end?5:4;ctx.fillStyle=end?'#fff':css('--accent');ctx.strokeStyle=end?css('--ink'):'#fff';ctx.lineWidth=end?2:1.4;ctx.beginPath();ctx.rect(X(q[0])-s,Y(q[1])-s,2*s,2*s);ctx.fill();ctx.stroke()});ctx.restore()}
-  if(pipeDrag&&window.__ENDHV)drawSnapMark(window.__ENDHV)}}
+{hkAfter('drawNotes',function(){if(selPipe&&!PR&&!document.body.classList.contains('ro')){const P=selPipe.pts;ctx.save();P.forEach((q,ii)=>{const end=ii===0||ii===P.length-1,s=end?5:4;ctx.fillStyle=end?'#fff':css('--accent');ctx.strokeStyle=end?css('--ink'):'#fff';ctx.lineWidth=end?2:1.4;ctx.beginPath();ctx.rect(X(q[0])-s,Y(q[1])-s,2*s,2*s);ctx.fill();ctx.stroke()});ctx.restore()}
+  if(pipeDrag&&window.__ENDHV)drawSnapMark(window.__ENDHV)});}
 

@@ -3,8 +3,8 @@
  draw=function(){if(hid()&&!(typeof PR!=='undefined'&&PR)){dirty=true;return}dirty=false;return _dr.apply(this,arguments)};
  const _gv=goView;goView=function(){const r=_gv.apply(this,arguments);if(dirty&&!hid())draw();return r}}
 {const onTab=()=>{if(innerWidth>820)return;requestAnimationFrame(()=>document.querySelectorAll('.rnavs .rnav.on').forEach(e=>{const s=e.parentElement;if(!s||s.scrollWidth<=s.clientWidth)return;s.scrollLeft+=e.getBoundingClientRect().left-s.getBoundingClientRect().left-12}))};
- const _rr=renderReport;renderReport=function(){const r=_rr.apply(this,arguments);onTab();return r};
- if(typeof docRender==='function'){const _dr2=docRender;docRender=function(){const r=_dr2.apply(this,arguments);onTab();return r}}}
+ hkAfter('renderReport',function(){onTab();});
+ if(typeof docRender==='function'){hkAfter('docRender',function(){onTab();});}}
 // ---- phones: the map fills the screen; header/search and lists open on demand ----
 {let swallow=0;document.addEventListener('click',e=>{if(Date.now()-swallow<600){swallow=0;e.preventDefault();e.stopPropagation()}},true);const mq=matchMedia('(max-width:820px)'),B=document.body,fb=document.getElementById('fullbtn'),top=document.querySelector('.top'),cat=document.querySelector('.catbar');
  const place=()=>{if(!B.classList.contains('mtop'))return;const t=top.getBoundingClientRect().height;B.style.setProperty('--mth',Math.round(t)+'px')};

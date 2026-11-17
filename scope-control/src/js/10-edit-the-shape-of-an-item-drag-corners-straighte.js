@@ -42,15 +42,15 @@ document.addEventListener('keydown',e=>{if(!SHP||(e.target.closest&&e.target.clo
     else{const w=osn(x,y);SHP.pts[SHP.drag]=[w[0],w[1]]}shpPop();draw()},{capture:true});
   const up=e=>{if(!SHP||SHP.drag<0)return;e.stopImmediatePropagation();SHP.drag=-1;drag=null;SNAPH=null;shpPop();draw()};
   cv.addEventListener('pointerup',up,{capture:true});cv.addEventListener('pointercancel',up,{capture:true})}
-{const _dn=drawNotes;drawNotes=function(){_dn();if(!SHP||(typeof PR!=='undefined'&&PR))return;const P=SHP.pts;ctx.save();
+{hkAfter('drawNotes',function(){if(!SHP||(typeof PR!=='undefined'&&PR))return;const P=SHP.pts;ctx.save();
   ctx.setLineDash([4,4]);ctx.strokeStyle='#9aa3ab';ctx.lineWidth=1;ctx.beginPath();SHP.orig.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));ctx.closePath();ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle='rgba(31,94,140,.18)';ctx.strokeStyle=css('--accent');ctx.lineWidth=2;ctx.beginPath();P.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));ctx.closePath();ctx.fill();ctx.stroke();
   ctx.font='600 11px '+css('--f-mono');ctx.textAlign='center';for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L*sc<46)continue;const x=(X(a[0])+X(b[0]))/2,y=(Y(a[1])+Y(b[1]))/2,t=f2(L),w=ctx.measureText(t).width+8;ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(x-w/2,y-8,w,15);ctx.fillStyle=css('--accent');ctx.fillText(t,x,y+3)}
   P.forEach((q,i)=>{const x=X(q[0]),y=Y(q[1]);ctx.fillStyle=SHP.drag===i?css('--accent'):'#fff';ctx.strokeStyle=css('--accent');ctx.lineWidth=2;ctx.fillRect(x-6,y-6,12,12);ctx.strokeRect(x-6,y-6,12,12)});
   const c=polyC(P),cx=X(c[0]),cy=Y(c[1]);ctx.beginPath();ctx.arc(cx,cy,7,0,7);ctx.fillStyle='#fff';ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(cx-4,cy);ctx.lineTo(cx+4,cy);ctx.moveTo(cx,cy-4);ctx.lineTo(cx,cy+4);ctx.stroke();
-  ctx.restore()}}
+  ctx.restore()});}
 // entry points: item card + properties panel
-{const _si=showInfo;showInfo=function(it){_si(it);if(!it||document.body.classList.contains('site')||(SYN.db&&!SYN.admin&&!it.added))return;const a=document.querySelector('#info .acts');if(!a)return;const b=document.createElement('button');b.className='btn sm';b.dataset.shape=it.key;b.textContent='Edit shape';const pb=a.querySelector('[data-iprop]');a.insertBefore(b,pb?pb.nextSibling:a.firstChild)}}
+{hkAfter('showInfo',function(it){if(!it||document.body.classList.contains('site')||(SYN.db&&!SYN.admin&&!it.added))return;const a=document.querySelector('#info .acts');if(!a)return;const b=document.createElement('button');b.className='btn sm';b.dataset.shape=it.key;b.textContent='Edit shape';const pb=a.querySelector('[data-iprop]');a.insertBefore(b,pb?pb.nextSibling:a.firstChild)});}
 document.getElementById('info').addEventListener('click',e=>{const b=e.target.closest('[data-shape]');if(b)shpStart(b.dataset.shape)});
 try{window.__T.shpPts=()=>{const q=SHP.pts[2];return [X(q[0]),Y(q[1])]};window.__T.shpStart=shpStart;window.__T.shpOp=shpOp;window.__T.shpSave=shpSave}catch(_){}
 

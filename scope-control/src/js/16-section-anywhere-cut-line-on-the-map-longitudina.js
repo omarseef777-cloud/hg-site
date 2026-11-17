@@ -1,7 +1,7 @@
 // ================= Section anywhere: cut line on the map -> longitudinal profile =================
 let SECS=LS('scope.sec',{})||{};SYMAP['scope.sec']={col:'sec',t:'map',lab:'Section'};UKEYS['scope.sec']='section';
 const SEC={cur:null,draw:null,ex:(()=>{try{return localStorage.getItem('scope.secex2')||'1'}catch(_){return '1'}})(),zm:1,hz:null,hov:null,printPts:null,h:(()=>{try{return +localStorage.getItem('scope.sech')||430}catch(_){return 430}})()};
-{const _rk=restoreKey;restoreKey=function(k,s){if(k==='scope.sec'){try{SECS=(s?JSON.parse(s):{})||{}}catch(_){SECS={}}if(SEC.cur&&!SECS[SEC.cur])secClose();setTimeout(()=>{secRender();if(!document.getElementById('prtv').hidden)renderPrt()},0)}return _rk(k,s)}}
+{hkBefore('restoreKey',function(k,s){if(k==='scope.sec'){try{SECS=(s?JSON.parse(s):{})||{}}catch(_){SECS={}}if(SEC.cur&&!SECS[SEC.cur])secClose();setTimeout(()=>{secRender();if(!document.getElementById('prtv').hidden)renderPrt()},0)}});}
 const secList=()=>Object.values(SECS).filter(s=>s&&s.pts&&s.pts.length>1).sort((a,b)=>String(a.name).localeCompare(String(b.name),undefined,{numeric:true})||(a.id<b.id?-1:1));
 function secNextName(){const used=new Set(secList().map(s=>s.name));const nm=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};for(let i=0;i<2000;i++)if(!used.has(nm(i)))return nm(i);return 'X'}
 const secLen=P=>{let L=0;for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return L};
@@ -170,21 +170,21 @@ function secDrawLine(P,o){ctx.save();const name=o.name||'';ctx.strokeStyle=o.col
       ctx.font='700 15px '+css('--f-display');ctx.textAlign='center';ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(tx+nx*12,ty+ny*12,10,0,7);ctx.fill();ctx.fillStyle=o.col||'#1d4f91';ctx.lineWidth=1.5;ctx.stroke();ctx.fillText(lab,tx+nx*12,ty+ny*12+5)};
     ctx.fillStyle=o.col||'#1d4f91';end(P[0],P[1],name);end(P[P.length-1],P[P.length-2],name+'′')}
   ctx.restore()}
-{const _dn=drawNotes;drawNotes=function(){_dn();
+{hkAfter('drawNotes',function(){
   if(typeof PR!=='undefined'&&PR){if(SEC.printPts)secDrawLine(SEC.printPts.pts,{name:SEC.printPts.name,w:4});return}
   if(SEC.cur&&SECS[SEC.cur])secDrawLine(SECS[SEC.cur].pts,{name:SECS[SEC.cur].name});
   if(SEC.hov){ctx.save();ctx.fillStyle='#e8590c';ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(X(SEC.hov[0]),Y(SEC.hov[1]),6,0,7);ctx.fill();ctx.stroke();ctx.restore()}
-  if(SEC.draw){const P=SEC.draw.pts.concat(SEC.draw.hov?[SEC.draw.hov]:[]);if(P.length)secDrawLine(P,{w:2.5,col:'#e8590c'});ctx.save();ctx.fillStyle='#e8590c';SEC.draw.pts.forEach(q=>{ctx.beginPath();ctx.arc(X(q[0]),Y(q[1]),4,0,7);ctx.fill()});ctx.restore();if(SNAPH)try{drawSnapMark(SNAPH)}catch(_){}}}}
+  if(SEC.draw){const P=SEC.draw.pts.concat(SEC.draw.hov?[SEC.draw.hov]:[]);if(P.length)secDrawLine(P,{w:2.5,col:'#e8590c'});ctx.save();ctx.fillStyle='#e8590c';SEC.draw.pts.forEach(q=>{ctx.beginPath();ctx.arc(X(q[0]),Y(q[1]),4,0,7);ctx.fill()});ctx.restore();if(SNAPH)try{drawSnapMark(SNAPH)}catch(_){}}});}
 // ---- print: Layout | Sections ----
 let PRTTAB='layout';
-{const _rp=renderPrt;renderPrt=function(){_rp();const body=document.getElementById('prtbody');const L=secList();
+{hkAfter('renderPrt',function(){const body=document.getElementById('prtbody');const L=secList();
   const tabs=`<div class="ptabs" role="tablist"><button role="tab" aria-selected="${PRTTAB==='layout'}" data-ptab="layout">Layout</button><button role="tab" aria-selected="${PRTTAB==='sections'}" data-ptab="sections">Sections <span class="cnt">${L.length}</span></button></div>`;
   if(PRTTAB==='layout'){body.insertAdjacentHTML('afterbegin',tabs);updPrtCount();return}
   const can=s=>!SYN.db||SYN.admin||s.by===SYN.uid;
   body.innerHTML=tabs+`<div class="pgrp"><div class="ph"><h2>Sections</h2>${L.length?'<button class="btn sm ghost" data-pall="s">Select all</button>':''}</div>
     ${L.length?L.map(s=>{const R=secCompute(s.pts);return `<div class="prow srow"><label><input type="checkbox" data-pid="s:${esc(s.id)}"><span><b>Section ${esc(s.name)}–${esc(s.name)}′</b> <small>L ${secLen(s.pts).toFixed(1)} m · ${R.E.length} crossing${R.E.length===1?'':'s'}${R.K.length?' · <span class="warn">'+R.K.length+' clash'+(R.K.length===1?'':'es')+'</span>':''} · ${esc(fdate?fdate(s.date):s.date)}</small></span></label>
       <span class="sacts"><button class="btn sm" data-sopen="${esc(s.id)}">Open</button><button class="btn sm" data-p1="s:${esc(s.id)}">Print</button>${can(s)?`<button class="btn sm sdel" data-sdel="${esc(s.id)}">Delete</button>`:''}</span></div>`}).join(''):'<p class="muted" style="margin:6px 0">No sections yet. Draw one with Section on the dashboard map.</p>'}</div>`;
-  updPrtCount()}}
+  updPrtCount()});}
 document.getElementById('prtv').addEventListener('click',async e=>{const t=e.target;const tb=t.closest('[data-ptab]');if(tb){PRTTAB=tb.dataset.ptab;renderPrt();return}
   const op=t.closest('[data-sopen]');if(op){goView('dash');setTimeout(()=>secOpen(op.dataset.sopen),60);return}
   const dl=t.closest('[data-sdel]');if(dl){const s=SECS[dl.dataset.sdel];if(!s)return;const ok=await askOk('Delete section',`<p>Delete <b>Section ${esc(s.name)}–${esc(s.name)}′</b>? This removes it for everyone.</p>`,'Delete');if(!ok)return;

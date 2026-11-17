@@ -37,7 +37,7 @@ function pipeAudit(){const runs=(window.__PP||[]).filter(p=>p.pts&&p.pts.length>
   return {R,runs:runs.length,pits:pits.length}}
 // ---- importance + reviewed (option A, Nov-2026): critical / follow-up / info; a reviewed point leaves the counts
 let AUREV=LS('scope.aurev',{})||{};SYMAP['scope.aurev']={doc:'cfg/aurev',t:'whole',adm:1,lab:'Network check reviewed'};
-{const _rk=restoreKey;restoreKey=function(k,s){if(k==='scope.aurev'){try{AUREV=(s?JSON.parse(s):{})||{}}catch(_){AUREV={}}setTimeout(()=>{if(!document.getElementById('repv').hidden&&repSel==='paud')renderReport();if(!document.getElementById('homev').hidden)renderHome()},0)}return _rk(k,s)}}
+{hkBefore('restoreKey',function(k,s){if(k==='scope.aurev'){try{AUREV=(s?JSON.parse(s):{})||{}}catch(_){AUREV={}}setTimeout(()=>{if(!document.getElementById('repv').hidden&&repSel==='paud')renderReport();if(!document.getElementById('homev').hidden)renderHome()},0)}});}
 const AU_SHORT=0.5;
 function auTier(t,z){return t==='xut'||t==='clash'||t==='far'||t==='nomap'?'C':t==='orph'||t==='unl'||t==='open'||(t==='short'&&z&&z.d<AU_SHORT)?'I':'F'}
 function auKey(t,z){return [t,z.r?z.r.id:'',z.k||'',z.s||'',z.E?z.E.map(v=>(+v).toFixed(1)).join(','):''].join('|')}

@@ -19,12 +19,14 @@ hash is no longer used). After a deliberate change to results, refresh the basel
 | `src/js/NN-*.js` | The program, one file per section, joined in name order into one script scope. **Order matters**; `99-end.js` stays last. |
 | `data/scope.json` | All built-in site data → [docs/DATA.md](docs/DATA.md) |
 | `tools/build.js` | Builds `dist/`. CAD detail goes to its own file and loads after the first paint. |
+| `tools/hooks.js` | Folds wrapper chains into ordered hook lists where provably the same (report: `node tools/hooks.js`). |
 | `tools/patchmap.js` | Writes [docs/PATCHES.md](docs/PATCHES.md): which file wraps which function. Read it before changing a wrapped function. |
 | `tests/` | Checks → [Tests](#tests) |
 | `docs/` | [DATA](docs/DATA.md) · [QUANTITIES](docs/QUANTITIES.md) · [SYNC](docs/SYNC.md) · [PATCHES](docs/PATCHES.md) |
 
 ## Rules
 - New feature: a new numbered file before `99-end.js`, or the file of its section.
+- Extend a function with `hkBefore('name',fn)` / `hkAfter('name',fn)` where it has a hook list (see PATCHES.md), not with a new wrapper.
 - Never declare the same top-level `function name` twice (the later one replaces the earlier everywhere; the gate fails).
 - Names of pages / reports / groups live in `window.CORE` in `src/shell.html`; a report exists only if listed there.
 - Map status colours and hatches are fixed. Live data edited online is never overwritten (see [SYNC](docs/SYNC.md)).

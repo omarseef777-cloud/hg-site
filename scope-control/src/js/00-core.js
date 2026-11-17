@@ -1,5 +1,7 @@
 (function(){
 const D=window.SCOPE;
+// hook lists (tools/hooks.js): before-hooks run newest→oldest, after-hooks oldest→newest
+const HK={};const hkOf=n=>HK[n]||(HK[n]={b:[],a:[]}),hkBefore=(n,f)=>hkOf(n).b.push(f),hkAfter=(n,f)=>hkOf(n).a.push(f);
 const ST_ORDER=['Installed','Precast Yard','Casted','Not Cast'];
 const ST_LABEL={'Installed':'Installed','Precast Yard':'Precast yard','Casted':'Cast – loc. TBC','Not Cast':'Not cast','Unknown':'Not in sheet'};
 const CSSV=new Map();const css=n=>{let v=CSSV.get(n);if(v===undefined){v=getComputedStyle(document.documentElement).getPropertyValue(n).trim();CSSV.set(n,v)}return v};
@@ -96,7 +98,7 @@ try{const t=JSON.parse(localStorage.getItem('scope.trench')||'null');if(t&&t.add
 const saveTE=()=>save('scope.trench',JSON.stringify(TE));
 const plLen=pl=>{let L=0;for(let k=0;k<pl.length-1;k++)L+=Math.hypot(pl[k+1][0]-pl[k][0],pl[k+1][1]-pl[k][1]);return L};
 let runs=[];
-function buildRuns(){
+function buildRuns__base(){
   const base=[]||D.trench.map((t,i)=>({id:'b'+i,st:TE.status['b'+i]||t[0],pl:t[1]})).filter(r=>!TE.removed.includes(r.id));
   const add=[]||TE.added.filter(a=>!TE.removed.includes(a.id)).map(a=>({id:a.id,st:TE.status[a.id]||a.st,pl:a.pl,added:a.date}));
   const pr=(window.__PARTS||[]).filter(p=>pState(p)!=='N').map(p=>({id:'p:'+p.id,st:pState(p),pl:[[p.x0,p.y0],[p.x1,p.y1]],part:true})).concat((window.__PP||[]).filter(p=>pState(p)!=='N').map(p=>({id:'q:'+p.id,st:pState(p),pl:p.pts,part:true})));
@@ -110,6 +112,7 @@ function buildRuns(){
     D.areas.forEach(a=>{const[e0,e1,n0,n1]=a.bbox; if(r.ce>=e0&&r.ce<=e1&&r.cn>=n0&&r.cn<=n1)best=a.id}); r.area=best;});
   maskRuns();
 }
+function buildRuns(){const h=HK.buildRuns,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=buildRuns__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function pState(p){const s=(window.__PS||{})[p.id];return s?s.s:((D.pinit||{})[p.id]||'N')}
 function maskRuns(){const P=window.__PARTS||[];if(!P.length){runs.forEach(r=>r.vis=null);return}
   const g={},C=10;P.forEach((p,i)=>{const n=Math.max(1,Math.ceil(p.L/C));for(let k=0;k<=n;k++){const x=p.x0+(p.x1-p.x0)*k/n,y=p.y0+(p.y1-p.y0)*k/n;const key=Math.floor(x/C)+','+Math.floor(y/C);(g[key]=g[key]||new Set()).add(i)}});
@@ -175,7 +178,7 @@ function sumTotals(){
   return t}
 
 // ---------- KPIs ----------
-function renderKPIs(){const t=sumTotals();const pct=(a,b)=>b?Math.round(100*a/b)+'%':'–';const nov=Object.keys(OV).length;
+function renderKPIs__base(){const t=sumTotals();const pct=(a,b)=>b?Math.round(100*a/b)+'%':'–';const nov=Object.keys(OV).length;
   const k=[['Total items',fmt(t.total),'--accent','per Summary sheet'],
     ['Cast',fmt(t.cast),'--yard',pct(t.cast,t.total)+' of total'],
     ['Need to cast',fmt(t.toCast),'--nc','remaining to cast'],
@@ -192,6 +195,7 @@ function renderKPIs(){const t=sumTotals();const pct=(a,b)=>b?Math.round(100*a/b)
     fb.innerHTML=`<strong>Filters on:</strong> ${esc(p.join(' · '))} <button class="btn sm" data-clearf="1">Clear</button>`;fb.hidden=false}else fb.hidden=true;
   document.getElementById('fltbtn').classList.toggle('on',!!fltOn());
 }
+function renderKPIs(){const h=HK.renderKPIs,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=renderKPIs__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 
 // ---------- views ----------
 const TABS=[['work','Outstanding activities'],['trench','Trenches'],['qty','Quantities'],['notes','Comments']];
@@ -336,7 +340,8 @@ const VIEWS={search:vSearch,sel:vSel,notes:vNotes,qty:vQty,
   work:()=>subBar('work')+({install:vInstall,cast:vCast,plan:vPlan}[sub.work]||vInstall)(),
   trench:()=>subBar('trench')+({backfill:vBackfill,tiein:vBld}[sub.trench]||vBackfill)(),
 };
-function render(){if(!VIEWS[tab]||(tab==='search'&&!searchRes)||(tab==='sel'&&!boxRes))tab='work';renderKPIs();renderTabs();const v=document.getElementById('view');const st=v.scrollTop;v.innerHTML=VIEWS[tab]();v.scrollTop=st;if(focusKey&&byKey[focusKey]&&!document.getElementById('info').hidden)showInfo(byKey[focusKey]);draw()}
+function render__base(){if(!VIEWS[tab]||(tab==='search'&&!searchRes)||(tab==='sel'&&!boxRes))tab='work';renderKPIs();renderTabs();const v=document.getElementById('view');const st=v.scrollTop;v.innerHTML=VIEWS[tab]();v.scrollTop=st;if(focusKey&&byKey[focusKey]&&!document.getElementById('info').hidden)showInfo(byKey[focusKey]);draw()}
+function render(){const h=HK.render,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=render__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function go(t,s){tab=t;if(s)sub[t]=s;save('scope.t7',tab);save('scope.s7',sub);const v=document.getElementById('view');v.scrollTop=0;render();v.classList.remove('anim');void v.offsetWidth;v.classList.add('anim')}
 
 // ---------- plan / excel / status edits ----------
@@ -567,7 +572,7 @@ function ductSec(k){const c=dbc(k),q=dbQ(k),Q=(D.qdb||{})[k]||[];if(!q||q.src===
   return `<div class="dsec"><div class="dsh"><span>Duct bank section</span><span class="muted">${esc(lsrc)}</span></div>${svg}
    <div class="dcap"><span>${r&&cc?r+' × '+cc+' = '+(r*cc)+' ducts':''}${phi?' · Ø'+phi+(mat?' '+esc(mat):''):''}</span><span>L ${f2(q.L)} m · net concrete ${q.net!=null?f2(q.net)+' m³':'–'}</span></div>
    <div class="dqty"><span>Excavation</span><b>${q.exc!=null?f2(q.exc)+' m³':'–'}</b><span>Depth</span><b>${q.dep!=null?f2(q.dep)+' m':'–'}</b><span>Backfill</span><b>${q.bf!=null?f2(q.bf)+' m³':'–'}</b></div></div>`}
-function showInfo(it){const k=it.key,s=S(k),a=AREA[it.area];
+function showInfo__base(it){const k=it.key,s=S(k),a=AREA[it.area];
   const tr=it.tr==='R'?'Backfilled trench':it.tr==='Y'?'Excavated trench':'No trench drawn';
   const nb=items.filter(j=>j!==it&&Math.hypot(j.e-it.e,j.n-it.n)<12&&inCat(j)).sort((p,q)=>Math.hypot(p.e-it.e,p.n-it.n)-Math.hypot(q.e-it.e,q.n-it.n)).slice(0,8);
   const el=document.getElementById('info');el.hidden=false;
@@ -580,6 +585,7 @@ function showInfo(it){const k=it.key,s=S(k),a=AREA[it.area];
   <div class="hint" style="margin-top:10px">Change status on site</div>
   <div class="stset">${['Not Cast','Precast Yard','Installed'].map(x=>`<button class="btn sm${s===x?' on':''}" data-setst="${x}">${ST_LABEL[x]}</button>`).join('')}${OV[k]?`<button class="btn sm ghost" data-setst="${esc(sheetS(k))}">Undo</button>`:''}</div>
   <div class="acts"><button class="btn sm" data-sarea="1">Same area</button><button class="btn sm" data-planone="1">${inPlan(k)?'In plan ✓':'+ Plan'}</button><button class="btn sm" data-xone="1">Excel</button><button class="btn sm${moveKey===k?' on':''}" data-move="1">${moveKey===k?'Click the new place…':'Move point'}</button>${POS[k]?'<button class="btn sm ghost" data-unmove="1">Reset position</button>':''}</div>${ductSec(k)}`}
+function showInfo(){const h=HK.showInfo,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=showInfo__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 document.getElementById('info').addEventListener('click',e=>{const t=e.target;const k=focusKey;const it=byKey[k];
   if(t.closest('[data-close]')){document.getElementById('info').hidden=true;focusKey=null;draw();return}
   const tg=t.closest('.tag[data-key]');if(tg){focusTag(tg.dataset.key);return}
@@ -781,13 +787,14 @@ let NOTES=LS('scope.notes',[]);let noteMode=false,notePend=[],noteEditing=null;
 const NTYPES=['Missing pit','Missing duct bank','Missing line / trench','Wrong position','Wrong status','Other'];
 const saveNotes=()=>save('scope.notes',NOTES);
 const noteAnchor=n=>{const p=n.pts;if(p.length===1)return p[0];let L=0;const seg=[];for(let i=1;i<p.length;i++){const d=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);seg.push(d);L+=d}let h=L/2;for(let i=1;i<p.length;i++){if(h<=seg[i-1]){const f=seg[i-1]?h/seg[i-1]:0;return [p[i-1][0]+(p[i][0]-p[i-1][0])*f,p[i-1][1]+(p[i][1]-p[i-1][1])*f]}h-=seg[i-1]}return p[0]};
-function drawNotes(){if(!PR&&!layers.notes&&layers.notes!==undefined)return;const C='#e8590c';
+function drawNotes__base(){if(!PR&&!layers.notes&&layers.notes!==undefined)return;const C='#e8590c';
   const all=NOTES.concat(notePend.length?[{pts:notePend,_p:1}]:[]);
   all.forEach((n,i)=>{if(n.pts.length>1){ctx.strokeStyle=C;ctx.globalAlpha=.9;ctx.lineWidth=3;ctx.setLineDash([7,5]);ctx.beginPath();n.pts.forEach((p,k)=>k?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1}
     if(n._p){ctx.fillStyle=C;n.pts.forEach(p=>{ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),3.5,0,7);ctx.fill()});return}
     const [e,nn]=noteAnchor(n),x=X(e),y=Y(nn);
     ctx.fillStyle=C;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-6,y-12);ctx.arc(x,y-20,10,Math.PI*0.72,Math.PI*2.28);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.fillStyle='#fff';ctx.font='700 11px Barlow, sans-serif';ctx.textAlign='center';ctx.fillText(String(i+1),x,y-16)})}
+function drawNotes(){const h=HK.drawNotes,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=drawNotes__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function noteHit(x,y){for(let i=NOTES.length-1;i>=0;i--){const [e,n]=noteAnchor(NOTES[i]);if(Math.hypot(X(e)-x,Y(n)-20-y)<13)return NOTES[i]}return null}
 function setNote(on){noteMode=on;notePend=[];noteEditing=null;document.getElementById('notebtn').classList.toggle('on',!!on);
   if(on){setEdit(false);setBox(false);moveKey=null;document.getElementById('fltpop').hidden=true;document.getElementById('laypop').hidden=true;cv.style.cursor='crosshair';noteBar()}else{cv.style.cursor='';document.getElementById('notepop').hidden=true}draw()}
@@ -841,14 +848,16 @@ let AQ={k:null,pg:null,s:1,x:0,y:0,iw:0,ih:0,pt:null};
 const aqv=document.getElementById('aqv'),aqimg=document.getElementById('aqimg'),aqwrap=document.getElementById('aqwrap'),aqstage=document.getElementById('aqstage'),aqmk=document.getElementById('aqmk');
 function aqApply(){aqwrap.style.transform=`translate(${AQ.x}px,${AQ.y}px) scale(${AQ.s})`}
 function aqFit(){const r=aqstage.getBoundingClientRect();AQ.s=Math.min(r.width/AQ.iw,r.height/AQ.ih)*.96;AQ.x=(r.width-AQ.iw*AQ.s)/2;AQ.y=(r.height-AQ.ih*AQ.s)/2;aqApply()}
-function aqFind(){if(!AQ.pt){aqFit();return}const r=aqstage.getBoundingClientRect();const fit=Math.min(r.width/AQ.iw,r.height/AQ.ih);AQ.s=Math.min(1.2,fit*4.5);AQ.x=r.width/2-AQ.pt[0]*AQ.iw*AQ.s;AQ.y=r.height/2-AQ.pt[1]*AQ.ih*AQ.s;aqApply()}
-function openAQ(k,pg){AQ.k=k;AQ.pg=pg;const L=(k&&D.aq&&D.aq.loc[k])||[];const hit=L.find(l=>l[0]===pg);AQ.pt=hit?[hit[1],hit[2]]:null;
+function aqFind__base(){if(!AQ.pt){aqFit();return}const r=aqstage.getBoundingClientRect();const fit=Math.min(r.width/AQ.iw,r.height/AQ.ih);AQ.s=Math.min(1.2,fit*4.5);AQ.x=r.width/2-AQ.pt[0]*AQ.iw*AQ.s;AQ.y=r.height/2-AQ.pt[1]*AQ.ih*AQ.s;aqApply()}
+function aqFind(){const h=HK.aqFind,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=aqFind__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function openAQ__base(k,pg){AQ.k=k;AQ.pg=pg;const L=(k&&D.aq&&D.aq.loc[k])||[];const hit=L.find(l=>l[0]===pg);AQ.pt=hit?[hit[1],hit[2]]:null;
   aqv.hidden=false;document.getElementById('aqtitle').textContent=aqName(pg);document.getElementById('aqsub').textContent=k?short(k)+(AQ.pt?'':' · tag not marked on this sheet'):'';
   const pages=[...new Set(L.map(l=>l[0]))];document.getElementById('aqtabs').innerHTML=pages.length>1?pages.map(p=>`<button class="chipbtn" aria-pressed="${p===pg}" data-aqpg="${p}">${esc(aqName(p).replace(/^4422-AQ-DA-/,'DA-'))}</button>`).join(''):'';
   aqmk.hidden=!AQ.pt;document.getElementById('aqload').hidden=false;aqimg.style.visibility='hidden';
   aqimg.onload=()=>{AQ.iw=aqimg.naturalWidth;AQ.ih=aqimg.naturalHeight;aqimg.style.width=AQ.iw+'px';aqimg.style.height=AQ.ih+'px';aqwrap.style.width=AQ.iw+'px';aqwrap.style.height=AQ.ih+'px';if(AQ.pt){aqmk.style.left=AQ.pt[0]*AQ.iw+'px';aqmk.style.top=AQ.pt[1]*AQ.ih+'px'}document.getElementById('aqload').hidden=true;aqimg.style.visibility='';aqFind()};
   aqimg.onerror=()=>{document.getElementById('aqload').textContent='This drawing is not included in this copy.'};
   aqimg.src=aqSrc(pg)}
+function openAQ(){const h=HK.openAQ,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=openAQ__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 document.addEventListener('click',e=>{const b=e.target.closest('[data-aqopen]');if(b){openAQ(focusKey,+b.dataset.aqopen);return}const t=e.target.closest('[data-aqpg]');if(t)openAQ(AQ.k,+t.dataset.aqpg)});
 document.getElementById('aqclose').onclick=()=>{aqv.hidden=true};
 document.getElementById('aqfit').onclick=aqFit;document.getElementById('aqfind').onclick=aqFind;
@@ -892,7 +901,7 @@ function qSumRows(ks){let L=0,net=0,exc=0,n=0;ks.forEach(k=>{const q=dbQ(k);if(q
 // trenches: state along each run from the trench updates
 function trnState(tr){const out={R:0,Y:0,N:0};(window.__PARTS||[]).forEach(p=>{if(p.tr===tr)out[pState(p)]+=p.L});return out}
 let TRS=null;const trnStates=()=>{if(!TRS)TRS=(D.trn||[]).map(trnState);return TRS};
-const _buildRuns=buildRuns;buildRuns=function(){_buildRuns();TRS=null};
+hkAfter('buildRuns',function(){TRS=null});
 function trQ(tr,i){const [tag,sys,W,L,lv]=tr;const dep=momC(sys).dep;const exc=(L&&dep!=null)?L*W*dep:null;const st=trnStates()[i];return {tag,sys,W,L,lv,dep,exc,st}}
 // status hatch: layer colour = type, thin lines = status (across = backfilled, diagonal = excavated)
 function shade(c,f){const m=/^#?([0-9a-f]{6})$/i.exec((c||'').trim());if(!m)return '#333';const n=parseInt(m[1],16);const g=v=>Math.round(f<0?v*(1+f):v+(255-v)*f);return `rgb(${g(n>>16)},${g(n>>8&255)},${g(n&255)})`}
@@ -914,13 +923,14 @@ function stRun(sp,col,w,st,alpha){ctx.lineCap='butt';ctx.lineJoin='round';const 
     if(!off){const nx=-uy*h,ny=ux*h,R=[[a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny]];if(st==='Y')hatchScan(R,DIAG,DIAG,d0,g);else hatchScan(R,ux,uy,a[0]*ux+a[1]*uy+c0,g)}
     c0=(c0-L)%g;if(c0<0)c0+=g}
   ctx.stroke()}
-function drawTrn(){if(!D.trn||(!PR&&layers.trn===0))return;if(sc<0.25&&!PR)return;if(cat==='WET')return;
+function drawTrn__base(){if(!D.trn||(!PR&&layers.trn===0))return;if(sc<0.25&&!PR)return;if(cat==='WET')return;
   const P=window.__PARTS||[];const cY=css('--tr-y'),cR=css('--tr-r');
   for(const p of P){const tr=p.tr;const on=!selTrn||selTrn===tr;const st=pState(p);const sel=selPart===p;
     const w=Math.max(st==='N'?2:3,tr[2]*sc);if(p.poly)trPolyDraw(p,TCOL[tr[1]]||'#555',st,sel?1:on?1:.4);else stRun([[X(p.x0),Y(p.y0)],[X(p.x1),Y(p.y1)]],TCOL[tr[1]]||'#555',w,st,sel?1:on?(st==='N'&&selTrn===tr?1.4:1):.4);
     if(sel&&!p.poly){ctx.globalAlpha=1;ctx.strokeStyle=css('--ink');ctx.lineWidth=1.5;ctx.setLineDash([5,4]);const dx=p.x1-p.x0,dy=p.y1-p.y0,L=Math.hypot(dx,dy)||1,nx=-dy/L*tr[2]/2,ny=dx/L*tr[2]/2;ctx.beginPath();ctx.moveTo(X(p.x0+nx),Y(p.y0+ny));ctx.lineTo(X(p.x1+nx),Y(p.y1+ny));ctx.lineTo(X(p.x1-nx),Y(p.y1-ny));ctx.lineTo(X(p.x0-nx),Y(p.y0-ny));ctx.closePath();ctx.stroke();ctx.setLineDash([])}
     if(p.n>1&&p.k>0&&w>=6&&!p.poly){ctx.globalAlpha=on?.9:.2;ctx.strokeStyle='#fff';ctx.lineWidth=2;const dx=p.x1-p.x0,dy=p.y1-p.y0,L=Math.hypot(dx,dy)||1,h=tr[2]/2+.4;ctx.beginPath();ctx.moveTo(X(p.x0-dy/L*h),Y(p.y0+dx/L*h));ctx.lineTo(X(p.x0+dy/L*h),Y(p.y0-dx/L*h));ctx.stroke()}}
   ctx.globalAlpha=1;ctx.lineCap='round'}
+function drawTrn(){const h=HK.drawTrn,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=drawTrn__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function trnHit(x,y){if(!D.trn||layers.trn===0||cat==='WET')return null;let best=null,bd=8;for(const p of (window.__PARTS||[])){const d=p.poly?trPolyDist(x,y,p):dseg(x,y,[X(p.x0),Y(p.y0)],[X(p.x1),Y(p.y1)])-p.tr[2]*sc/2;if(d<bd){bd=d;best=p}}return best}
 function showTrn(tr){selTrn=tr;const i=D.trn.indexOf(tr);const q=trQ(tr,i);const el=document.getElementById('info');el.hidden=false;const s=q.st,T=s.R+s.Y+s.N||1;
   el.innerHTML=`<div class="hd"><div><h3>${esc(short(tr[0]))}</h3><div style="margin-top:4px"><span class="pill" style="color:${TCOL[tr[1]]}">${tr[1]} electrical trench</span></div></div><button class="x" data-close="1" aria-label="Close">×</button></div>
@@ -965,13 +975,14 @@ view.addEventListener('click',e=>{const t=e.target;
 // ---------- draw / correct electrical trenches by hand ----------
 let TRE=LS('scope.trnedit',{});let trnDraw=null;
 const TRB=(D.trn||[]).map(t=>t[5].map(l=>l.slice()));window.__PO=LS('scope.po',{});
-function applyTRE(){for(const k in TRE){const e=TRE[k];if(e&&e.newt&&!(D.trn||[]).some(t=>t[0]===k)){(D.trn=D.trn||[]).push([k,e.sys||'EY',+e.W||0.5,null,null,[],e.c||[0,0]]);TRB.push([])}}
+function applyTRE__base(){for(const k in TRE){const e=TRE[k];if(e&&e.newt&&!(D.trn||[]).some(t=>t[0]===k)){(D.trn=D.trn||[]).push([k,e.sys||'EY',+e.W||0.5,null,null,[],e.c||[0,0]]);TRB.push([])}}
   const P=[];(D.trn||[]).forEach((tr,i)=>{const e=TRE[tr[0]];if(!TRB[i])TRB[i]=[];const bc=e&&e.mode==='replace'?0:TRB[i].length;const L=e?(e.mode==='replace'?e.lines:TRB[i].concat(e.lines)):TRB[i];tr[5]=L;tr[3]=L.length?L.reduce((s,l)=>s+Math.hypot(l[2]-l[0],l[3]-l[1]),0):null;
     L.forEach((l,si)=>{const LL=Math.hypot(l[2]-l[0],l[3]-l[1]);const n=Math.max(1,Math.ceil(LL/200));const sid=si<bc?String(si):'e'+(si-bc);const xt=si<bc?(D.trnx||{})[tr[0]+'|'+si]:null;for(let k=0;k<n;k++){const a=k/n,b=(k+1)/n;const q={id:tr[0]+'|'+sid+'|'+k,tr,k,n,L:LL/n,x0:l[0]+(l[2]-l[0])*a,y0:l[1]+(l[3]-l[1])*a,x1:l[0]+(l[2]-l[0])*b,y1:l[1]+(l[3]-l[1])*b};
       if(xt){if(k===0&&xt[0]){q.x0=xt[0][0];q.y0=xt[0][1];q.ext=1}if(k===n-1&&xt[1]){q.x1=xt[1][0];q.y1=xt[1][1];q.ext=1}if(q.ext)q.L=Math.hypot(q.x1-q.x0,q.y1-q.y0)}P.push(q)}})});
   const PO=window.__PO||{};const P2=[];P.forEach(p=>{const o=PO[p.id];if(o&&o.del)return;if(o){p.x0=o.x0;p.y0=o.y0;p.x1=o.x1;p.y1=o.y1;p.L=Math.hypot(p.x1-p.x0,p.y1-p.y0);p.moved=1;if(o.poly&&o.poly.length>2)trPolyApply(p,o.poly.map(q=>q.slice()))}P2.push(p)});
   (D.trn||[]).forEach(tr=>{const ps=P2.filter(p=>p.tr===tr);tr[3]=ps.length?ps.reduce((s,p)=>s+p.L,0):null});
   window.__PARTS=P2;buildPParts();TRS=null;buildRuns()}
+function applyTRE(){const h=HK.applyTRE,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=applyTRE__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 applyTRE();
 function focusTrn(tr){layers.trn=1;const xs=tr[5].flatMap(l=>[l[0],l[2]]),ys=tr[5].flatMap(l=>[l[1],l[3]]);if(xs.length)fitBox(Math.min(...xs)-10,Math.max(...xs)+10,Math.min(...ys)-10,Math.max(...ys)+10);else{sc=Math.max(sc,6);ox=tr[6][0]-W/2/sc;oy=tr[6][1]+H/2/sc}focusKey=null;showTrn(tr);draw()}
 function startTrnDraw(tr,mode){setEdit(false);setBox(false);moveKey=null;if(noteMode)setNote(false);trnDraw={tr,mode,pts:[]};cv.style.cursor='crosshair';selTrn=tr;
@@ -987,7 +998,7 @@ function finishTrnDraw(){const d=trnDraw;if(!d)return;if(d.pts.length<2){toast('
   if(d.mode==='replace')TRE[tag]={mode:'replace',lines:segs,date:today()};
   else TRE[tag]={mode:prev?prev.mode:'add',lines:(prev?prev.lines:[]).concat(segs),date:today()};
   save('scope.trnedit',TRE);trnDraw=null;cv.style.cursor='';applyTRE();render();showTrn(d.tr);draw();toast('Trench saved · '+fmt(d.tr[3]||0)+' m in total')}
-const _drawTrn=drawTrn;drawTrn=function(){_drawTrn();if(trnDraw&&trnDraw.pts.length){const t=trnDraw.tr;ctx.strokeStyle=TCOL[t[1]]||'#555';ctx.globalAlpha=.6;ctx.lineWidth=Math.max(2,t[2]*sc);ctx.setLineDash([10,6]);ctx.beginPath();trnDraw.pts.forEach((p,k)=>k?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;ctx.fillStyle=css('--ink');trnDraw.pts.forEach(p=>{ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),3.5,0,7);ctx.fill()})}};
+hkAfter('drawTrn',function(){if(trnDraw&&trnDraw.pts.length){const t=trnDraw.tr;ctx.strokeStyle=TCOL[t[1]]||'#555';ctx.globalAlpha=.6;ctx.lineWidth=Math.max(2,t[2]*sc);ctx.setLineDash([10,6]);ctx.beginPath();trnDraw.pts.forEach((p,k)=>k?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;ctx.fillStyle=css('--ink');trnDraw.pts.forEach(p=>{ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),3.5,0,7);ctx.fill()})}});
 document.addEventListener('keydown',e=>{if(!trnDraw)return;if(e.key==='Escape'){trnDraw=null;cv.style.cursor='';draw()}if(e.key==='Enter')finishTrnDraw()});
 function trnMissHtml(){const miss=(D.trn||[]).filter(t=>!t[5].length);const mine=(D.trn||[]).filter(t=>TRE[t[0]]);
   return `<details class="group" style="margin-top:12px"${miss.length?' open':''}><summary><h3>Not read from the drawing</h3><span class="muted">${miss.length}</span></summary><div class="body"><p class="hint" style="margin:0 0 6px;display:block">Click a tag, then “Redraw” to draw it on the map.</p><div class="tags">${miss.map(t=>`<button class="tag" data-trnopen="${esc(t[0])}" style="border-left:3px solid ${TCOL[t[1]]}">${esc(short(t[0]))}</button>`).join('')}</div></div></details>
@@ -997,7 +1008,7 @@ view.addEventListener('click',e=>{const b=e.target.closest('[data-trnopen]');if(
 // ---------- trench parts (≤200 m) status ----------
 window.__PS=LS('scope.ps',{});let selPart=null;
 function setPart(ps,s){ps.forEach(p=>{window.__PS[p.id]={s,date:today()}});save('scope.ps',window.__PS);buildRuns();render();draw()}
-function showPart(p){selPart=p;selTrn=p.tr;const tr=p.tr,i=D.trn.indexOf(tr);const q=trQ(tr,i);const st=pState(p);const rec=window.__PS[p.id];
+function showPart__base(p){selPart=p;selTrn=p.tr;const tr=p.tr,i=D.trn.indexOf(tr);const q=trQ(tr,i);const st=pState(p);const rec=window.__PS[p.id];
   const exc=q.dep!=null?p.L*tr[2]*q.dep:null;const el=document.getElementById('info');el.hidden=false;const mix=(D.pmix||[]).includes(p.id)&&!rec;
   el.innerHTML=`<div class="hd"><div><h3>${esc(short(tr[0]))}</h3><div style="margin-top:4px"><span class="pill" style="color:${TCOL[tr[1]]}">${tr[1]} trench</span> <span class="muted">part ${p.k+1} of ${p.n} · ${f2(p.L)} m</span></div></div><button class="x" data-close="1" aria-label="Close">×</button></div>
   ${mix?'<div class="hint" style="color:#b71c1c;margin-top:6px">Your old lines covered only part of this – please confirm the status.</div>':''}
@@ -1009,6 +1020,7 @@ function showPart(p){selPart=p;selTrn=p.tr;const tr=p.tr,i=D.trn.indexOf(tr);con
   <div class="acts"><button class="btn sm" data-pwhole="1">Whole trench</button></div>`;
   el.querySelectorAll('[data-pst]').forEach(b=>b.onclick=()=>{setPart([p],b.dataset.pst);showPart(p);toast('Part '+(p.k+1)+' → '+b.textContent)});
   el.querySelector('[data-pwhole]').onclick=()=>{selPart=null;showTrn(tr);draw()}}
+function showPart(){const h=HK.showPart,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=showPart__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 document.getElementById('info').addEventListener('click',e=>{if(e.target.closest('[data-close]'))selPart=null});
 function partsInBoxHtml(){if(!boxRes)return '';const P=partsInBox();if(!P.length)return '';
   const c={N:0,Y:0,R:0};P.forEach(p=>c[pState(p)]+=p.L);
@@ -1060,7 +1072,7 @@ function snapPart(p){const W=p.tr[2],dx=p.x1-p.x0,dy=p.y1-p.y0,L=Math.hypot(dx,d
   let best=null;for(let i=0;i<offs.length;i++)for(let j=0;j<offs.length;j++){const sep=offs[j]-offs[i];if(sep>0&&Math.abs(sep-W)<=0.15){const mid=(offs[i]+offs[j])/2;if(!best||Math.abs(mid)<Math.abs(best))best=mid}}
   if(best==null){toast('No matching pair of lines (width '+f2(W)+' m) near this part.');return}
   window.__PO[p.id]={x0:+(p.x0+nx*best).toFixed(2),y0:+(p.y0+ny*best).toFixed(2),x1:+(p.x1+nx*best).toFixed(2),y1:+(p.y1+ny*best).toFixed(2)};savePO(p.id);toast('Snapped '+f2(Math.abs(best))+' m to the drawing')}
-const _showPart=showPart;showPart=function(p){_showPart(p);if(cableMode)renderCable()};
+hkAfter('showPart',function(p){if(cableMode)renderCable()});
 
 // ---------- snap toggle (F3) ----------
 window.__SNAP=LS('scope.snap',1);
@@ -1081,12 +1093,13 @@ const LAST={};Object.keys(UKEYS).forEach(k=>{try{LAST[k]=localStorage.getItem(k)
 let UNDO=[],REDO=[],ugroup=null,restoring=false;
 window.__UNDO=(k,s)=>{if(restoring||!(k in UKEYS))return;if(LAST[k]===s)return;if(!ugroup){ugroup=[];UNDO.push(ugroup);if(UNDO.length>50)UNDO.shift();REDO=[];setTimeout(()=>ugroup=null,0)}ugroup.push({k,prev:LAST[k],next:s});LAST[k]=s};
 const BASEPOS=Object.fromEntries(D.items.map(r=>[r[0],[r[2],r[3]]]));
-function restoreKey(k,s){const v=s==null?null:JSON.parse(s);if(k==='scope.mom'&&v){for(const g in v)Object.assign(window.__MOM[g]||(window.__MOM[g]={}),v[g])}if(k==='scope.addi')ADDI=v||[];if(k==='scope.psz')window.__PSZ=v||{};if(k==='scope.ppo')window.__PPO=v||{};if(k==='scope.ppa')window.__PPA=v||[];
+function restoreKey__base(k,s){const v=s==null?null:JSON.parse(s);if(k==='scope.mom'&&v){for(const g in v)Object.assign(window.__MOM[g]||(window.__MOM[g]={}),v[g])}if(k==='scope.addi')ADDI=v||[];if(k==='scope.psz')window.__PSZ=v||{};if(k==='scope.ppo')window.__PPO=v||{};if(k==='scope.ppa')window.__PPA=v||[];
   if(k==='scope.po')window.__PO=v||{};if(k==='scope.ps')window.__PS=v||{};if(k==='scope.trnedit')TRE=v||{};
   if(k==='scope.trench')TE=Object.assign({added:[],status:{},removed:[],log:[]},v||{});
   if(k==='scope.ov')OV=v||{};if(k==='scope.notes')NOTES=v||[];if(k==='scope.plan')PLAN=Object.assign({title:'',keys:[],perTrailer:2,perDay:6},v||{});
   if(k==='scope.pos'){POS=v||{};items.forEach(i=>{if(i.added)return;const p=POS[i.key]||{e:BASEPOS[i.key][0],n:BASEPOS[i.key][1]};i.e=p.e;i.n=p.n})}
   LAST[k]=s;try{if(s==null)localStorage.removeItem(k);else localStorage.setItem(k,s)}catch(_){}try{window.__SYNCPUSH&&window.__SYNCPUSH(k,s)}catch(e){console.warn(e)}}
+function restoreKey(){const h=HK.restoreKey,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=restoreKey__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return r} // hooks: docs/PATCHES.md
 function applyStep(step,back){restoring=true;try{(back?step.slice().reverse():step).forEach(e=>restoreKey(e.k,back?e.prev:e.next))}finally{restoring=false}
   selPart=null;applyTRE();render();if(cableMode)renderCable();draw();toast((back?'Undone: ':'Redone: ')+[...new Set(step.map(e=>UKEYS[e.k]))].join(', '))}
 function undo(){if(pipeDraw&&pipeDraw.pts.length){pipeDraw.pts.pop();draw();return}if(pend.length){pend.pop();draw();return}if(trnDraw&&trnDraw.pts.length){trnDraw.pts.pop();draw();return}if(notePend.length){notePend.pop();draw();return}
@@ -1132,8 +1145,9 @@ function pQ(p){const v=p.inv,od=p.sz?p.sz.od/1000:0,W=p.Weff||p.W;if(!v||!W)retu
   const BED=window.__MOM.pipe.bed,SANDTOP=window.__MOM.pipe.top;const h0=NGL-(v.b0-BED),h1=NGL-(v.b1-BED),h=Math.max(0,(h0+h1)/2);const exc=W*h*p.L;const zone=BED+od+SANDTOP;
   const pipeV=Math.PI*od*od/4*p.L,sand=Math.max(0,W*Math.min(h,zone)*p.L-pipeV);const bf=Math.max(0,exc-sand-pipeV); // only the pipe and the sand are deducted
   return {h0,h1,h,W,exc,sand,bf,shared:W<p.W-0.01,assumed:v.s0==='A'||v.s1==='A'}}
-function buildPParts(){const O=window.__PPO||{},out=[];(D.pparts||[]).forEach(r=>{const o=O[r[0]];if(o&&o.del)return;const pts=o&&o.pts?o.pts:r[2];out.push({id:r[0],util:(o&&o.util)||r[1],pts,a:(o&&o.a!==undefined)?o.a:r[3],b:(o&&o.b!==undefined)?o.b:r[4],moved:!!(o&&o.pts),L:plLen(pts),pipe:1})});
+function buildPParts__base(){const O=window.__PPO||{},out=[];(D.pparts||[]).forEach(r=>{const o=O[r[0]];if(o&&o.del)return;const pts=o&&o.pts?o.pts:r[2];out.push({id:r[0],util:(o&&o.util)||r[1],pts,a:(o&&o.a!==undefined)?o.a:r[3],b:(o&&o.b!==undefined)?o.b:r[4],moved:!!(o&&o.pts),L:plLen(pts),pipe:1})});
   (window.__PPA||[]).forEach(a=>{const o=O[a.id];if(o&&o.del)return;const pts=o&&o.pts?o.pts:a.pts;out.push({id:a.id,util:(o&&o.util)||a.util,pts,a:(o&&o.a!==undefined)?o.a:(a.a||null),b:(o&&o.b!==undefined)?o.b:(a.b||null),added:a.date,moved:!!(o&&o.pts),L:plLen(pts),pipe:1,_base:a})});out.forEach(p=>{p.sz=pSize(p,p._base);p.W=trWidth(p.sz);p.inv=pInv(p)});pipeShare(out);window.__PP=out}
+function buildPParts(){const h=HK.buildPParts,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=buildPParts__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 const ptOf=(pts,f)=>{let L=plLen(pts)*f;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);if(L<=d){const u=d?L/d:0;return [pts[i-1][0]+(pts[i][0]-pts[i-1][0])*u,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*u]}L-=d}return pts[pts.length-1]};
 
 // delete tool: click = delete one, drag = box (asks first)
@@ -1212,7 +1226,7 @@ function drawPipes(){const P=window.__PP||[];if(!P.length||cat==='EI')return;con
   drawMS();ctx.globalAlpha=1}
 function pipeHit(x,y){if(cat==='EI')return null;let best=null,bd=7;for(const p of (window.__PP||[])){if(!uon(p.util))continue;for(let i=1;i<p.pts.length;i++){const d=dseg(x,y,[X(p.pts[i-1][0]),Y(p.pts[i-1][1])],[X(p.pts[i][0]),Y(p.pts[i][1])]);if(d<bd){bd=d;best=p}}}return best}
 function pipeName(p){const a=p.a?short(p.a):null,b=p.b?short(p.b):null;return a&&b?a+' → '+b:a?a+' → …':b?'… → '+b:'pipe run'}
-function showPipe(p){selPipe=p;selPart=null;const st=pState(p),rec=window.__PS[p.id];const mix=(D.pmix||[]).includes(p.id)&&!rec;const el=document.getElementById('info');el.hidden=false;
+function showPipe__base(p){selPipe=p;selPart=null;const st=pState(p),rec=window.__PS[p.id];const mix=(D.pmix||[]).includes(p.id)&&!rec;const el=document.getElementById('info');el.hidden=false;
   el.innerHTML=`<div class="hd"><div><h3>${esc(p.util)} · ${esc(pipeName(p))}</h3><div style="margin-top:4px"><span class="pill" style="color:${ucol(p.util)}">${esc(UNAME[p.util]||p.util)}</span> <span class="muted">${f2(p.L)} m${p.moved?' · ✎ edited':''}${p.added?' · drawn by you':''}</span></div></div><button class="x" data-close="1" aria-label="Close">×</button></div>
   ${mix?'<div class="hint" style="color:#b71c1c;margin-top:6px">Your old lines covered only part of this – please confirm the status.</div>':''}
   <div class="kv"><span>Pipe size</span><span><select id="psz" style="border:1px solid var(--line);border-radius:5px;padding:2px 4px">${SZLIST.map(t=>`<option ${p.sz&&p.sz.t===t?'selected':''}>${t}</option>`).join('')}</select> <span class="hint">${p.sz?esc(SZSRC[p.sz.src]||''):''}</span></span>
@@ -1233,12 +1247,14 @@ function showPipe(p){selPipe=p;selPart=null;const st=pState(p),rec=window.__PS[p
   {const sel=el.querySelector('#psz');if(sel)sel.onchange=()=>{window.__PSZ[p.id]=sel.value;save('scope.psz',window.__PSZ);buildPParts();buildRuns();render();draw();const np=(window.__PP||[]).find(x=>x.id===p.id);if(np)showPipe(np);toast('Size '+sel.value+' · trench '+f2(np.W)+' m')}}
   el.querySelectorAll('[data-qst]').forEach(b=>b.onclick=()=>{setPart([p],b.dataset.qst);showPipe((window.__PP||[]).find(x=>x.id===p.id)||p);toast(p.util+' run → '+b.textContent)});
   if(pipeMode)renderPipe()}
+function showPipe(){const h=HK.showPipe,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=showPipe__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 document.getElementById('info').addEventListener('click',e=>{if(e.target.closest('[data-close]'))selPipe=null});
 // tools
 const PM={status:['Set status','Click a pipe run, then choose Not started / Excavated / Backfilled.'],move:['Move','Drag a pipe run to its right place. Release to save.'],del:['Delete','Click a pipe run to delete it, or drag a box to delete several. Ctrl+Z brings it back.'],match:['Match properties','Click the run to copy from, then click the runs to change (status + pipe type).'],ends:['Edit ends','Drag the start or end point of a run. Points snap to the drawing.']};
-function setPipe(m){pipeMode=m;if(m){if(cableMode)setCable(null);setEdit(false);setBox(false);moveKey=null;if(noteMode)setNote(false);document.getElementById('fltpop').hidden=true;document.getElementById('laypop').hidden=true}
+function setPipe__base(m){pipeMode=m;if(m){if(cableMode)setCable(null);setEdit(false);setBox(false);moveKey=null;if(noteMode)setNote(false);document.getElementById('fltpop').hidden=true;document.getElementById('laypop').hidden=true}
   pipeDraw=null;document.getElementById('editbtn').classList.toggle('on',!!m);cv.style.cursor=m==='move'?'move':m==='ends'||m==='del'?'crosshair':m==='match'?'copy':'';delPend=null;matchSrc=null;if(!m)MS={kind:null,list:[]};renderPipe();draw()}
-function renderPipe(){const p=document.getElementById('pipepop');if(!pipeMode){p.hidden=true;return}p.hidden=false;const sp=selPipe;
+function setPipe(){const h=HK.setPipe,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=setPipe__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function renderPipe__base(){const p=document.getElementById('pipepop');if(!pipeMode){p.hidden=true;return}p.hidden=false;const sp=selPipe;
   p.innerHTML=`<div class="row" style="margin:0;justify-content:space-between"><h4>Update pipe trench</h4><button class="x" data-pclose="1" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
   <div class="segs small">${Object.entries(PM).map(([k,[l]])=>`<button class="seg" aria-pressed="${pipeMode===k}" data-pmode="${k}">${l}</button>`).join('')}</div>
   ${delConfirmHtml('p')}${msHtml('p')}${matchHtml('p')}<p class="hint" style="margin:0">${pipeDraw?'Click along the pipe. Double-click or Enter to finish, Esc to cancel.':PM[pipeMode][1]}</p>
@@ -1246,6 +1262,7 @@ function renderPipe(){const p=document.getElementById('pipepop');if(!pipeMode){p
    <div class="sel-row">${sp.moved?'<button class="btn sm" data-preset="1">Reset run</button>':''}<button class="btn sm" data-predraw="1">Redraw run</button><button class="btn sm" data-pdel="1" style="color:var(--nc)">Delete run</button></div></div>`:'<p class="hint" style="margin:0">Click a pipe run on the map to select it.</p>'}
   <div class="sel-row" style="margin:0"><select id="p-util">${UTIL.map(([k,l])=>`<option value="${esc(k)}" ${sp&&sp.util===k?'selected':''}>${esc(k)} · ${esc(l)}</option>`).join('')}</select><button class="btn sm" data-padd="1">Add a route</button></div>
   <div class="sel-row" style="margin:0"><button class="btn sm" data-pexport="1">Export updates</button><label class="btn sm" for="eimport">Import updates</label></div>`}
+function renderPipe(){const h=HK.renderPipe,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=renderPipe__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 document.getElementById('pipepop').addEventListener('click',e=>{const t=e.target,sp=selPipe;
   if(t.closest('[data-pclose]')){setPipe(null);return}
   const m=t.closest('[data-pmode]');if(m){setPipe(m.dataset.pmode);return}

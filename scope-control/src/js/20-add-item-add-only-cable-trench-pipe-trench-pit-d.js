@@ -16,7 +16,7 @@ function nwRefItem(kind,c){let best=null,bd=1e9;for(const it of items){if(!it||i
 // ---- cable trench: draw outline (TF), then a clean form – no edit tabs ----
 function nwTrnDefaults(sys){const f=TF.form,r=nwRefTrn(TF.pts,sys);f.sys=sys;f.ref=r?{tag:r.p.tr[0],d:r.d}:null;
   if(r){f.W=+(+r.p.tr[2]).toFixed(2);f.st=pState(r.p)}else{f.W=+Math.max(0.3,Math.round(f.ax.W*20)/20).toFixed(2);f.st='N'}}
-{const _tf=tfFinish;tfFinish=function(){_tf();if(!TF||!TF.form)return;const any=nwRefTrn(TF.pts,null);TF.form.tag='';nwTrnDefaults(any&&NWSYS.includes(any.p.tr[1])?any.p.tr[1]:'EY');nwRender()}}
+{hkAfter('tfFinish',function(){if(!TF||!TF.form)return;const any=nwRefTrn(TF.pts,null);TF.form.tag='';nwTrnDefaults(any&&NWSYS.includes(any.p.tr[1])?any.p.tr[1]:'EY');nwRender()});}
 function nwTrnHtml(){const f=TF.form,tg=tfTag(f.tag),ex=tg?(D.trn||[]).find(t=>t[0]===tg):null,sys=ex?ex[1]:f.sys;
   return `<div class="row" style="margin:0;justify-content:space-between"><h4>New cable trench</h4><button class="x" data-nwx="1" aria-label="Cancel" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
   <div class="tff"><div class="hint">Outline · ${TF.pts.length} points · <b>${f2(f.ax.A)} m²</b> · ${f2(f.ax.L)} × ${f2(f.ax.W)} m</div>
@@ -38,8 +38,9 @@ const nwSync=()=>{try{window.__addSync&&window.__addSync()}catch(_){}};
 const paLen=P=>{let L=0;for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return L};
 function paDefaults(util){const f=PADD.form,r=nwRefPipe(PADD.pts,util);f.util=util;f.ref=r?{id:r.p.id,name:pipeName(r.p),d:r.d}:null;
   f.sz=r?((window.__PSZ||{})[r.p.id]||(r.p.sz&&r.p.sz.t)||''):'';f.st=r?pState(r.p):'N'}
-function paFinish(){if(!PADD||PADD.form)return;if(PADD.pts.length<2){toast('Click at least two points along the pipe');return}
+function paFinish__base(){if(!PADD||PADD.form)return;if(PADD.pts.length<2){toast('Click at least two points along the pipe');return}
   const any=nwRefPipe(PADD.pts,null);PADD.form={};PADD.hov=null;SNAPH=null;paDefaults(any?any.p.util:UTIL[0][0]);cv.style.cursor='';nwRender();draw()}
+function paFinish(){const h=HK.paFinish,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=paFinish__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function nwPipeHtml(){const f=PADD.form,u=UTIL.some(x=>x[0]===f.util)?UTIL:UTIL.concat([[f.util,f.util]]);
   return `<div class="row" style="margin:0;justify-content:space-between"><h4>New pipe trench</h4><button class="x" data-nwx="1" aria-label="Cancel" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
   <div class="tff"><div class="hint">Route · ${PADD.pts.length} points · <b>${f2(paLen(PADD.pts))} m</b></div>
@@ -62,27 +63,27 @@ function paSave(){const f=PADD.form;if(!f.util){toast('Pick the utility');return
   cv.addEventListener('pointermove',e=>{if(!PADD||PADD.form||e.buttons)return;const r=cv.getBoundingClientRect();mvq=[e.clientX-r.left,e.clientY-r.top];if(mvr)return;mvr=requestAnimationFrame(()=>{mvr=0;if(!PADD||PADD.form||!mvq)return;PADD.hov=osn(mvq[0],mvq[1]);draw()})},{capture:true});
   cv.addEventListener('dblclick',e=>{if(!PADD)return;e.stopImmediatePropagation();e.preventDefault();if(!PADD.form&&PADD.pts.length>=2)paFinish()},{capture:true});
   document.addEventListener('keydown',e=>{if(!PADD||(e.target.closest&&e.target.closest('input,textarea,select')))return;if(e.key==='Enter'&&!PADD.form){e.preventDefault();paFinish()}else if(e.key==='Escape'){paEnd();e.stopImmediatePropagation()}},true)}
-{const _dn=drawNotes;drawNotes=function(){_dn();if(!PADD||(typeof PR!=='undefined'&&PR))return;const P=PADD.pts.concat(!PADD.form&&PADD.hov?[PADD.hov]:[]);if(!P.length)return;ctx.save();
+{hkAfter('drawNotes',function(){if(!PADD||(typeof PR!=='undefined'&&PR))return;const P=PADD.pts.concat(!PADD.form&&PADD.hov?[PADD.hov]:[]);if(!P.length)return;ctx.save();
   const col=PADD.form?ucol(PADD.form.util):'#e8590c';ctx.strokeStyle=col;ctx.lineJoin='round';ctx.lineCap='round';
   ctx.beginPath();P.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));ctx.globalAlpha=.28;ctx.lineWidth=Math.max(6,0.8*sc);ctx.stroke();ctx.globalAlpha=1;ctx.lineWidth=2;ctx.setLineDash(PADD.form?[]:[6,4]);ctx.stroke();ctx.setLineDash([]);
   PADD.pts.forEach(q=>{ctx.fillStyle=col;ctx.beginPath();ctx.rect(X(q[0])-4.5,Y(q[1])-4.5,9,9);ctx.fill()});
   ctx.font='600 11px '+css('--f-mono');ctx.textAlign='center';for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L*sc<46)continue;const x=(X(a[0])+X(b[0]))/2,y=(Y(a[1])+Y(b[1]))/2,t=f2(L),w=ctx.measureText(t).width+8;ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(x-w/2,y-8,w,15);ctx.fillStyle='#b4470a';ctx.fillText(t,x,y+3)}
-  if(SNAPH&&!PADD.form)try{drawSnapMark(SNAPH)}catch(_){}ctx.restore()}}
+  if(SNAPH&&!PADD.form)try{drawSnapMark(SNAPH)}catch(_){}ctx.restore()});}
 {const _dj=drawJob;drawJob=function(){if(PADD&&!PADD.form)return {n:PADD.pts.length,min:2,lab:'New pipe trench',done:paFinish,undo:()=>{PADD.pts.pop()},cancel:paEnd};
   const j=_dj();if(j&&typeof TF!=='undefined'&&TF&&!TF.form)j.lab='New cable trench';return j}}
 {const _ca=cancelAction;cancelAction=function(){if(PADD){paEnd();toast('New pipe trench cancelled');return true}return _ca()}}
 {const _uu=urUndo;urUndo=function(){if(PADD&&!PADD.form){if(PADD.pts.length){PADD.pts.pop();draw()}return}_uu()}}
 {const _cu=urCanU;urCanU=function(){return (PADD&&!PADD.form)?PADD.pts.length>0:_cu()}}
 // any other tool closes the pipe add
-{const _a=setAdd;setAdd=function(on,ed){if(on&&PADD)paEnd();if(on&&!ed){const i=document.getElementById('info');if(i)i.hidden=true;selPipe=null;selPart=null}_a(on,ed)}}
+{hkBefore('setAdd',function(on,ed){if(on&&PADD)paEnd();if(on&&!ed){const i=document.getElementById('info');if(i)i.hidden=true;selPipe=null;selPart=null}});}
 {const _c=setCable;setCable=function(m){if(m&&PADD)paEnd();_c(m)}}
-{const _p=setPipe;setPipe=function(m){if(m&&PADD)paEnd();_p(m)}}
-{const _m=measSet;measSet=function(on){if(on&&PADD)paEnd();return _m(on)}}
-{const _m=mpSet;mpSet=function(on){if(on&&PADD)paEnd();return _m(on)}}
+{hkBefore('setPipe',function(m){if(m&&PADD)paEnd();});}
+{hkBefore('measSet',function(on){if(on&&PADD)paEnd();});}
+{hkBefore('mpSet',function(on){if(on&&PADD)paEnd();});}
 {const _s=secStart;secStart=function(...a){if(PADD)paEnd();return _s(...a)}}
 {const _s=shpStart;shpStart=function(...a){if(PADD)paEnd();return _s(...a)}}
 // editing the pipe tool no longer adds routes (adding is in Add item)
-{const _rp=renderPipe;renderPipe=function(){_rp();const p=document.getElementById('pipepop');const a=p&&p.querySelector('[data-padd]');if(a){const r=a.closest('.sel-row');if(r)r.remove();else a.remove()}}}
+{hkAfter('renderPipe',function(){const p=document.getElementById('pipepop');const a=p&&p.querySelector('[data-padd]');if(a){const r=a.closest('.sel-row');if(r)r.remove();else a.remove()}});}
 
 // ---- the form (shared by cable and pipe) ----
 function nwRender(){const p=nwPop();const h=(typeof TF!=='undefined'&&TF&&TF.form&&cableMode==='fill')?nwTrnHtml():(PADD&&PADD.form)?nwPipeHtml():'';
@@ -120,11 +121,11 @@ function adDefaults(fromForm){if(!addMode||addPts.length<4)return;if(!addEdit)ad
 // ---- editing stays inside each item: part and pipe cards get Reset / Delete ----
 function nwDelBtn(label,fn){const b=document.createElement('button');b.className='btn sm';b.style.color='var(--nc)';b.textContent=label;let arm=0;
   b.onclick=()=>{if(!arm){arm=1;b.textContent='Confirm '+label.toLowerCase();b.classList.add('on');setTimeout(()=>{arm=0;if(b.isConnected){b.textContent=label;b.classList.remove('on')}},3000);return}fn()};return b}
-{const _sp=showPart;showPart=function(p){_sp(p);if(!p||nwRO())return;const a=document.querySelector('#info .acts');if(!a||a.querySelector('[data-nwpd]'))return;
+{hkAfter('showPart',function(p){if(!p||nwRO())return;const a=document.querySelector('#info .acts');if(!a||a.querySelector('[data-nwpd]'))return;
   if(p.moved&&!(TRE[p.tr[0]]&&TRE[p.tr[0]].newt)){const b=document.createElement('button');b.className='btn sm';b.dataset.nwpr=1;b.textContent='Reset part';b.onclick=()=>{delete window.__PO[p.id];savePO(p.id);toast('Part back to the drawing')};a.appendChild(b)}
-  const d=nwDelBtn('Delete part',()=>{window.__PO[p.id]={del:1};selPart=null;document.getElementById('info').hidden=true;savePO();toast('Part deleted · Ctrl+Z to undo')});d.dataset.nwpd=1;a.appendChild(d)}}
-{const _sh=showPipe;showPipe=function(p){_sh(p);if(!p||nwRO())return;const el=document.getElementById('info');if(el.querySelector('[data-nwpd]'))return;let a=el.querySelector('.acts.nwacts');if(!a){a=document.createElement('div');a.className='acts nwacts';el.appendChild(a)}
+  const d=nwDelBtn('Delete part',()=>{window.__PO[p.id]={del:1};selPart=null;document.getElementById('info').hidden=true;savePO();toast('Part deleted · Ctrl+Z to undo')});d.dataset.nwpd=1;a.appendChild(d)});}
+{hkAfter('showPipe',function(p){if(!p||nwRO())return;const el=document.getElementById('info');if(el.querySelector('[data-nwpd]'))return;let a=el.querySelector('.acts.nwacts');if(!a){a=document.createElement('div');a.className='acts nwacts';el.appendChild(a)}
   if(p.moved&&!p.added){const b=document.createElement('button');b.className='btn sm';b.textContent='Reset run';b.onclick=()=>{const o=Object.assign({},window.__PPO[p.id]||{});delete o.pts;if(Object.keys(o).length)window.__PPO[p.id]=o;else delete window.__PPO[p.id];savePPO(p.id);toast('Pipe run back to the drawing')};a.appendChild(b)}
-  const d=nwDelBtn('Delete run',()=>{window.__PPO[p.id]=Object.assign({},window.__PPO[p.id]||{},{del:1});selPipe=null;el.hidden=true;savePPO();toast('Pipe run deleted · Ctrl+Z to undo')});d.dataset.nwpd=1;a.appendChild(d)}}
+  const d=nwDelBtn('Delete run',()=>{window.__PPO[p.id]=Object.assign({},window.__PPO[p.id]||{},{del:1});selPipe=null;el.hidden=true;savePPO();toast('Pipe run deleted · Ctrl+Z to undo')});d.dataset.nwpd=1;a.appendChild(d)});}
 try{Object.assign(window.__T,{padd:()=>PADD,paStart,paEnd,paFinish,paSave,paPts:pts=>{PADD.pts=pts.slice()},nwRender,adDefaults,addEdit:()=>addEdit,addPts:()=>addPts})}catch(_){}
 

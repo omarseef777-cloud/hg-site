@@ -10,4 +10,4 @@ function pdEstOps(){try{for(const k in PDT){const d=PDT[k];if(!d||!d.assumed)con
       X(u[1],v[1],u[0],v[0],-oy,(t,x)=>{if(Math.abs(x)<=hx)hit(t,'C',hx-x)});X(u[0],v[0],u[1],v[1],-ox,(t,y)=>{if(Math.abs(y)<=hy)hit(t,'D',y+hy)});
       acc+=sl}});
   d.op=ops;d.opEst=1;if(ops.length&&!/Openings estimated/.test(d.src||''))d.src=(d.src||'')+' Openings estimated from the pipe routes on the map.'}}catch(e){console.warn('pdEstOps',e)}}
-{const _br=buildRuns;buildRuns=function(){const r=_br.apply(this,arguments);pdEstOps();return r}}pdEstOps();
+{hkAfter('buildRuns',function(){pdEstOps();});}pdEstOps();

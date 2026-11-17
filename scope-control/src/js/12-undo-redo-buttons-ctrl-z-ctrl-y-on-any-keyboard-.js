@@ -16,6 +16,6 @@ window.addEventListener('keydown',e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey)retur
   row.insertBefore(w,row.firstChild);document.getElementById('urU').onclick=urUndo;document.getElementById('urR').onclick=urRedo}}
 function urState(){const u=document.getElementById('urU'),r=document.getElementById('urR');if(!u)return;try{u.disabled=!urCanU();r.disabled=!urCanR()}catch(_){}}
 {const _dr=draw;draw=function(){_dr();urState()}}
-{const _ss=setAdd;setAdd=function(on,ed){ADDFUT=[];_ss(on,ed)}}
+{hkBefore('setAdd',function(on,ed){ADDFUT=[];});}
 urState();
 

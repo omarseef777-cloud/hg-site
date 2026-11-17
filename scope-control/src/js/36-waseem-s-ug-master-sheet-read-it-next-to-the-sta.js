@@ -104,7 +104,7 @@ async function sheetExportXl(){let JSZ;try{JSZ=await xJSZip()}catch(e){toast(e.m
 // trench route: same snap as pipe routes, with a live preview
 {let mvq=null,mvr=0;cv.addEventListener('pointermove',e=>{if(!trnDraw||e.buttons)return;const r=cv.getBoundingClientRect();mvq=[e.clientX-r.left,e.clientY-r.top];if(mvr)return;mvr=requestAnimationFrame(()=>{mvr=0;if(!trnDraw||!mvq)return;trnDraw.hov=osn(mvq[0],mvq[1]);draw()})});
   cv.addEventListener('pointerleave',()=>{if(trnDraw){trnDraw.hov=null;SNAPH=null;draw()}})}
-{const _dt=drawTrn;drawTrn=function(){_dt();if(!trnDraw)return;const P=trnDraw.pts,h=trnDraw.hov;if(h&&P.length){const l=P[P.length-1];ctx.save();ctx.strokeStyle='#e8590c';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(X(l[0]),Y(l[1]));ctx.lineTo(X(h[0]),Y(h[1]));ctx.stroke();ctx.restore()}ctx.save();ctx.fillStyle='#e8590c';P.forEach(q=>{ctx.beginPath();ctx.arc(X(q[0]),Y(q[1]),3.5,0,7);ctx.fill()});ctx.restore();if(SNAPH)try{drawSnapMark(SNAPH)}catch(_){}}}
+{hkAfter('drawTrn',function(){if(!trnDraw)return;const P=trnDraw.pts,h=trnDraw.hov;if(h&&P.length){const l=P[P.length-1];ctx.save();ctx.strokeStyle='#e8590c';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(X(l[0]),Y(l[1]));ctx.lineTo(X(h[0]),Y(h[1]));ctx.stroke();ctx.restore()}ctx.save();ctx.fillStyle='#e8590c';P.forEach(q=>{ctx.beginPath();ctx.arc(X(q[0]),Y(q[1]),3.5,0,7);ctx.fill()});ctx.restore();if(SNAPH)try{drawSnapMark(SNAPH)}catch(_){}});}
 // ---- multi-select on the map: drag a window, Ctrl/Cmd + click to add or remove, one card for all ----
 const MSI=new Set(),MSP=new Set();let MSD_T=0,MSD=null,MSR=null,spaceDn=false;
 {const s=document.createElement('style');s.textContent=`#mapwrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#mapwrap input,#mapwrap textarea,#mapwrap #info .hd h3,#mapwrap #info .mono{-webkit-user-select:text;user-select:text}#mmenu{-webkit-user-select:none;user-select:none}
@@ -166,8 +166,8 @@ cv.addEventListener('click',e=>{if(!(e.ctrlKey||e.metaKey||e.shiftKey)||mmBusy()
   if(!msOn()){if(focusKey&&byKey[focusKey])MSI.add(focusKey);else if(selPart)MSP.add(selPart.id);else if(selPipe)MSP.add(selPipe.id)}
   const only=e.shiftKey&&!(e.ctrlKey||e.metaKey);if(h.k==='item'){const k=h.it.key;MSI.has(k)&&!only?MSI.delete(k):MSI.add(k)}else{const id=h.p.id;MSP.has(id)&&!only?MSP.delete(id):MSP.add(id)}if(!msOn()){msiClear();return}msSync();msCard()},true);
 cv.addEventListener('click',e=>{if(!(e.ctrlKey||e.metaKey||e.shiftKey)&&msOn()&&!mmBusy()){MSI.clear();MSP.clear();selKeys=null;const el=document.getElementById('info');if(el)delete el.dataset.ms}},true);
-{const _si=showInfo;showInfo=function(it){const el=document.getElementById('info');if(el)delete el.dataset.ms;return _si(it)}}
-{const _dt=drawTrn;drawTrn=function(){_dt();if(!MSP.size)return;ctx.save();ctx.strokeStyle=css('--accent');ctx.lineCap='round';for(const id of MSP){const p=partOf(id);if(!p)continue;ctx.lineWidth=Math.max(4,(p.tr?p.tr[2]:0.6)*sc*.6);ctx.globalAlpha=.55;ctx.beginPath();if(p.pts){p.pts.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])))}else{ctx.moveTo(X(p.x0),Y(p.y0));ctx.lineTo(X(p.x1),Y(p.y1))}ctx.stroke()}ctx.restore()}}
+{hkBefore('showInfo',function(it){const el=document.getElementById('info');if(el)delete el.dataset.ms;});}
+{hkAfter('drawTrn',function(){if(!MSP.size)return;ctx.save();ctx.strokeStyle=css('--accent');ctx.lineCap='round';for(const id of MSP){const p=partOf(id);if(!p)continue;ctx.lineWidth=Math.max(4,(p.tr?p.tr[2]:0.6)*sc*.6);ctx.globalAlpha=.55;ctx.beginPath();if(p.pts){p.pts.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])))}else{ctx.moveTo(X(p.x0),Y(p.y0));ctx.lineTo(X(p.x1),Y(p.y1))}ctx.stroke()}ctx.restore()});}
 
 // ---- Reports: summary cards, duct bank UPVC & concrete, earthworks in one place, site log with people filter ----
 const repIx=id=>REPS.findIndex(r=>r.id===id);
@@ -213,7 +213,7 @@ const repv=document.getElementById('repv');
 repv.addEventListener('click',e=>{const sw=e.target.closest('#repbody [data-show]');if(sw){e.preventDefault();const ks=sw.dataset.show.split(',').filter(Boolean);goView('dash');selKeys=new Set(ks);fitKeys(ks);draw();return}const b=e.target.closest('[data-logby]');if(b){LOGF.by=b.dataset.logby;renderReport();return}const a=e.target.closest('[data-logk]');if(a){e.preventDefault();const t=logTarget(a.dataset.logk);if(!t)return;goView('dash');if(t.k==='item')focusTag(t.id);else{const p=t.p;if(p.pts){const xs=p.pts.map(q=>q[0]),ys=p.pts.map(q=>q[1]);fitBox(Math.min(...xs)-10,Math.max(...xs)+10,Math.min(...ys)-10,Math.max(...ys)+10);showPipe(p)}else{fitBox(Math.min(p.x0,p.x1)-10,Math.max(p.x0,p.x1)+10,Math.min(p.y0,p.y1)-10,Math.max(p.y0,p.y1)+10);showPart(p)}}}});
 repv.addEventListener('input',e=>{if(e.target.id==='logq'){LOGF.q=e.target.value;clearTimeout(LOGF.t);LOGF.t=setTimeout(()=>{const st=e.target.selectionStart;renderReport();const i=document.getElementById('logq');if(i){i.focus();try{i.setSelectionRange(st,st)}catch(_){}}},250)}});
 repv.addEventListener('change',e=>{if(e.target.id==='logk'){LOGF.k=e.target.value;renderReport()}});
-{const _rr=renderReport;renderReport=function(){_rr();try{syNames(document.getElementById('repbody'))}catch(_){}}}
+{hkAfter('renderReport',function(){try{syNames(document.getElementById('repbody'))}catch(_){}});}
 
 // duct direction inside a duct bank: the side that matches the duct bank length, else the trench or pit it joins
 function dbAxis(k,poly,L){let bi=0,bl=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],l=Math.hypot(b[0]-a[0],b[1]-a[1]);if(l>bl){bl=l;bi=i}}const a=poly[bi],b=poly[(bi+1)%poly.length],u1=[(b[0]-a[0])/bl,(b[1]-a[1])/bl],u2=[-u1[1],u1[0]];

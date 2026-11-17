@@ -137,10 +137,11 @@ function sySubscribe(){const db=SYN.db;
     for(const id in L)SYN.logs[L[id].day+'_'+L[id].by]=L[id].items||[];
     if(mine&&SYN.logsReady){const k=today()+'_'+SYN.uid,cur=SYN.logs[k]||[],seen=new Set(cur.map(i=>i.t+'|'+i.k+'|'+(i.id||'')));SYN.logs[k]=cur.concat(mine.filter(i=>!seen.has(i.t+'|'+i.k+'|'+(i.id||'')))).sort((a,b)=>a.t-b.t)}
     if(!SYN.logsReady&&!snap.metadata.fromCache){SYN.logsReady=true;const pl=SYN.pendLog||[];SYN.pendLog=[];if(pl.length)syLog(pl)}if(!document.getElementById('repv').hidden&&repSel==='log')renderReport()},()=>{})}
-function syBadge(){const b=document.getElementById('sybadge');if(!b)return;const st=!SYN.db?['off','Offline copy · saved on this computer']:SYN.admin?['live','Live · owner']:SYN.write?['live','Live · you can update statuses & trenches']:['ro','Live · view only'];
+function syBadge__base(){const b=document.getElementById('sybadge');if(!b)return;const st=!SYN.db?['off','Offline copy · saved on this computer']:SYN.admin?['live','Live · owner']:SYN.write?['live','Live · you can update statuses & trenches']:['ro','Live · view only'];
   const hf=document.getElementById('hfoot');
   b.className='sybadge '+st[0];b.textContent=st[0]==='off'?'Offline':'Live';b.title=st[1];
   document.body.classList.toggle('ro',!!SYN.db&&!SYN.write&&!SYN.admin);document.body.classList.toggle('nadm',!!SYN.db&&!SYN.admin)}
+function syBadge(){const h=HK.syBadge,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=syBadge__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 (async()=>{if(!(window.claude&&window.claude.use)){syBadge();return}
   try{const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);if(!db){syBadge();return}
     SYN.db=db;SYN.uid=user?await user.id():null;SYN.admin=user?await user.canEdit():false;const w=user?await user.can('data.write'):null;SYN.write=SYN.admin||w!==false;SYN.user=user;

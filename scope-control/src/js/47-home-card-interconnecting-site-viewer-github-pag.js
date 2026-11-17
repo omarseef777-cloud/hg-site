@@ -5,7 +5,7 @@
   const cp=e=>{e.preventDefault();e.stopPropagation();const t='HG-tKiQ-V4U6',ok=()=>toast('Access code copied'),fb=()=>{try{const x=document.createElement('textarea');x.value=t;x.style.cssText='position:fixed;opacity:0';document.body.appendChild(x);x.select();document.execCommand('copy');x.remove();ok()}catch(_){toast('Copy failed – code: '+t)}};
     try{navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t).then(ok,fb):fb()}catch(_){fb()}};
   const c=a.querySelector('#hvcode');if(c){c.addEventListener('click',cp);c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')cp(e)})}if(g)g.textContent='Open ↗';src.after(a);const su=document.getElementById('hsite');if(su){su.hidden=true;su.style.display='none'}}catch(_){}};
- mk();const _r=renderHome;renderHome=function(){_r();mk()}}
+ mk();hkAfter('renderHome',function(){mk()});}
 // Home: the plot plan panel becomes the Map viewer (opens the phone map, code beside the title); the separate card is hidden
 {const URL_='https://omarseef777-cloud.github.io/hg-site/',CODE='HG-tKiQ-V4U6';
  {const s=document.createElement('style');s.textContent=`#h2x .h2ph .mvr{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}#h2x .h2ph .mvc{font:700 12px var(--f-mono,ui-monospace,monospace);color:#3b82f6;cursor:pointer;border:1px dashed #3b82f6;border-radius:4px;padding:2px 7px;background:none;letter-spacing:.04em}#h2x .h2ph .mvc:hover{background:rgba(59,130,246,.08)}#h2x .h2ph .mvd{color:var(--h-mut,#6b7684)!important;font-weight:500!important}
@@ -19,7 +19,7 @@
      r.innerHTML=`<button type="button" class="mvc" id="hvcode2" title="Click to copy the access code">${CODE}</button>`;
      if(md)md.replaceWith(r);else hd.appendChild(r);r.querySelector('#hvcode2').addEventListener('click',copy)}
    }catch(_){}};
- mv();const _r2=renderHome;renderHome=function(){_r2.apply(this,arguments);mv()}}
+ mv();hkAfter('renderHome',function(){mv()});}
 // Home plot plan: satellite photo under the drawing (only when the imagery loads in this browser)
 {const HS={ok:null};
  const homeSat=()=>{lis();const a=document.getElementById('h2map'),im=document.getElementById('h2mi');if(!a||!im||!window.__satPaint)return;let c=document.getElementById('h2sat');

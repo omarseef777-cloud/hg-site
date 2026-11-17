@@ -62,11 +62,12 @@ const REPS=[
    <tr><td>Pipe runs where the pit schedule OD differs from the CAD label</td><td class="${R.odm?'warn':''}">${R.odm}</td></tr>
    <tr><td>Duct banks with levels taken from the trench (no CAD level)</td><td>${R.Q.T.db.ind||0}</td></tr></tbody></table></div></div>`}];
 let repSel=LS('scope.rep2','items');
-function renderReport(){const R=repData();const r=REPS.find(x=>x.id===repSel)||REPS[0];
+function renderReport__base(){const R=repData();const r=REPS.find(x=>x.id===repSel)||REPS[0];
   document.getElementById('repnav').innerHTML=REPS.map(x=>`<button class="rnav${x.id===r.id?' on':''}" data-rep="${x.id}"><b>${esc(x.t)}</b></button>`).join('');
   const el=document.getElementById('repbody');
   el.innerHTML=`<div class="meta">${esc(document.getElementById('asof').textContent)} · NGL ${f2(NGL)} m</div>`+r.h(R);
   el.querySelectorAll('[data-cts]').forEach(i=>i.onchange=()=>{const v=+i.value;if(v>=0&&v<10){CTS[i.dataset.cts]=v;save('scope.cts',CTS);renderReport()}});try{syNames(el)}catch(_){}}
+function renderReport(){const h=HK.renderReport,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=renderReport__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 // ---- print chooser: drawings (overall + each area) and reports ----
 function trLegend(){const P=window.__PARTS||[];const ct={R:0,Y:0,L:0};P.forEach(p=>{ct.L+=p.L;const s=pState(p);if(s!=='N')ct[s]+=p.L});
   return `<div class="pl"><span><b class="hb-r"></b>Backfilled ${fmt(ct.R)} m</span><span><b class="hb-y"></b>Excavated ${fmt(ct.Y)} m</span><span><b class="hb-n"></b>Not started</span><span><b style="background:${TCOL.IY}"></b>IY</span><span><b style="background:${TCOL.EY}"></b>EY</span><span><b style="background:${TCOL.EYL}"></b>EYL</span><span>(layer colour = type, lines = status) · cable trench total ${fmt(ct.L)} m</span></div>`}
@@ -80,11 +81,12 @@ function prtPage(id){const [k,a]=id.split(':');
     return k==='am'?page(ar.id+' · '+ar.name+' – master plan',kpOf(ks)+`<img alt="" src="${snapMap(b,{},1500,820)}">`+PLEG_()):page(ar.id+' · '+ar.name+' – trench status',trLegend()+`<img alt="" src="${snapMap(b,{noItems:true,noPipes:true},1500,900)}">`)}
   if(k==='r'){const r=REPS.find(x=>x.id===a);if(r)return page(r.t,`<div class="rep rp">${r.h(repData())}</div>`)}
   return ''}
-function renderPrt(){const A=D.areas||[];const row=(id,t,d)=>`<label class="prow"><input type="checkbox" data-pid="${id}"><span><b>${esc(t)}</b></span><button class="btn sm" data-p1="${id}">Print</button></label>`;
+function renderPrt__base(){const A=D.areas||[];const row=(id,t,d)=>`<label class="prow"><input type="checkbox" data-pid="${id}"><span><b>${esc(t)}</b></span><button class="btn sm" data-p1="${id}">Print</button></label>`;
   document.getElementById('prtbody').innerHTML=`<div class="pgrp"><div class="ph"><h2>Overall drawings</h2><button class="btn sm ghost" data-pall="o">Select all</button></div>${row('om:','Overall master plan','All items with status')}${row('ot:','Trench status – overall','Cable trench & pipe status')}</div>
    <div class="pgrp"><div class="ph"><h2>Areas</h2><button class="btn sm ghost" data-pall="a">Select all</button></div>${A.map(a=>`<div class="parea"><div class="pan"><b>${esc(a.id)}</b> ${esc(a.name)} <small>${items.filter(i=>i.area===a.id).length} items</small></div>${row('am:'+a.id,'Master plan','')}${row('at:'+a.id,'Trench status','')}</div>`).join('')}</div>
    <div class="pgrp"><div class="ph"><h2>Reports</h2><button class="btn sm ghost" data-pall="r">Select all</button></div>${REPS.map(r=>row('r:'+r.id,r.t,r.d)).join('')}</div>`;
   updPrtCount()}
+function renderPrt(){const h=HK.renderPrt,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=renderPrt__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function updPrtCount(){const n=document.querySelectorAll('#prtbody [data-pid]:checked').length;const b=document.getElementById('prtgo');b.textContent=n?`Print selected (${n})`:'Print selected';b.disabled=!n}
 function printIds(ids){const pages=ids.map(prtPage).filter(Boolean);if(!pages.length){toast('Pick something to print');return}toast('Preparing '+pages.length+' page'+(pages.length>1?'s':'')+'…');setTimeout(()=>openPrint(pages),30)}
 document.addEventListener('change',e=>{if(e.target.matches&&e.target.matches('#prtbody [data-pid]'))updPrtCount()});
@@ -95,9 +97,10 @@ document.addEventListener('click',e=>{const t=e.target;
   if(t.closest('#prtgo')){printIds([...document.querySelectorAll('#prtbody [data-pid]:checked')].map(c=>c.dataset.pid));return}
   if(t.closest('[data-rprint]')){printIds(['r:'+repSel])}});
 
-function renderHome(){const t=sumTotals(),A=qtyAll().T;const P=window.__PARTS||[],PP=window.__PP||[];const Lr=P.concat(PP).filter(p=>pState(p)==='R').reduce((a,p)=>a+p.L,0),Lt=P.concat(PP).reduce((a,p)=>a+p.L,0);
+function renderHome__base(){const t=sumTotals(),A=qtyAll().T;const P=window.__PARTS||[],PP=window.__PP||[];const Lr=P.concat(PP).filter(p=>pState(p)==='R').reduce((a,p)=>a+p.L,0),Lt=P.concat(PP).reduce((a,p)=>a+p.L,0);
   document.getElementById('hasof').textContent=document.getElementById('asof').textContent;
   document.getElementById('hkpi').innerHTML=[[pc(t.inst,t.total)+'%','Items installed'],[pc(t.cast,t.total)+'%','Items cast'],[pc(Lr,Lt)+'%','Trenches backfilled'],[pc(A.all.excD,A.all.exc)+'%','Excavation done'],[fmt(A.all.exc-A.all.excD)+' m³','Excavation remaining']].map(([b,s])=>`<div><b>${b}</b><span>${s}</span></div>`).join('')}
+function renderHome(){const h=HK.renderHome,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=renderHome__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function goView(v){const h=document.getElementById('homev'),r=document.getElementById('repv');h.hidden=v!=='home';r.hidden=v!=='rep';document.getElementById('prtv').hidden=v!=='prt';if(v==='prt')renderPrt();document.body.classList.toggle('ovopen',v!=='dash');
   if(v==='home')renderHome();if(v==='rep')renderReport();if(v==='dash'){resize&&resize();draw()}try{history.replaceState(null,'','#'+v)}catch(_){}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-home]');if(b){const v=b.dataset.home;goView(v==='print'?'prt':v);return}

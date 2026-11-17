@@ -1,7 +1,7 @@
 // ================= Review: first confirm every item, then every status =================
 // REV[key] = {p:{by,d}, s:{v,by,d}, x:{why,ref,to,by,d}}  p = item confirmed · s = status confirmed (for value v) · x = out of scope / tag replaced
 let REV=LS('scope.rev',{})||{};window.__REV=REV;SYMAP['scope.rev']={col:'rev',t:'map',lab:'Review'};UKEYS['scope.rev']='review';try{LAST['scope.rev']=localStorage.getItem('scope.rev')}catch(_){LAST['scope.rev']=null}
-{const _rk=restoreKey;restoreKey=function(k,s){if(k==='scope.rev'){try{REV=(s?JSON.parse(s):{})||{}}catch(_){REV={}}window.__REV=REV}return _rk(k,s)}}
+{hkBefore('restoreKey',function(k,s){if(k==='scope.rev'){try{REV=(s?JSON.parse(s):{})||{}}catch(_){REV={}}window.__REV=REV}});}
 const revOut=k=>!!(REV[k]&&REV[k].x)||(!!(D.aqren&&D.aqren[k])&&!(REV[k]&&REV[k].keep));const delOut=k=>!!(D.aqdel&&D.aqdel[k])||!!(REV[k]&&REV[k].d);const delKeys=()=>[...new Set([...Object.keys(D.aqdel||{}),...Object.keys(REV).filter(k=>REV[k]&&REV[k].d)])];const revMe=()=>SYN.uid||'local';
 const revSave=()=>{save('scope.rev',REV);render()};
 const revPut=(k,f,v)=>{const r=Object.assign({},REV[k]);if(v==null)delete r[f];else r[f]=v;if(Object.keys(r).length)REV[k]=r;else delete REV[k]};
@@ -66,9 +66,9 @@ function revOnClick(e){const t=e.target,b=q=>t.closest(q);let x;
   if(x=b('[data-rvs]')){const k=x.dataset.rvs;revPut(k,'s',revSOk(k)?null:{v:S(k),by:revMe(),d:today()});revSave();if(revSOk(k))revNext('s');return}}
 document.addEventListener('click',revOnClick);
 document.getElementById('view').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches&&e.target.matches('[data-rvarea]'))e.target.click()});
-{const _si=showInfo;showInfo=function(it){_si(it);const k=it.key,el=document.getElementById('info'),po=revPOk(k),so=revSOk(k);const d=document.createElement('div');d.className='revcard';
-  d.innerHTML=`<div class="hint">Review</div><div class="acts"><button class="btn sm${po?' on':''}" data-rvp="${esc(k)}">${po?'Item confirmed ✓':'Item is correct'}</button><button class="btn sm${so?' on':''}" data-rvs="${esc(k)}">${so?'Status confirmed ✓':'Status is correct'}</button><button class="btn sm ghost revadm" data-rvtagf="${esc(k)}">Change tag</button><button class="btn sm ghost revadm" data-rvout="${esc(k)}">Not in scope</button></div>${revForm&&revForm.k===k?revFormHtml(k):''}`;const ss=el.querySelector('.stset');if(ss)ss.after(d);else el.appendChild(d)}}
-{const _sa=setAdd;setAdd=function(on,ed){_sa(on,ed);if(!on&&revPlace){revPlace=null;render()}}}
+{hkAfter('showInfo',function(it){const k=it.key,el=document.getElementById('info'),po=revPOk(k),so=revSOk(k);const d=document.createElement('div');d.className='revcard';
+  d.innerHTML=`<div class="hint">Review</div><div class="acts"><button class="btn sm${po?' on':''}" data-rvp="${esc(k)}">${po?'Item confirmed ✓':'Item is correct'}</button><button class="btn sm${so?' on':''}" data-rvs="${esc(k)}">${so?'Status confirmed ✓':'Status is correct'}</button><button class="btn sm ghost revadm" data-rvtagf="${esc(k)}">Change tag</button><button class="btn sm ghost revadm" data-rvout="${esc(k)}">Not in scope</button></div>${revForm&&revForm.k===k?revFormHtml(k):''}`;const ss=el.querySelector('.stset');if(ss)ss.after(d);else el.appendChild(d)});}
+{hkAfter('setAdd',function(on,ed){if(!on&&revPlace){revPlace=null;render()}});}
 {const s=document.createElement('style');s.textContent='.ro .revcard,body.site .revcard,body.pres .revcard,.nadm .revadm{display:none!important}.revcard{margin-top:8px;border-top:1px solid var(--line);padding-top:4px}.pdedit label{display:flex;flex-direction:column;gap:2px;font-size:12px}.pdedit input{font:inherit;padding:5px 7px;border:1px solid var(--line);border-radius:5px}';document.head.appendChild(s)}
 
 

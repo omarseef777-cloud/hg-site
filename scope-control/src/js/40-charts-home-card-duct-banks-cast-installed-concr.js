@@ -1,6 +1,6 @@
 // ================= Charts (home card): duct banks cast / installed, concrete cast – cumulative by month
 let WDT=LS('scope.wdt',{})||{};SYMAP['scope.wdt']={doc:'cfg/wdt',t:'whole',adm:1,lab:'Work dates'};
-{const _rk=restoreKey;restoreKey=function(k,s){if(k==='scope.wdt'){try{WDT=(s?JSON.parse(s):{})||{}}catch(_){WDT={}}if(!chEl.hidden)chRender()}return _rk(k,s)}}
+{hkBefore('restoreKey',function(k,s){if(k==='scope.wdt'){try{WDT=(s?JSON.parse(s):{})||{}}catch(_){WDT={}}if(!chEl.hidden)chRender()}});}
 const WDT0=(window.SCOPE&&window.SCOPE.wdt0)||{};
 const chDel=k=>{const d=window.__delOut;return !!(d&&(d.has?d.has(k):d[k]))};
 function chDates(k){const w=Object.assign({},WDT0[k]||{},WDT[k]||{}),s=S(k),L=(EVT&&EVT[k]&&EVT[k].L)||[],mu=dOk((MT(k)||{}).u)||null;

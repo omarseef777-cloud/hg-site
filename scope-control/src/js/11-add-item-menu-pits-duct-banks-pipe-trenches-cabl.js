@@ -12,6 +12,6 @@
     sync();try{document.getElementById('mapwrap').scrollIntoView({block:'nearest',behavior:'smooth'})}catch(_){}});
   m.addEventListener('keydown',e=>{const L=[...m.querySelectorAll('button')],i=L.indexOf(document.activeElement);if(e.key==='ArrowDown'){e.preventDefault();L[(i+1)%L.length].focus()}else if(e.key==='ArrowUp'){e.preventDefault();L[(i-1+L.length)%L.length].focus()}else if(e.key==='Escape'){close();b.focus()}});
   document.addEventListener('click',e=>{if(!m.hidden&&!e.target.closest('.addwrap'))close()});
-  {const _sa=setAdd;setAdd=function(on,ed){_sa(on,ed);sync()}}{const _sp=setPipe;setPipe=function(x){_sp(x);sync()}}{const _sc=setCable;setCable=function(x){_sc(x);sync()}}
+  {hkAfter('setAdd',function(on,ed){sync()});}{hkAfter('setPipe',function(x){sync()});}{const _sc=setCable;setCable=function(x){_sc(x);sync()}}
   window.__addSync=sync;sync()}
 

@@ -1,7 +1,7 @@
 // ================= Clash & sequence alerts =================
 const CLR=0.30;let ALSHOW=false,ALSEL=null,ALC=null;
 let ALIG=LS('scope.alig',{})||{};SYMAP['scope.alig']={doc:'cfg/alig',t:'whole',adm:1,lab:'Alert ignored'};
-{const _rk=restoreKey;restoreKey=function(k,s){if(k==='scope.alig'){try{ALIG=(s?JSON.parse(s):{})||{}}catch(_){ALIG={}}setTimeout(()=>{if(!document.getElementById('repv').hidden&&repSel==='alerts')renderReport();if(!document.getElementById('homev').hidden)renderHome();draw()},0)}return _rk(k,s)}}
+{hkBefore('restoreKey',function(k,s){if(k==='scope.alig'){try{ALIG=(s?JSON.parse(s):{})||{}}catch(_){ALIG={}}setTimeout(()=>{if(!document.getElementById('repv').hidden&&repSel==='alerts')renderReport();if(!document.getElementById('homev').hidden)renderHome();draw()},0)}});}
 const alAct=L=>L.filter(a=>!ALIG[a.id]);
 function segX4(a,b,c,d){const r=[b[0]-a[0],b[1]-a[1]],s=[d[0]-c[0],d[1]-c[1]],den=r[0]*s[1]-r[1]*s[0];if(Math.abs(den)<1e-9)return null;
   const t=((c[0]-a[0])*s[1]-(c[1]-a[1])*s[0])/den,u=((c[0]-a[0])*r[1]-(c[1]-a[1])*r[0])/den;if(t<0||t>1||u<0||u>1)return null;return {t,u,x:a[0]+t*r[0],y:a[1]+t*r[1]}}
@@ -59,11 +59,11 @@ document.getElementById('repv').addEventListener('change',e=>{const c=e.target.c
 document.getElementById('repv').addEventListener('click',e=>{const b=e.target.closest('[data-alert]');if(b){const A=ALC||alertsCalc(),a=A.lvl.concat(A.seq).find(x=>x.id===b.dataset.alert);if(!a)return;
     ALSEL=a;goView('dash');setTimeout(()=>{fitBox(a.x-12,a.x+12,a.y-12,a.y+12);if(a.a&&a.a.pipe)showPipe(a.a);else if(a.c)showPart(a.c);else if(a.k&&byKey[a.k]){focusKey=a.k;showInfo(byKey[a.k])}draw()},60);return}
   if(e.target.closest('[data-alshow]')){ALSHOW=!ALSHOW;renderReport()}});
-{const _dn=drawNotes;drawNotes=function(){_dn();if(typeof PR!=='undefined'&&PR)return;const L=[];if(ALSHOW&&ALC)L.push(...alAct(ALC.lvl),...alAct(ALC.seq));if(ALSEL&&!L.includes(ALSEL))L.push(ALSEL);if(!L.length)return;ctx.save();
+{hkAfter('drawNotes',function(){if(typeof PR!=='undefined'&&PR)return;const L=[];if(ALSHOW&&ALC)L.push(...alAct(ALC.lvl),...alAct(ALC.seq));if(ALSEL&&!L.includes(ALSEL))L.push(ALSEL);if(!L.length)return;ctx.save();
   L.forEach(a=>{const x=X(a.x),y=Y(a.y),sel=a===ALSEL,c=a.gap!=null?(a.gap<0?'#d32f2f':'#e3a00d'):'#8e24aa',r=sel?11:7;ctx.strokeStyle='#fff';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x-r,y-r);ctx.lineTo(x+r,y+r);ctx.moveTo(x+r,y-r);ctx.lineTo(x-r,y+r);ctx.stroke();ctx.strokeStyle=c;ctx.lineWidth=2.5;ctx.stroke();
-    if(sel){ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r+8,0,Math.PI*2);ctx.stroke()}});ctx.restore()}}
+    if(sel){ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r+8,0,Math.PI*2);ctx.stroke()}});ctx.restore()});}
 // home: alert count
-{const _rh=renderHome;renderHome=function(){_rh();const b=document.getElementById('halerts');if(!b)return;setTimeout(()=>{try{const A=alertsCalc(),LV=alAct(A.lvl),n=LV.length+alAct(A.seq).length,c=LV.filter(a=>a.gap<0).length;b.hidden=!n;b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>${n} alert${n===1?'':'s'}${c?' · '+c+' clash'+(c===1?'':'es'):''}`}catch(e){console.warn(e)}},0)}}
+{hkAfter('renderHome',function(){const b=document.getElementById('halerts');if(!b)return;setTimeout(()=>{try{const A=alertsCalc(),LV=alAct(A.lvl),n=LV.length+alAct(A.seq).length,c=LV.filter(a=>a.gap<0).length;b.hidden=!n;b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>${n} alert${n===1?'':'s'}${c?' · '+c+' clash'+(c===1?'':'es'):''}`}catch(e){console.warn(e)}},0)});}
 if(!document.getElementById('homev').hidden)setTimeout(renderHome,0);
 document.getElementById('homev').addEventListener('click',e=>{if(e.target.closest('#halerts')){repSel='alerts';save('scope.rep2','alerts');goView('rep')}if(e.target.closest('[data-site]'))siteOn(true)});
 

@@ -8,9 +8,9 @@ function applyOvr(){for(const k of OVK){if(k in OBQ){if(OBQ[k])D.qdb[k]=OBQ[k];e
     if(o.L!=null){q[0]=o.L;q[4]=o.L}if(o.W!=null){q[1]=o.W;q[5]=o.W}if(o.toc!==undefined){q[2]=o.toc;c[3]=o.toc}if(o.boc!==undefined){q[3]=o.boc;c[4]=o.boc}if(o.H!=null)q[6]=o.H;
     if(o.r!=null){q[9]=o.r;c[0]=o.r}if(o.c!=null){q[10]=o.c;c[1]=o.c}if(o.phi!=null){q[8]=o.phi;c[2]=o.phi+'-'+((c[2]||'').split('-')[1]||'PVC')}
     D.qdb[k]=q;if(c[0]&&c[1])(D.dbc=D.dbc||{})[k]=c;OVK.add(k)}}
-{const _aa=applyAdded;applyAdded=function(){_aa();applyOvr()}}
+{hkAfter('applyAdded',function(){applyOvr()});}
 {const _pi=pInv;pInv=function(p){const v=_pi(p),o=OVR['P:'+p.id];if(!o||!v)return v;return Object.assign({},v,o.b0!=null?{b0:o.b0,s0:'U'}:{},o.b1!=null?{b1:o.b1,s1:'U'}:{})}}
-{const _rk=restoreKey;restoreKey=function(k,s){if(k==='scope.ovr'){try{OVR=(s?JSON.parse(s):{})||{}}catch(_){OVR={}}setTimeout(()=>{if(INS.open)renderInsp()},0)}return _rk(k,s)}}
+{hkBefore('restoreKey',function(k,s){if(k==='scope.ovr'){try{OVR=(s?JSON.parse(s):{})||{}}catch(_){OVR={}}setTimeout(()=>{if(INS.open)renderInsp()},0)}});}
 const isDB=k=>{const it=byKey[k];return it&&it.type==='DB'};
 function itemProps(k){const it=byKey[k],q=dbQ(k),c=dbc(k),Q=(D.qdb||{})[k]||[],B=OBQ[k]!==undefined?(OBQ[k]||[]):Q,o=OVR[k]||{};
   return {L:q&&q.L,W:q&&q.W,toc:q&&q.toc,boc:q&&q.boc,H:q&&q.H,r:(c&&c[0])||Q[9]||null,c:(c&&c[1])||Q[10]||null,phi:Q[8]||(c&&parseFloat(c[2]))||null,
@@ -98,8 +98,8 @@ document.addEventListener('click',e=>{const t=e.target;if(!t.closest||!t.closest
 document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#insp [data-if]')){INS.draft=Object.assign(INS.draft,{[e.target.dataset.if]:e.target.value});INS.warn=null}if(e.target.id==='duptag'&&dupMode)dupMode.tag=e.target.value});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&INS.open&&!e.target.closest('input')){if(dupMode){dupMode=null;renderInsp();draw()}else closeInsp()}});
 // buttons on the item / pipe cards and in the selection list
-{const _si=showInfo;showInfo=function(it){_si(it);if(!it||document.body.classList.contains('site'))return;const el=document.getElementById('info'),a=el.querySelector('.acts');if(!a)return;const b=document.createElement('button');b.className='btn sm';b.dataset.iprop=it.key;b.textContent='Properties';a.insertBefore(b,a.firstChild);if(INS.open&&!INS.pipe&&INS.keys.length===1&&INS.keys[0]!==it.key)openInsp([it.key])}}
-{const _sp=showPipe;showPipe=function(p){_sp(p);if(document.body.classList.contains('site'))return;const el=document.getElementById('info');const d=document.createElement('div');d.className='sel-row';d.style.marginTop='8px';d.innerHTML='<button class="btn sm" data-ipipe="1">Properties</button>';el.appendChild(d);if(INS.open&&INS.pipe&&INS.pipe.id!==p.id)openInsp([],p)}}
+{hkAfter('showInfo',function(it){if(!it||document.body.classList.contains('site'))return;const el=document.getElementById('info'),a=el.querySelector('.acts');if(!a)return;const b=document.createElement('button');b.className='btn sm';b.dataset.iprop=it.key;b.textContent='Properties';a.insertBefore(b,a.firstChild);if(INS.open&&!INS.pipe&&INS.keys.length===1&&INS.keys[0]!==it.key)openInsp([it.key])});}
+{hkAfter('showPipe',function(p){if(document.body.classList.contains('site'))return;const el=document.getElementById('info');const d=document.createElement('div');d.className='sel-row';d.style.marginTop='8px';d.innerHTML='<button class="btn sm" data-ipipe="1">Properties</button>';el.appendChild(d);if(INS.open&&INS.pipe&&INS.pipe.id!==p.id)openInsp([],p)});}
 document.getElementById('info').addEventListener('click',e=>{const b=e.target.closest('[data-iprop]');if(b){openInsp([b.dataset.iprop]);return}if(e.target.closest('[data-ipipe]')&&selPipe){openInsp([],selPipe)}});
 {const _vs=vSel;vSel=function(){const h=_vs();if(!boxRes)return h;const dbs=boxRes.keys.filter(isDB);if(!dbs.length||(SYN.db&&!SYN.admin))return h;return h.replace('<div class="sel-row"><button class="btn sm primary" data-printsel="1">','<div class="sel-row"><button class="btn sm" data-imulti="1">Edit properties · '+dbs.length+' duct bank'+(dbs.length>1?'s':'')+'</button><button class="btn sm primary" data-printsel="1">')}}
 VIEWS.sel=vSel;
@@ -118,7 +118,8 @@ function placeDup(e,n){const k=dupMode.src,it=byKey[k],tag=normTag(document.getE
 // ---- measure ----
 let MEAS=null,SNAPH=null;const osn=(x,y)=>{const h=cornerSnap(x,y);SNAPH=h.t?h:null;return h.p};
 function measBtn(){const nb=document.getElementById('notebtn');if(!nb||document.getElementById('measbtn'))return;const b=document.createElement('button');b.className='btn';b.id='measbtn';b.title='Measure distance and area (snaps like CAD)';b.textContent='Measure';nb.parentNode.insertBefore(b,nb.nextSibling);b.onclick=()=>measSet(!MEAS)}
-function measSet(on){MEAS=on?{pts:[],hov:null,closed:false}:null;const b=document.getElementById('measbtn');if(b)b.classList.toggle('on',!!on);if(on){try{if(addMode)setAdd(false)}catch(_){}if(INS.open)closeInsp();document.getElementById('info').hidden=true;cv.style.cursor='crosshair'}else cv.style.cursor='';measPop();draw()}
+function measSet__base(on){MEAS=on?{pts:[],hov:null,closed:false}:null;const b=document.getElementById('measbtn');if(b)b.classList.toggle('on',!!on);if(on){try{if(addMode)setAdd(false)}catch(_){}if(INS.open)closeInsp();document.getElementById('info').hidden=true;cv.style.cursor='crosshair'}else cv.style.cursor='';measPop();draw()}
+function measSet(){const h=HK.measSet,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=measSet__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return r} // hooks: docs/PATCHES.md
 function measCalc(){const P=MEAS.pts;let L=0;for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);let A=null,per=null;
   if(P.length>=3){let s=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];s+=a[0]*b[1]-b[0]*a[1]}A=Math.abs(s)/2;per=L+Math.hypot(P[0][0]-P[P.length-1][0],P[0][1]-P[P.length-1][1])}return {L,A,per}}
 function measPop(){let p=document.getElementById('measpop');if(!p){p=document.createElement('div');p.className='pop measpop';p.id='measpop';document.getElementById('mapwrap').appendChild(p)}if(!MEAS){p.hidden=true;return}p.hidden=false;const m=measCalc(),P=MEAS.pts;
@@ -137,7 +138,7 @@ document.addEventListener('keydown',e=>{if(!MEAS||(e.target.closest&&e.target.cl
   let mvq=null,mvr=0;cv.addEventListener('pointermove',e=>{if(!(dupMode||MEAS)||e.buttons)return;const r=cv.getBoundingClientRect();mvq=[e.clientX-r.left,e.clientY-r.top];if(mvr)return;mvr=requestAnimationFrame(()=>{mvr=0;if(!mvq||!(dupMode||MEAS))return;const w=osn(mvq[0],mvq[1]);if(MEAS)MEAS.hov=w;if(dupMode)dupMode.hov=w;draw()})},{capture:true});
   cv.addEventListener('pointerleave',()=>{SNAPH=null;if(MEAS){MEAS.hov=null;draw()}});
   cv.addEventListener('dblclick',e=>{if(MEAS&&MEAS.pts.length>=3){e.stopImmediatePropagation();const a=MEAS.pts[MEAS.pts.length-1],b=MEAS.pts[MEAS.pts.length-2];if(a&&b&&Math.hypot(a[0]-b[0],a[1]-b[1])<0.05)MEAS.pts.pop();MEAS.closed=true;measPop();draw()}},{capture:true})}
-{const _dn=drawNotes;drawNotes=function(){_dn();if(typeof PR!=='undefined'&&PR)return;ctx.save();
+{hkAfter('drawNotes',function(){if(typeof PR!=='undefined'&&PR)return;ctx.save();
   if(MEAS&&MEAS.pts.length){const P=MEAS.pts.slice();const live=!MEAS.closed&&MEAS.hov?P.concat([MEAS.hov]):P;ctx.strokeStyle='#d81b60';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();live.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));if(MEAS.closed)ctx.closePath();ctx.stroke();ctx.setLineDash([]);
     if(MEAS.closed){ctx.globalAlpha=.12;ctx.fillStyle='#d81b60';ctx.fill();ctx.globalAlpha=1}
     ctx.font='600 11px '+css('--f-mono');ctx.textAlign='center';const segs=[];for(let i=1;i<live.length;i++)segs.push([live[i-1],live[i]]);if(MEAS.closed&&P.length>2)segs.push([P[P.length-1],P[0]]);
@@ -146,7 +147,7 @@ document.addEventListener('keydown',e=>{if(!MEAS||(e.target.closest&&e.target.cl
   if(dupMode&&dupMode.hov){const k=dupMode.src,it=byKey[k];let f=footOf(k);if(!f||f.length<3){const h=0.6;f=[[it.e-h,it.n-h],[it.e+h,it.n-h],[it.e+h,it.n+h],[it.e-h,it.n+h]]}const c=polyC(f),[e0,n0]=dupMode.hov;
     ctx.globalAlpha=.35;ctx.fillStyle='#8e24aa';ctx.beginPath();f.forEach((q,i)=>{const x=X(q[0]-c[0]+e0),y=Y(q[1]-c[1]+n0);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.closePath();ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle='#8e24aa';ctx.lineWidth=2;ctx.stroke()}
   if(SNAPH&&(MEAS||dupMode||(typeof SHP!=='undefined'&&SHP&&SHP.drag>=0&&SHP.drag!==99)))try{drawSnapMark(SNAPH)}catch(_){}
-  ctx.restore()}}
+  ctx.restore()});}
 measBtn();applyOvr();buildPParts();render();
 
 try{Object.assign(window.__T,{openInsp,measSet,startDup})}catch(_){}

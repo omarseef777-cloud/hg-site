@@ -1,7 +1,7 @@
 // ================= Pit details from the pit schedules: walls + openings on the plan, plan + sections in the card =================
 const PDT=(window.SCOPE&&window.SCOPE.pdt)||{};
 let PTY=LS('scope.pty',{})||{};SYMAP['scope.pty']={doc:'cfg/pty',t:'whole',adm:1,lab:'Pit wall and base thickness',nolog:1};UKEYS['scope.pty']='pit wall and base thickness';
-{const _rk=restoreKey;restoreKey=function(k,s){if(k==='scope.pty'){try{PTY=(s?JSON.parse(s):{})||{}}catch(_){PTY={}}setTimeout(()=>{try{pdSyncFoot();draw()}catch(_){}},0)}return _rk(k,s)}}
+{hkBefore('restoreKey',function(k,s){if(k==='scope.pty'){try{PTY=(s?JSON.parse(s):{})||{}}catch(_){PTY={}}setTimeout(()=>{try{pdSyncFoot();draw()}catch(_){}},0)}});}
 const PFAM={MH:'Manhole',CB:'Catch basin',DM:'Weir manhole',VP:'Valve pit',EP:'Electrical pull pit',IP:'Instrument pull pit',SO:'Soakaway'};
 const pdKey=d=>d.fam+'|'+(d.ty||'-')+'|'+(d.L1|0);
 function pdThk(d){const o=PTY[pdKey(d)]||{},sd=d.wsrc==='SD',wt=o.wt||d.wt||200;
@@ -21,7 +21,7 @@ const pdOw=op=>((op.k==='cut'?op.w:op.od)||100)/1000;
 // position of an opening centre on the inner face, in local x (towards B) / y (towards A)
 function pdOp(F,op){if(F.circ){const th=(op.ang||0)*Math.PI/180,dx=Math.sin(th),dy=Math.cos(th);return {x:dx*F.Ri,y:dy*F.Ri,dir:[dx,dy]}}const e=pdEcc(F,op),L1=F.L1,L2=F.L2;switch(op.s){case 'A':return {x:-L1/2+e,y:L2/2};case 'B':return {x:L1/2,y:L2/2-e};case 'C':return {x:L1/2-e,y:-L2/2};default:return {x:-L1/2,y:-L2/2+e}}}
 // ---------- plan on the map ----------
-function pdDrawPlan(k){const F=pdFrame(k);if(!F)return;if(F.circ)return pdDrawCirc(F);const {L1,L2,t}=F;if((L1+2*t)*sc<14)return;const P=(x,y)=>{const w=pdW(F,x,y);return [X(w[0]),Y(w[1])]};
+function pdDrawPlan__base(k){const F=pdFrame(k);if(!F)return;if(F.circ)return pdDrawCirc(F);const {L1,L2,t}=F;if((L1+2*t)*sc<14)return;const P=(x,y)=>{const w=pdW(F,x,y);return [X(w[0]),Y(w[1])]};
   const rect=(x0,y0,x1,y1)=>{const q=[P(x0,y0),P(x1,y0),P(x1,y1),P(x0,y1)];ctx.moveTo(q[0][0],q[0][1]);q.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath()};
   const col=css(stVar(S(k))),ops=(F.d.op||[]);
   const gaps=ops.map(op=>{const p=pdOp(F,op),w=pdOw(op)/2;return op.s==='A'?[p.x-w,L2/2-0.01,p.x+w,L2/2+t+0.01]:op.s==='C'?[p.x-w,-L2/2-t-0.01,p.x+w,-L2/2+0.01]:op.s==='B'?[L1/2-0.01,p.y-w,L1/2+t+0.01,p.y+w]:[-L1/2-t-0.01,p.y-w,-L1/2+0.01,p.y+w]});
@@ -42,13 +42,14 @@ function pdDrawPlan(k){const F=pdFrame(k);if(!F)return;if(F.circ)return pdDrawCi
   if(L1*sc>72&&!F.noOri){ctx.font='700 '+Math.max(9,Math.min(13,sc*.55))+'px '+css('--f-mono');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=css('--ink');
     const o=t+Math.max(.18,10/sc);[['A',0,L2/2+o],['B',L1/2+o,0],['C',0,-L2/2-o],['D',-L1/2-o,0]].forEach(([s,x,y])=>{const p=P(x,y);ctx.lineWidth=3;ctx.strokeStyle=css('--map-bg');ctx.strokeText(s,p[0],p[1]);ctx.fillText(s,p[0],p[1])});ctx.textBaseline='alphabetic'}
   ctx.restore()}
+function pdDrawPlan(){const h=HK.pdDrawPlan,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=pdDrawPlan__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 function pdDrawCirc(F){const Ri=F.Ri,Ro=F.Ro;if(2*Ro*sc<12)return;const P=(x,y)=>{const w=pdW(F,x,y);return [X(w[0]),Y(w[1])]},C=P(0,0),col=css(stVar(S(F.k)));ctx.save();
   ctx.globalAlpha=.10;ctx.fillStyle=col;ctx.beginPath();ctx.arc(C[0],C[1],Ri*sc,0,7);ctx.fill();ctx.globalAlpha=1;
   ctx.save();ctx.beginPath();ctx.rect(-1e4,-1e4,3e4,3e4);(F.d.op||[]).forEach(op=>{const p=pdOp(F,op),w=pdOw(op)/2,[dx,dy]=p.dir,nx=-dy,ny=dx,r0=Ri-.02,r1=Ro+.02;
     const q=[P(dx*r0+nx*w,dy*r0+ny*w),P(dx*r1+nx*w,dy*r1+ny*w),P(dx*r1-nx*w,dy*r1-ny*w),P(dx*r0-nx*w,dy*r0-ny*w)];ctx.moveTo(q[0][0],q[0][1]);q.slice(1).forEach(z=>ctx.lineTo(z[0],z[1]));ctx.closePath()});ctx.clip('evenodd');
   ctx.beginPath();ctx.arc(C[0],C[1],Ro*sc,0,7);ctx.arc(C[0],C[1],Ri*sc,0,7,true);ctx.fillStyle=col;ctx.globalAlpha=.85;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=css('--ink');ctx.lineWidth=Math.max(.6,Math.min(1.4,sc*.08));
   ctx.beginPath();ctx.arc(C[0],C[1],Ro*sc,0,7);ctx.stroke();ctx.beginPath();ctx.arc(C[0],C[1],Ri*sc,0,7);ctx.stroke();ctx.restore();ctx.restore()}
-{const _dn=drawNotes;drawNotes=function(){if(sc>2.5&&!(typeof PR!=='undefined'&&PR&&PR.noItems)){for(const k in PDT){const it=byKey[k];if(!it||!showIt(it))continue;const x=X(it.e),y=Y(it.n),PM=80+14*sc;if(x<-PM||y<-PM||x>W+PM||y>H+PM)continue;try{pdDrawPlan(k)}catch(e){}}}_dn()}}
+{hkBefore('drawNotes',function(){if(sc>2.5&&!(typeof PR!=='undefined'&&PR&&PR.noItems)){for(const k in PDT){const it=byKey[k];if(!it||!showIt(it))continue;const x=X(it.e),y=Y(it.n),PM=80+14*sc;if(x<-PM||y<-PM||x>W+PM||y>H+PM)continue;try{pdDrawPlan(k)}catch(e){}}}});}
 // ---------- card: plan + sections ----------
 const pf3=v=>v==null||isNaN(v)?'–':(+v).toFixed(3),pmm=v=>v==null?'–':Math.round(v);
 function pdLab(){const B=[];return (x,y,txt,anc,cls)=>{const w=String(txt).length*(cls==='pl2'?5.3:5.8)+2,h=10;let x0=anc==='end'?x-w:anc==='middle'?x-w/2:x;let yy=y,k=0;
@@ -177,12 +178,13 @@ const DOCT={'DC-000000000032-13':'AOC manhole pit schedule','DC-000000000038-08'
   'DC-000000000051-01':'Earthing pit list','DC-000000000051-12':'Earthing pit list','DC-000000000051-16':'Earthing pit list','DC-000000000051-17':'Earthing pit list',
   'DC-000000000004-01':'Square manhole & catch basin details','DC-000000000025-01':'Earthing pit details','DC-000000000024-01':'Electrical & instrumentation cable pull pits','DC-000000000087-01':'SWS soakaway pit details'};
 const stdSrc=(key,pg)=>'std/'+key+((PDOC.pages[key]||1)>1?'-'+(pg+1):'')+'.webp';
-function openStd(key,pg,k,pt){pg=pg||0;const n=PDOC.pages[key]||1;AQ.k=k;AQ.pg=null;AQ.pt=pt||null;aqv.hidden=false;
+function openStd__base(key,pg,k,pt){pg=pg||0;const n=PDOC.pages[key]||1;AQ.k=k;AQ.pg=null;AQ.pt=pt||null;aqv.hidden=false;
   document.getElementById('aqtitle').textContent='4422-AQ-'+key+' · '+(DOCT[key]||'');document.getElementById('aqsub').textContent=k?short(k)+(pt?'':''):'';
   document.getElementById('aqtabs').innerHTML=n>1?Array.from({length:n},(_,i)=>`<button class="chipbtn" aria-pressed="${i===pg}" data-stdopen="${key}" data-stdpg="${i}">Sheet ${i+1}</button>`).join(''):'';
   aqmk.hidden=!AQ.pt;const ld=document.getElementById('aqload');ld.hidden=false;ld.textContent='Loading drawing…';aqimg.style.visibility='hidden';
   aqimg.onload=()=>{AQ.iw=aqimg.naturalWidth;AQ.ih=aqimg.naturalHeight;aqimg.style.width=AQ.iw+'px';aqimg.style.height=AQ.ih+'px';aqwrap.style.width=AQ.iw+'px';aqwrap.style.height=AQ.ih+'px';if(AQ.pt){aqmk.style.left=AQ.pt[0]*AQ.iw+'px';aqmk.style.top=AQ.pt[1]*AQ.ih+'px'}ld.hidden=true;aqimg.style.visibility='';aqFind()};
   aqimg.onerror=()=>{ld.textContent='This drawing is not included in this copy.'};aqimg.src=stdSrc(key,pg)}
+function openStd(){const h=HK.openStd,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=openStd__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 document.addEventListener('click',e=>{const b=e.target.closest('[data-stdopen]');if(!b)return;e.preventDefault();const k=b.dataset.stdk||AQ.k||focusKey,key=b.dataset.stdopen,pg=+b.dataset.stdpg||0,r=PDOC.map[k];
   openStd(key,pg,k,r&&r[0]===key&&r[1]===pg&&r[3]!=null?[r[3],r[4]]:null)});
 {const _mh=metaHtml;metaHtml=function(k){let h=_mh(k);const r=PDOC.map[k];if(!r)return h;const [sk,pg,sd]=r;
@@ -199,10 +201,11 @@ function pdChecks(d){const s=d.sd,W=[];if(!s)return W;if(d.H&&s.Hmax&&d.H>s.Hmax
     if(!ok)W.push(`Internal ${pmm(d.L1)}×${pmm(d.L2)} does not match ${d.ty} (${tx(s.A)}×${tx(s.B)})`)}return W}
 
 // status fill = the pit's real external outline (rectangle or circle) instead of the CAD footprint
-function pdSyncFoot(){D.foot=D.foot||{};D.foot0=D.foot0||{};const nf={};for(const k in PDT){if(!(k in D.foot0))D.foot0[k]=D.foot[k];const F=pdFrame(k);if(!F)continue;
+function pdSyncFoot__base(){D.foot=D.foot||{};D.foot0=D.foot0||{};const nf={};for(const k in PDT){if(!(k in D.foot0))D.foot0[k]=D.foot[k];const F=pdFrame(k);if(!F)continue;
     if(F.circ){const P=[];for(let i=0;i<36;i++){const a=i/36*2*Math.PI;P.push([+(F.c[0]+Math.cos(a)*F.Ro).toFixed(3),+(F.c[1]+Math.sin(a)*F.Ro).toFixed(3)])}nf[k]=P}
     else{const t=F.t,x=F.L1/2+t,y=F.L2/2+t;nf[k]=[pdW(F,-x,-y),pdW(F,x,-y),pdW(F,x,y),pdW(F,-x,y)].map(q=>[+q[0].toFixed(3),+q[1].toFixed(3)])}}
   Object.assign(D.foot,nf);try{OSG=null}catch(_){}}
+function pdSyncFoot(){const h=HK.pdSyncFoot,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=pdSyncFoot__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
 pdSyncFoot();
 // pits drawn from the schedule keep their schedule shape: no corner handles on the map
 {const _ih=itHandles;itHandles=function(k){return PDT[k]?[]:_ih(k)}}
@@ -228,9 +231,9 @@ function pdExtendPipes(){for(const k in PSTUB)delete PSTUB[k];PEXTS={ext:0,trim:
     r[2]=pts})}
 function pdDrawStubs(k){const S2=PSTUB[k];if(!S2)return;for(const s of S2){if(!s.q||(typeof uon==='function'&&!uon(s.util)))continue;const p=(window.__PP||[]).find(x=>x.id===s.id);if(p&&p.moved)continue;
     ctx.strokeStyle=ucol(s.util);ctx.lineCap='butt';ctx.lineWidth=Math.max(2,Math.min(8,sc*.6));ctx.globalAlpha=.9;ctx.beginPath();ctx.moveTo(X(s.p[0]),Y(s.p[1]));ctx.lineTo(X(s.q[0]),Y(s.q[1]));ctx.stroke();ctx.globalAlpha=1}}
-{const _dp=pdDrawPlan;pdDrawPlan=function(k){_dp(k);try{if((2*((PDT[k]&&PDT[k].L1)||0)/1000)*sc>14)pdDrawStubs(k)}catch(_){}}}
+{hkAfter('pdDrawPlan',function(k){try{if((2*((PDT[k]&&PDT[k].L1)||0)/1000)*sc>14)pdDrawStubs(k)}catch(_){}});}
 pdExtendPipes();buildPParts();buildRuns();
-{const _ps=pdSyncFoot;pdSyncFoot=function(){_ps();pdExtendPipes();try{buildPParts();buildRuns()}catch(_){}}}
+{hkAfter('pdSyncFoot',function(){pdExtendPipes();try{buildPParts();buildRuns()}catch(_){}});}
 {const _pm=placeMove;placeMove=function(x,y){const k=moveKey;_pm(x,y);if(k&&PDT[k]){pdSyncFoot();render();draw()}}}
 try{window.__T.pext=()=>PEXTS}catch(_){}
 // pieces of a split pipe run (id#2, id#3 …) keep the status and size set on the original run
