@@ -47,6 +47,8 @@ const H3={ack:{},lt:0,t:0,th:'day'};try{H3.th=localStorage.getItem('scope.h3th')
 #h3 .aw.fl{animation:awf .9s steps(1) infinite}@keyframes awf{50%{background:#e8e4d6;color:#6d6a60;box-shadow:none}}
 #h3 .ann3.lt .aw{background:var(--c,#fff6c8)!important;color:#fff!important;animation:none}
 #h3 .aw:focus-visible{outline:2px solid #ffd34d}
+#h3 .h3tt{grid-column:1/-1;font:700 9px Arial,sans-serif;letter-spacing:.14em;color:#c9d1d7;padding:3px 2px 0}
+#h3 .aw.on.inf{background:linear-gradient(#f4f2ea,#dcd8c8);color:#333;box-shadow:none}
 /* mimic */
 #h3 .mim{position:relative;background:color-mix(in srgb,var(--p-face) 80%,#fff);border:1px solid var(--p-edge);padding:10px 10px 12px;flex:1;min-height:250px}
 #homev.h3.nt #h3 .mim{background:#dfe0da;border-color:#23272a}#h3 .mim svg{width:100%;height:100%;display:block;overflow:visible}
@@ -136,10 +138,13 @@ function h3Ref(){try{h3Build();const hv=document.getElementById('homev');if(!hv|
   // annunciator
   let au=[],nA=0,nC=0,nL=0,nQ=0,nD=0;try{au=auList()}catch(_){}try{const A=alertsCalc(),LV=alAct(A.lvl);nC=LV.filter(a=>a.gap<0).length;nL=LV.length-nC;nQ=alAct(A.seq).length;nA=LV.length+nQ}catch(_){}try{nD=decCount()}catch(_){}
   const cn=t=>au.filter(z=>z.t===t).length;
-  const W=[['au','au','Network check',au.length,'#d32f2f',''],['au','short','Short ends',cn('short'),'#d32f2f','short'],['au','thru','Through a pit',cn('thru'),'#d32f2f','thru'],['au','unl','Open ends',cn('unl'),'#d32f2f','unl'],
-   ['al','clash','Level clash',nC+nL,'#ef8f00','lvl'],['al','seq','Sequence',nQ,'#ef8f00','seq'],['au','orph','Pipe not drawn',cn('orph'),'#ef8f00','orph'],['dec','dec','Decisions',nD,'#1565c0','']];
-  H3.cur={};W.forEach(w=>H3.cur[w[1]]=w[3]);
-  document.getElementById('h3an').innerHTML=W.map(([k,id,t,n,c,s])=>`<button class="aw${n?' on':''}" type="button" data-k="${k}" data-s="${s}" style="--c:${c}" title="${esc(t)}: ${fmt(n)}">${esc(t)}<b>${fmt(n)}</b></button>`).join('');
+  // option A: three rows by importance; counts leave out reviewed points (network check) and ignored alerts
+  const shs=au.filter(z=>z.t==='short'),RED='#d32f2f',AMB='#ef8f00',INF='';
+  const G=[['CRITICAL',[['au','clash','Clash with other network',cn('clash'),RED,'clash'],['au','xut','Linked to other network',cn('xut'),RED,'xut'],['al','lvl','Level clash',nC,RED,'lvl'],['au','far','Linked far away',cn('far'),RED,'far']]],
+   ['FOLLOW-UP',[['au','short','Short ends ≥ 0.5 m',shs.filter(x=>x.z.d>=AU_SHORT).length,AMB,'short'],['au','thru','Through a pit',cn('thru'),AMB,'thru'],['au','noop','Opening / Ø',cn('noop')+cn('od'),AMB,'noop'],['al','seq','Tight / sequence',nL+nQ,AMB,'seq']]],
+   ['INFO',[['au','orph','Pipe not drawn',cn('orph'),INF,'orph'],['au','shlo','Short < 0.5 m',shs.filter(x=>x.z.d<AU_SHORT).length,INF,'short'],['au','unl','Open ends',cn('unl'),INF,'unl'],['dec','dec','Decisions',nD,'#1565c0','']]]];
+  H3.cur={};G.forEach(([,W])=>W.forEach(w=>H3.cur[w[1]]=w[3]));
+  document.getElementById('h3an').innerHTML=G.map(([lab,W])=>`<div class="h3tt">${lab}</div>`+W.map(([k,id,t,n,c,s])=>`<button class="aw${n?' on':''}${c?'':' inf'}" type="button" data-k="${k}" data-s="${s}"${c?` style="--c:${c}"`:''} title="${esc(t)}: ${fmt(n)}">${esc(t)}<b>${fmt(n)}</b></button>`).join('')).join('');
   // mimic: lamp red when the page has open items
   document.getElementById('h3mim').innerHTML=h3Mimic({rep:!(au.length||nA),dec:!nD});
   // log relay

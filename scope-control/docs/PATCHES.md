@@ -11,7 +11,7 @@ Before changing a function below, read every wrapper listed for it.
 | `drawNotes` (16) | 00-core.js:784 | 03:63 → 03:132 → 04:103 → 08:62 → 09:140 → 10:45 → 16:173 → 18:62 → 18:118 → 19:51 → 20:65 → 21:48 → 22:51 *before / around* → 23:288 → 30:3 → 34:34 |
 | `goView` (11) | 01-home-report.js:101 | 04:94 *before / around* → 14:17 → 15:20 → 33:63 *before / around* → 39:133 *before / around* → 39:145 *before / around* → 40:71 *before / around* → 55:13 → 57:35 *before / around* → 60:4 → 60:24 *before / around* |
 | `showInfo` (10) | 00-core.js:570 | 03:83 → 07:34 → 09:101 → 10:53 → 29:69 → 30:7 → 30:8 → 35:53 → 36:169 *before / around* → 48:81 *before / around* |
-| `restoreKey` (8) | 00-core.js:1084 | 08:4 *before / around* → 09:13 *before / around* → 16:4 *before / around* → 22:4 *before / around* → 29:4 *before / around* → 35:4 *before / around* → 39:3 *before / around* → 40:3 *before / around* |
+| `restoreKey` (9) | 00-core.js:1084 | 08:4 *before / around* → 09:13 *before / around* → 16:4 *before / around* → 22:4 *before / around* → 29:4 *before / around* → 35:4 *before / around* → 39:3 *before / around* → 40:3 *before / around* → 41:40 *before / around* |
 | `drawTrn` (6) | 00-core.js:917 | 00:990 → 23:319 → 36:107 → 36:170 → 48:56 → 49:20 |
 | `draw` (6) | 00-core.js:472 | 07:30 → 12:18 → 17:17 → 28:35 → 42:67 → 42:81 |
 | `showPart` (5) | 00-core.js:1000 | 00:1063 → 20:123 → 21:104 → 35:63 → 46:25 |
@@ -77,6 +77,6 @@ Before changing a function below, read every wrapper listed for it.
 | `qkFind` (1) | 42-audit-fixes-one-click-audit-mode-on-the-map-draw.js:118 | 48:104 *before / around* |
 | `renderKPIs` (1) | 00-core.js:178 | 48:116 |
 | `docNav` (1) | 33-documents-aq-da-structural-details-schedules-rfi.js:16 | 52:31 *before / around* |
-| `h2Ref` (1) | 43-home-v2-control-room-look-gauges-alarm-tiles-plo.js:117 | 58:155 |
+| `h2Ref` (1) | 43-home-v2-control-room-look-gauges-alarm-tiles-plo.js:117 | 58:160 |
 
 File numbers = the two-digit prefix in `src/js/`.

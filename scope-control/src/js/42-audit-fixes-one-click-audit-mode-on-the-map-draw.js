@@ -29,7 +29,7 @@ function auUndo(){const u=AUD.undo.pop();if(!u){toast('Nothing to undo');return}
 // one flat list of everything the audit found, worst first
 function auList(){const {R}=pipeAudit();window.__PAR=R;const L=[];const add=(t,lab,arr)=>arr.forEach((z,i)=>L.push({t,lab,z,i}));
   add('xut','Linked to a pit of another network',R.xut);add('far','Linked to a pit far away',R.far);add('thru','Passes through a pit of its own network',R.thru);add('clash','Crosses a pit of another network (clash)',R.clash);add('unl','End not connected to a pit',R.unl);add('short','Stops short of its pit',R.short);
-  add('orph','Schedule pipe not drawn',R.orph);add('noop','No opening in the schedule on this wall',R.noop);add('od','Pipe Ø differs from the opening',R.od);add('lev','Pipe level differs from the BOP',R.lev);return L}
+  add('orph','Schedule pipe not drawn',R.orph);add('noop','No opening in the schedule on this wall',R.noop);add('od','Pipe Ø differs from the opening',R.od);add('lev','Pipe level differs from the BOP',R.lev);return L.filter(x=>!auIsRev(auKey(x.t,x.z)))} // reviewed points (41-…) leave the to-do
 // ---- audit mode on the map
 // ---- pit position: one-click "snap to line" + undoable moves
 function auCtr(P){return [P.reduce((a,q)=>a+q[0],0)/P.length,P.reduce((a,q)=>a+q[1],0)/P.length]}
