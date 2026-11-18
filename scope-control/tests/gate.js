@@ -40,6 +40,19 @@ let fails=0;const T=(name,ok,info)=>{console.log((ok?'PASS ':'FAIL ')+name+(info
  T('back to the map moves like every page',back!=='none',back);T('pop-ups use the same easing as pages',card===ease,card+' vs '+ease);
  await E("goView('rep')");await page.waitForTimeout(300);await E("toast('gate')");await page.waitForTimeout(250);
  T('toast shows above an open page',await page.evaluate(()=>{const t=[...document.querySelectorAll('.toast')].find(x=>!x.hidden);if(!t)return false;const r=t.getBoundingClientRect();return t.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))}));
+ // design pack (Nov-2026): readable sizes, TODAY strip, status letters, search lamps, compact plate, print band
+ await E("goView('home')");await page.waitForTimeout(400);
+ const small=await page.evaluate(()=>[...document.querySelectorAll('#homev *')].filter(el=>!el.closest('svg')&&[...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())&&el.getBoundingClientRect().width&&parseFloat(getComputedStyle(el).fontSize)<11).map(el=>el.textContent.trim().slice(0,14)));
+ T('Home: no text under 11 px',!small.length,small.slice(0,5).join(', '));
+ T('Home: TODAY strip with 4 readouts',await page.evaluate(()=>document.querySelectorAll('#d2today [data-d2]').length===4));
+ T('map legend shows the status letters',await page.evaluate(()=>[...document.querySelectorAll('.legend i.lgl')].map(i=>i.textContent).join('')==='IPCN'));
+ await page.keyboard.press('Control+k');await page.waitForTimeout(150);await page.keyboard.type('DB-15');await page.waitForTimeout(300);
+ T('search: items carry a status lamp',await page.evaluate(()=>document.querySelectorAll('#qkl .qkl.lg,#qkl .qkl.la,#qkl .qkl.lr').length>0));await page.keyboard.press('Escape');
+ await E("repSel='sum';goView('rep');renderReport()");await page.waitForTimeout(300);
+ T('reports: Compact plate in the bar',await page.evaluate(()=>!!document.querySelector('#repv .rbar .d2cmp')));
+ await E("printIds(['r:sum','om'])");await page.waitForTimeout(1500);
+ const pp=await page.evaluate(()=>[...document.querySelectorAll('#ppages .pp')].every(p=>{const a=p.getBoundingClientRect(),t=p.querySelector('.pprev'),h=p.querySelector('.pphb');if(!t||!h)return false;const r=t.getBoundingClientRect();return r.bottom<=a.bottom+1&&h.getBoundingClientRect().top>=a.top}));
+ T('print: header band and revision table inside every page',pp);await page.evaluate(()=>{document.getElementById('printroot').hidden=true});
  // results signature
  const sig=await page.evaluate(()=>{const E=window.__ev,h=s=>{let x=0;for(let i=0;i<s.length;i++)x=(x*31+s.charCodeAt(i))|0;return x};const A=E("pipeAudit()").R,Q=E("qtyAll()").T;
    return {items:h(E("items").map(i=>i.key+':'+i.tr+':'+i.run).join('|')),pipes:h((window.__PP||[]).map(p=>p.id+':'+(p.Weff==null?'':p.Weff.toFixed(6))).join('|')),

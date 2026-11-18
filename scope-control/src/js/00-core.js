@@ -3,6 +3,7 @@ const D=window.SCOPE;
 // hook lists (tools/hooks.js): before-hooks run newest→oldest, after-hooks oldest→newest
 const HK={};const hkOf=n=>HK[n]||(HK[n]={b:[],a:[]}),hkBefore=(n,f)=>hkOf(n).b.push(f),hkAfter=(n,f)=>hkOf(n).a.push(f);
 const ST_ORDER=['Installed','Precast Yard','Casted','Not Cast'];
+const ST_LETTER={'Installed':'I','Precast Yard':'P','Casted':'C','Not Cast':'N'}; // status letter in the map dot (design 3A, colours locked)
 const ST_LABEL={'Installed':'Installed','Precast Yard':'Precast yard','Casted':'Cast – loc. TBC','Not Cast':'Not cast','Unknown':'Not in sheet'};
 const CSSV=new Map();const css=n=>{let v=CSSV.get(n);if(v===undefined){v=getComputedStyle(document.documentElement).getPropertyValue(n).trim();CSSV.set(n,v)}return v};
 {const clr=()=>CSSV.clear();new MutationObserver(clr).observe(document.documentElement,{attributes:true});
@@ -511,7 +512,8 @@ function draw(){if(!W)return;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0
       if(sc>2.4&&f.length>=4&&f.length<=5&&typeOf(it.key)==='DB'){ctx.globalAlpha=on?.55:.12;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(f[0][0]),Y(f[0][1]));ctx.lineTo(X(f[2][0]),Y(f[2][1]));ctx.moveTo(X(f[1][0]),Y(f[1][1]));ctx.lineTo(X(f[3][0]),Y(f[3][1]));ctx.stroke()}}
     ctx.globalAlpha=on?1:.15;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,f&&sc>5?Math.max(2,r0*.5):(on&&(dim||plist)?r0+1.5:r0),0,7);ctx.fill();
     if(on&&(dim||plist)){ctx.lineWidth=1.2;ctx.strokeStyle=css('--ink');ctx.stroke()}
-    if(OV[it.key]&&on&&sc>1.5){ctx.lineWidth=1.5;ctx.strokeStyle=css('--accent');ctx.beginPath();ctx.arc(x,y,r0+3,0,7);ctx.stroke()}}
+    if(OV[it.key]&&on&&sc>1.5){ctx.lineWidth=1.5;ctx.strokeStyle=css('--accent');ctx.beginPath();ctx.arc(x,y,r0+3,0,7);ctx.stroke()}
+    if(sc>=5&&on){const L=ST_LETTER[S(it.key)];if(L){ctx.globalAlpha=1;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,7.5,0,7);ctx.fill();ctx.lineWidth=1.4;ctx.strokeStyle='#fff';ctx.stroke();ctx.fillStyle='#fff';ctx.font='700 10px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(L,x,y+.5)}}}
   ctx.globalAlpha=1;
   drawNotes();
   if(L('names')){ctx.font=`600 ${Math.max(10,Math.min(18,sc*3.2))}px Barlow, sans-serif`;ctx.textAlign='center';ctx.fillStyle=css('--map-name');ctx.globalAlpha=sc>3.5?.6:1;
@@ -712,7 +714,10 @@ function snapMap(bounds,opts,pw,ph){
 const PLEG_=()=>{const c=v=>css(v);const ut=UTIL.filter(u=>uon(u[0])&&D.pipes&&D.pipes[u[0]]).map(([k,l])=>`<span><b style="background:${ucol(k)}"></b>${esc(k)} ${esc(l)}</span>`).join('');
   return `<div class="pl"><span><i style="background:${c('--inst')}"></i>Installed</span><span><i style="background:${c('--yard')}"></i>Precast yard</span><span><i style="background:${c('--cast')}"></i>Cast – location TBC</span><span><i style="background:${c('--nc')}"></i>Not cast</span><span><b class="hb-r"></b>Trench backfilled</span><span><b class="hb-y"></b>Trench excavated</span>${ut}</div>`};
 function page(title,body){const catL={ALL:'All items',WET:'Piping & Drainage',EI:'Electrical & Instrumentation'}[cat];
-  return `<section class="pp"><div class="ph"><h2>${esc(title)}</h2><div class="m">Interconnecting Pits · BAGC (S7) · Subcontract 7500-123025<br>${esc(catL)} · Status as of ${esc(asof)} · Printed ${today()}</div></div>${body}</section>`}
+  const H=prtHead(),proj=(document.querySelector('body>.top .brand .sub')||{}).textContent||'';
+  return `<section class="pp"><div class="pphb"><span>${esc(proj.split('·').slice(0,2).join('·').trim().toUpperCase())} · INTERCONNECTING</span><span data-ph="doc">${esc((H.doc||'—')+' · REV '+(H.rev||'—'))}</span></div><div class="ph"><h2>${esc(title)}</h2><div class="m">Interconnecting Pits · BAGC (S7) · Subcontract 7500-123025<br>${esc(catL)} · Status as of ${esc(asof)} · Printed ${today()}</div></div><div class="ppb">${body}</div><table class="pprev"><tr><th>Rev</th><th>Date</th><th>Description</th><th>Prepared</th><th>Checked</th><th>Approved</th></tr><tr data-ph="rev"><td>${esc(H.rev||'')}</td><td>${esc(today())}</td><td>${esc(H.desc||'')}</td><td>${esc(H.prep||'')}</td><td>${esc(H.chk||'')}</td><td>${esc(H.app||'')}</td></tr></table></section>`}
+// print header (design 10B): typed in the print preview bar, kept on this computer
+function prtHead(){try{return Object.assign({doc:'',rev:'A',desc:'Issued for information',prep:'',chk:'',app:''},JSON.parse(localStorage.getItem('scope.prthead')||'{}'))}catch(_){return {doc:'',rev:'A',desc:'Issued for information',prep:'',chk:'',app:''}}}
 function openPrint(pages){document.getElementById('ppages').innerHTML=pages.join('');document.getElementById('printroot').hidden=false;setTimeout(()=>{try{window.print()}catch(_){}} ,300)}
 function keyTable(ks){const rows=sortKeys(ks).map(rowOf);const half=Math.ceil(rows.length/2);
   const tb=rs=>`<table><thead><tr><th>Tag</th><th>Status</th><th>Area</th><th>Ducts</th></tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(short(r.Tag))}</td><td>${esc(r.Status)}</td><td>${esc(r.Area)}</td><td>${r.Ducts?r.Rows+'×'+r.Columns:''}</td></tr>`).join('')}</tbody></table>`;

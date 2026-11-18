@@ -9,36 +9,36 @@ Before changing a function below, read every wrapper listed for it.
 | Function | Defined in | Wrappers (oldest first) |
 |---|---|---|
 | `goView` (12) | 01-home-report.js:104 | 04:94 *before / around* → 14:17 → 15:20 → 33:64 *before / around* → 39:133 *before / around* → 39:145 *before / around* → 40:71 *before / around* → 55:13 → 57:35 *before / around* → 60:4 → 60:24 *before / around* → 64:7 *before / around* |
-| `draw` (6) | 00-core.js:477 | 07:30 → 12:18 → 17:17 → 28:35 → 42:67 → 42:81 |
+| `draw` (6) | 00-core.js:478 | 07:30 → 12:18 → 17:17 → 28:35 → 42:67 → 42:81 |
 | `cancelAction` (5) | 13-right-click-cancels-the-current-action-like-cad.js:2 | 16:164 *before / around* → 18:125 *before / around* → 19:51 *before / around* → 20:74 *before / around* → 39:26 *before / around* |
-| `setCable` (3) | 00-core.js:1038 | 11:15 → 18:73 *before / around* → 20:79 *before / around* |
+| `setCable` (3) | 00-core.js:1043 | 11:15 → 18:73 *before / around* → 20:79 *before / around* |
 | `urUndo` (3) | 12-undo-redo-buttons-ctrl-z-ctrl-y-on-any-keyboard-.js:5 | 16:165 *before / around* → 18:126 *before / around* → 20:75 *before / around* |
-| `metaHtml` (3) | 00-core.js:534 | 22:190 *before / around* → 44:11 *before / around* → 45:42 *before / around* |
-| `placeMove` (3) | 00-core.js:599 | 22:237 *before / around* → 35:70 *before / around* → 42:100 *before / around* |
-| `sumTotals` (2) | 00-core.js:170 | 03:17 → 29:10 |
+| `metaHtml` (3) | 00-core.js:536 | 22:190 *before / around* → 44:11 *before / around* → 45:42 *before / around* |
+| `placeMove` (3) | 00-core.js:601 | 22:237 *before / around* → 35:70 *before / around* → 42:100 *before / around* |
+| `sumTotals` (2) | 00-core.js:171 | 03:17 → 29:10 |
 | `osNear` (2) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:103 | 18:24 *before / around* → 21:8 *before / around* |
-| `renderCable` (2) | 00-core.js:1040 | 18:88 → 20:30 *before / around* |
+| `renderCable` (2) | 00-core.js:1045 | 18:88 → 20:30 *before / around* |
 | `drawJob` (2) | 17-drawing-bar-done-undo-point-cancel-for-any-point.js:2 | 18:124 *before / around* → 20:72 *before / around* |
 | `shpStart` (2) | 10-edit-the-shape-of-an-item-drag-corners-straighte.js:3 | 20:84 *before / around* → 35:71 *before / around* |
-| `pInv` (1) | 00-core.js:1128 | 09:12 *before / around* |
-| `vSel` (1) | 00-core.js:337 | 09:104 *before / around* |
+| `pInv` (1) | 00-core.js:1133 | 09:12 *before / around* |
+| `vSel` (1) | 00-core.js:338 | 09:104 *before / around* |
 | `prtPage` (1) | 01-home-report.js:76 | 16:192 *before / around* |
 | `urCanU` (1) | 12-undo-redo-buttons-ctrl-z-ctrl-y-on-any-keyboard-.js:3 | 20:76 *before / around* |
 | `secStart` (1) | 16-section-anywhere-cut-line-on-the-map-longitudina.js:151 | 20:83 *before / around* |
 | `addClick` (1) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:60 | 20:116 *before / around* |
 | `renderAdd` (1) | 03-add-missing-items-pits-duct-banks-drawn-on-site.js:43 | 20:117 *before / around* |
-| `pipePU` (1) | 00-core.js:1290 | 21:42 *before / around* |
+| `pipePU` (1) | 00-core.js:1295 | 21:42 *before / around* |
 | `paSave` (1) | 20-add-item-add-only-cable-trench-pipe-trench-pit-d.js:52 | 21:68 *before / around* |
 | `mpApply` (1) | 19-match-properties-one-tool-for-pits-duct-banks-tr.js:20 | 21:72 |
-| `cablePU` (1) | 00-core.js:1067 | 21:96 *before / around* |
-| `ductSec` (1) | 00-core.js:548 | 22:165 *before / around* |
+| `cablePU` (1) | 00-core.js:1072 | 21:96 *before / around* |
+| `ductSec` (1) | 00-core.js:550 | 22:165 *before / around* |
 | `itHandles` (1) | 18-adjustable-everywhere-trench-outlines-corner-ver.js:52 | 22:211 *before / around* |
-| `pState` (1) | 00-core.js:116 | 22:240 *before / around* |
-| `pSize` (1) | 00-core.js:1124 | 22:241 *before / around* |
-| `fitBox` (1) | 00-core.js:459 | 26:41 *before / around* |
-| `pass` (1) | 00-core.js:132 | 29:9 *before / around* |
-| `setStatus` (1) | 00-core.js:356 | 35:40 *before / around* |
-| `setPart` (1) | 00-core.js:1010 | 35:41 *before / around* |
+| `pState` (1) | 00-core.js:117 | 22:240 *before / around* |
+| `pSize` (1) | 00-core.js:1129 | 22:241 *before / around* |
+| `fitBox` (1) | 00-core.js:460 | 26:41 *before / around* |
+| `pass` (1) | 00-core.js:133 | 29:9 *before / around* |
+| `setStatus` (1) | 00-core.js:357 | 35:40 *before / around* |
+| `setPart` (1) | 00-core.js:1015 | 35:41 *before / around* |
 | `revRetag` (1) | 29-review-first-confirm-every-item-then-every-statu.js:42 | 35:72 *before / around* |
 | `dAq` (1) | 33-documents-aq-da-structural-details-schedules-rfi.js:23 | 39:186 *before / around* |
 | `dEmpty` (1) | 33-documents-aq-da-structural-details-schedules-rfi.js:31 | 45:39 *before / around* |
@@ -56,13 +56,13 @@ Functions whose wrappers were all plain before/after code (tools/hooks.js) now k
 | `drawNotes` (16) | 03:66 → 03:135 → 04:103 → 08:62 → 09:141 → 10:45 → 16:173 → 18:62 → 18:119 → 19:52 → 20:66 → 21:48 → 22:52 *before* → 23:288 → 30:3 → 34:34 |
 | `showInfo` (10) | 03:86 → 07:34 → 09:101 → 10:53 → 29:69 → 30:7 → 30:8 → 35:53 → 36:169 *before* → 48:81 *before* |
 | `restoreKey` (9) | 08:4 *before* → 09:13 *before* → 16:4 *before* → 22:4 *before* → 29:4 *before* → 35:4 *before* → 39:3 *before* → 40:3 *before* → 41:40 *before* |
-| `drawTrn` (6) | 00:1001 → 23:319 → 36:107 → 36:170 → 48:56 → 49:20 |
-| `showPart` (5) | 00:1075 → 20:124 → 21:104 → 35:63 → 46:25 |
-| `renderHome` (5) | 08:66 → 39:192 → 43:132 → 47:8 → 47:22 |
+| `drawTrn` (6) | 00:1006 → 23:319 → 36:107 → 36:170 → 48:56 → 49:20 |
+| `renderHome` (6) | 08:66 → 39:192 → 43:132 → 47:8 → 47:22 → 65:23 |
+| `showPart` (5) | 00:1080 → 20:124 → 21:104 → 35:63 → 46:25 |
 | `showPipe` (5) | 09:102 → 20:127 → 21:58 → 35:64 → 46:26 |
 | `setAdd` (4) | 11:15 → 12:19 *before* → 20:78 *before* → 29:71 |
-| `renderReport` (3) | 36:216 → 53:30 → 60:6 |
-| `buildRuns` (2) | 00:904 → 38:13 |
+| `renderReport` (4) | 36:216 → 53:30 → 60:6 → 65:9 |
+| `buildRuns` (2) | 00:909 → 38:13 |
 | `render` (2) | 03:16 *before* → 50:4 *before* |
 | `syBadge` (2) | 07:52 → 14:19 |
 | `setPipe` (2) | 11:15 → 20:80 *before* |
