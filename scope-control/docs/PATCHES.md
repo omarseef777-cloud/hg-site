@@ -8,7 +8,7 @@ Before changing a function below, read every wrapper listed for it.
 
 | Function | Defined in | Wrappers (oldest first) |
 |---|---|---|
-| `goView` (11) | 01-home-report.js:104 | 04:94 *before / around* → 14:17 → 15:20 → 33:64 *before / around* → 39:133 *before / around* → 39:145 *before / around* → 40:71 *before / around* → 55:13 → 57:35 *before / around* → 60:4 → 60:24 *before / around* |
+| `goView` (12) | 01-home-report.js:104 | 04:94 *before / around* → 14:17 → 15:20 → 33:64 *before / around* → 39:133 *before / around* → 39:145 *before / around* → 40:71 *before / around* → 55:13 → 57:35 *before / around* → 60:4 → 60:24 *before / around* → 64:7 *before / around* |
 | `draw` (6) | 00-core.js:477 | 07:30 → 12:18 → 17:17 → 28:35 → 42:67 → 42:81 |
 | `cancelAction` (5) | 13-right-click-cancels-the-current-action-like-cad.js:2 | 16:164 *before / around* → 18:125 *before / around* → 19:51 *before / around* → 20:74 *before / around* → 39:26 *before / around* |
 | `setCable` (3) | 00-core.js:1038 | 11:15 → 18:73 *before / around* → 20:79 *before / around* |

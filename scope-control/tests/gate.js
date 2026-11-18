@@ -29,6 +29,17 @@ let fails=0;const T=(name,ok,info)=>{console.log((ok?'PASS ':'FAIL ')+name+(info
      await page.evaluate(i=>{const e=document.querySelector(`[data-gz="${i}"]`);if(e)e.dispatchEvent(new MouseEvent('click',{bubbles:true}))},i).catch(()=>{});clicks++;
      await page.keyboard.press('Escape').catch(()=>{});await page.evaluate(()=>{const m=document.getElementById('mdl');if(m)m.hidden=true});await E(ctxv).catch(()=>{})}}
  T('every control clicked without errors',!errs.length,clicks+' clicks'+(errs.length?' · '+errs.slice(0,3).join(' || '):''));errs.length=0;
+ // motion: every page enters the same way; a toast shows above an open page
+ const mo=[];for(const v of ['home','rep','mom','docs','charts','dec','m3list','prt']){await E(`goView('${v}')`).catch(()=>{});await page.waitForTimeout(20);
+   mo.push(await page.evaluate(()=>{const o=[...document.querySelectorAll('.ovl')].find(x=>!x.hidden);if(!o)return 'none';const c=getComputedStyle(o);return c.animationName+' '+c.animationDuration+' '+c.animationTimingFunction}))}
+ T('every page enters with the same motion',new Set(mo).size===1&&mo[0]!=='none',[...new Set(mo)].join(' | '));
+ await E("goView('rep')");await page.waitForTimeout(300);await E("goView('dash')");await page.waitForTimeout(20);
+ const back=await page.evaluate(()=>getComputedStyle(document.querySelector('body>.main')).animationName);
+ await E("showInfo(items[0])");await page.waitForTimeout(20);const card=await page.evaluate(()=>getComputedStyle(document.getElementById('info')).animationTimingFunction);
+ const ease=mo[0].split(' ').slice(2).join(' ');
+ T('back to the map moves like every page',back!=='none',back);T('pop-ups use the same easing as pages',card===ease,card+' vs '+ease);
+ await E("goView('rep')");await page.waitForTimeout(300);await E("toast('gate')");await page.waitForTimeout(250);
+ T('toast shows above an open page',await page.evaluate(()=>{const t=[...document.querySelectorAll('.toast')].find(x=>!x.hidden);if(!t)return false;const r=t.getBoundingClientRect();return t.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))}));
  // results signature
  const sig=await page.evaluate(()=>{const E=window.__ev,h=s=>{let x=0;for(let i=0;i<s.length;i++)x=(x*31+s.charCodeAt(i))|0;return x};const A=E("pipeAudit()").R,Q=E("qtyAll()").T;
    return {items:h(E("items").map(i=>i.key+':'+i.tr+':'+i.run).join('|')),pipes:h((window.__PP||[]).map(p=>p.id+':'+(p.Weff==null?'':p.Weff.toFixed(6))).join('|')),

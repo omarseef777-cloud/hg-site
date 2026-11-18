@@ -902,7 +902,25 @@ body.nadm #gfbtn,body.ro #gfbtn,body.site #gfbtn,body.pres #gfbtn{display:none}
  body.mapfull:not(.hastb)>.main>.panel:first-child{top:0!important}
  body.mapfull.mtop>.top{display:flex!important;position:fixed;left:0;right:0;top:var(--tbh,40px);z-index:44;margin:0;padding:10px max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));background:var(--panel);box-shadow:0 6px 18px rgba(0,0,0,.18)}
  body.mapfull.mtop>.catbar{display:flex!important;position:fixed;left:0;right:0;top:calc(var(--tbh,40px) + var(--mth,170px));z-index:44;margin:0!important;padding:6px 12px 10px;background:var(--panel);box-shadow:0 8px 14px rgba(0,0,0,.12)}
-}</style><style id="sycfxcss">#sycfx{position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:90;background:#fff4e5;color:#8a4b00;border-color:#e3a00d;font-weight:700}</style><style id="mobfix">/* phones: section menus are a short scrolling strip, not full-height panels */
+}</style><style id="motion">/* One motion system (Nov-2026): pages 220 ms, content 180 ms, pop-ups 180 ms, one easing, no bounce */
+:root{--mo-ease:cubic-bezier(.22,.8,.24,1);--mo-page:220ms;--mo-content:180ms;--mo-pop:180ms}
+@keyframes moPage{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@keyframes moContent{from{opacity:0;transform:translate3d(0,4px,0)}to{opacity:1;transform:none}}
+@keyframes moPop{from{opacity:0;transform:translate3d(0,6px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes moToast{from{opacity:0;transform:translate3d(-50%,6px,0)}to{opacity:1;transform:translate3d(-50%,0,0)}}
+@keyframes moFade{from{opacity:0}to{opacity:1}}
+.ovl:not([hidden]),.mo-page{animation:moPage var(--mo-page) var(--mo-ease) backwards!important}
+.mo-content,.view.anim,details.group[open]>.body{animation:moContent var(--mo-content) var(--mo-ease) backwards!important}
+.pop:not([hidden]),.edit:not([hidden]),details[open]>.menu,.info:not([hidden]),.addmenu:not([hidden]),.icpick:not([hidden]),.gfpan:not([hidden]),.mpbar:not([hidden]),.nwpop:not([hidden]),.mdlbg:not([hidden]) .mdlbox{animation:moPop var(--mo-pop) var(--mo-ease) backwards!important}
+body .toast:not([hidden]){animation:moToast var(--mo-pop) var(--mo-ease) backwards!important}
+body .toast{z-index:100} /* toasts were hidden behind open pages (z 20 < 60) */
+.mdlbg:not([hidden]),#aqv:not([hidden]),#printroot:not([hidden]){animation:moFade var(--mo-pop) var(--mo-ease) backwards!important}
+body.mapfull .main>.panel:first-child{transition:transform var(--mo-page) var(--mo-ease)!important}
+/* while a page is open the map stays covered, so moving between pages never flashes the map */
+body.ovopen::before{content:"";position:fixed;left:0;right:0;bottom:0;top:var(--tbh,40px);z-index:59;background:var(--mo-bd,#c9ccc8);pointer-events:none}
+body.ovopen:not(.hastb)::before{top:0}
+@media (prefers-reduced-motion:reduce){.ovl,.mo-page,.mo-content,.view.anim,details.group[open]>.body,.pop,.edit,.menu,.info,.addmenu,.icpick,.gfpan,.mpbar,.nwpop,.mdlbox,.mdlbg,#aqv,#printroot,body .toast{animation:none!important}}
+</style><style id="sycfxcss">#sycfx{position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:90;background:#fff4e5;color:#8a4b00;border-color:#e3a00d;font-weight:700}</style><style id="mobfix">/* phones: section menus are a short scrolling strip, not full-height panels */
 @media (max-width:820px){body.hastb .rep .navbox,.rep .navbox{height:auto!important;max-height:none!important}.rep .navbox .rnavs{align-items:flex-start!important;flex:none!important;padding-bottom:8px!important;scroll-snap-type:x proximity}.rep .navbox .rnavs>.rnav{flex:none;height:auto!important;min-height:0!important;scroll-snap-align:start}}</style>
 
 </body></html>
