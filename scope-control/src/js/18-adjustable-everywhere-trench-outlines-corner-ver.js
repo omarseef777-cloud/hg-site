@@ -74,11 +74,11 @@ function tfStart(){TF={pts:[],hov:null,form:null};partDrag=null;TRH=null;cv.styl
 function tfGuess(P){const ax=trAxis(P);let best=null,bd=4;(window.__PARTS||[]).forEach(p=>{const d=dseg(ax.c[0],ax.c[1],[p.x0,p.y0],[p.x1,p.y1])-(p.tr[2]||0)/2;if(d<bd){bd=d;best=p}});return {ax,tr:best?best.tr:null}}
 function tfFinish__base(){if(!TF)return;if(TF.pts.length<3){toast('Click at least 3 corners of the trench');return}const g=tfGuess(TF.pts);
   TF.form={tag:g.tr?short(g.tr[0]):'',sys:g.tr?g.tr[1]:'EY',W:+(g.tr?g.tr[2]:Math.max(0.3,Math.round(g.ax.W*20)/20)).toFixed(2),st:'N',ax:g.ax};cv.style.cursor='';renderCable();draw();setTimeout(()=>{const i=document.getElementById('tftag');if(i)i.focus()},40)}
-function tfFinish(){const h=HK.tfFinish,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=tfFinish__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
-const tfTag=v=>{let t=String(v||'').trim().toUpperCase().replace(/\s+/g,'');if(t&&!/^MM\d/.test(t))t='MM5100790U-'+t;return t};
+function tfFinish(){return hkRun('tfFinish',tfFinish__base,this,arguments,false)} // hooks: docs/PATCHES.md
+const tfTag=v=>{let t=String(v||'').trim().toUpperCase().replace(/\s+/g,'');if(t&&!/^MM\d/.test(t))t=PRJ.itemPrefix+t;return t};
 function tfFormHtml(){const f=TF.form,tg=tfTag(f.tag),ex=(D.trn||[]).find(t=>t[0]===tg);const STL=[['N','Not started'],['Y','Excavated'],['R','Backfilled']];
   return `<div class="tff"><div class="hint">Outline · ${TF.pts.length} points · area <b>${f2(f.ax.A)} m²</b> · ${f2(f.ax.L)} × ${f2(f.ax.W)} m</div>
-   <label>Trench tag<input id="tftag" list="tftags" value="${esc(f.tag)}" placeholder="EY-BD-W1000-123" autocomplete="off"></label>
+   <label>Trench tag<input id="tftag" list="tftags" value="${esc(f.tag)}" placeholder="${TG.sample.trench}" autocomplete="off"></label>
    <datalist id="tftags">${(D.trn||[]).map(t=>`<option value="${esc(short(t[0]))}">`).join('')}</datalist>
    <div class="tfrow"><label>System<select id="tfsys" ${ex?'disabled':''}>${['EY','EYL','IY'].map(s=>`<option ${(ex?ex[1]:f.sys)===s?'selected':''}>${s}</option>`).join('')}</select></label>
    <label>Width m<input id="tfw" type="number" step="0.05" min="0.1" value="${ex?f2(ex[2]):f.W}" ${ex?'disabled':''}></label></div>
@@ -98,7 +98,7 @@ document.getElementById('cablepop').addEventListener('click',e=>{const t=e.targe
   if(t.closest('[data-tfx]')){setCable(null);return}
   if(t.closest('[data-tfsave]'))tfSave()});
 function tfSave(){const f=TF.form,tag=tfTag(f.tag);if(!tag){toast('Enter the trench tag');return}
-  const ex=(D.trn||[]).find(t=>t[0]===tag);if(!ex){if(!/^MM5100790U-(EY|EYL|IY)-/.test(tag)&&!confirmTag(tag))return;if(!(f.W>0.05)){toast('Width must be more than 0');return}}
+  const ex=(D.trn||[]).find(t=>t[0]===tag);if(!ex){if(!new RegExp('^'+PRJ.itemPrefix+'('+TG.trench.join('|')+')-').test(tag)&&!confirmTag(tag))return;if(!(f.W>0.05)){toast('Width must be more than 0');return}}
   const P=TF.pts.map(q=>[r3(q[0]),r3(q[1])]),ax=trAxis(P),seg=[r2(ax.x0),r2(ax.y0),r2(ax.x1),r2(ax.y1)];
   const prev=TRE[tag];TRE[tag]=ex?Object.assign({},prev||{},{mode:prev?prev.mode:'add',lines:(prev?prev.lines:[]).concat([seg]),date:today()})
     :Object.assign({},prev||{},{mode:'add',lines:(prev?prev.lines:[]).concat([seg]),date:today(),newt:1,sys:f.sys||'EY',W:+(+f.W).toFixed(2),c:[r2(ax.c[0]),r2(ax.c[1])]});
@@ -125,5 +125,4 @@ function confirmTag(tag){toast('Tag '+short(tag)+' does not look like a cable tr
 {const _ca=cancelAction;cancelAction=function(){if(TF){const had=TF.pts.length||TF.form;setCable(null);toast('New trench cancelled');return true}return _ca()}}
 {const _uu=urUndo;urUndo=function(){if(TF&&!TF.form){if(TF.pts.length){TF.pts.pop();renderCable();draw()}return}_uu()}}
 try{Object.assign(window.__T,{itH:()=>focusKey?itHandles(focusKey):[],showPipeId:id=>{const pp=(window.__PP||[]).find(x=>x.id===id);if(pp){selPart=null;showPipe(pp);draw()}return !!pp},shp:()=>SHP,tf:()=>TF,qty:()=>qtyAll(),trn:()=>D.trn,dbg:()=>{const p=selPart;return {ends:[[X(p.x0),Y(p.y0)],[X(p.x1),Y(p.y1)]],W:p.tr[2],sc}},tfStart,tfFinish,tfPts:pts=>{TF.pts=pts.slice()},trAxis,setCable:m=>setCable(m),selPartById:id=>{selPart=(window.__PARTS||[]).find(p=>p.id===id)||null;if(selPart)showPart(selPart);draw();return !!selPart},partHandles:()=>selPart?trHandles(selPart):[]})}catch(_){}
-
 

@@ -19,4 +19,3 @@ csbAttach(document.getElementById('view'),false);csbAttach(document.getElementBy
 ['repv','momv','homev','prtv'].forEach(id=>csbAttach(document.getElementById(id),true));
 {const _gv=goView;goView=function(v){_gv(v);['view','info','repv','momv','homev','prtv'].forEach(id=>{const e=document.getElementById(id);if(e&&e.__csbq)e.__csbq()})}}
 
-

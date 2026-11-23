@@ -2,23 +2,79 @@
 const D=window.SCOPE;
 // hook lists (tools/hooks.js): before-hooks run newest→oldest, after-hooks oldest→newest
 const HK={};const hkOf=n=>HK[n]||(HK[n]={b:[],a:[]}),hkBefore=(n,f)=>hkOf(n).b.push(f),hkAfter=(n,f)=>hkOf(n).a.push(f);
-const ST_ORDER=['Installed','Precast Yard','Casted','Not Cast'];
-const ST_LETTER={'Installed':'I','Precast Yard':'P','Casted':'C','Not Cast':'N'}; // status letter in the map dot (design 3A, colours locked)
-const ST_LABEL={'Installed':'Installed','Precast Yard':'Precast yard','Casted':'Cast – loc. TBC','Not Cast':'Not cast','Unknown':'Not in sheet'};
+// One Home refresh (h2Ref) shows the network audit and the alerts on several panels: while it runs (on > 0) they are computed once and shared. Nothing is kept between refreshes.
+const RS={on:0,au:null,al:null};
+// run a hooked function: before-hooks newest→oldest, the base, then after-hooks oldest→newest
+function hkRun(n,base,self,a,keep){const h=HK[n];if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(self,a);const r=base.apply(self,a);if(h)for(const f of h.a)f.apply(self,a);return keep?r:undefined}
+// Item statuses come from CORE.status (core/core.json): STV.inst / .yard / .cast / .nc / .unk are the stored words; order, map letters and labels are keyed by them.
+const STV=window.CORE.status.values,stMap=o=>Object.fromEntries(Object.entries(o).map(([r,v])=>[STV[r],v]));
+const ST_ORDER=window.CORE.status.order.map(r=>STV[r]);
+const ST_LETTER=stMap(window.CORE.status.letter); // status letter in the map dot (design 3A, colours locked)
+const ST_LABEL=stMap(window.CORE.status.label);
 const CSSV=new Map();const css=n=>{let v=CSSV.get(n);if(v===undefined){v=getComputedStyle(document.documentElement).getPropertyValue(n).trim();CSSV.set(n,v)}return v};
 {const clr=()=>CSSV.clear();new MutationObserver(clr).observe(document.documentElement,{attributes:true});
   try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',clr)}catch(_){}addEventListener('load',clr)}
-const stVar=s=>({'Installed':'--inst','Precast Yard':'--yard','Casted':'--cast','Not Cast':'--nc'}[s]||'--unk');
-const pillCls=s=>'p-'+(s||'Unknown').split(' ')[0];
-const short=t=>t.replace('MM5100790U-','').replace('MM5120744U-','744U-').replace('MM5120800U-','800U-');
+const stVar=s=>({[STV.inst]:'--inst',[STV.yard]:'--yard',[STV.cast]:'--cast',[STV.nc]:'--nc'}[s]||'--unk');
+// pill classes are the stylesheet's own names (css/10-01-layout.css), one per stage; any other word keeps the old rule (its first word)
+const ST_PILL={[STV.inst]:'p-Installed',[STV.yard]:'p-Precast',[STV.cast]:'p-Casted',[STV.nc]:'p-Not',[STV.unk]:'p-Unknown'},pillCls=s=>ST_PILL[s||STV.unk]||'p-'+s.split(' ')[0];
+const PRJ=window.CORE.project,SITE=window.CORE.site,PPL=window.CORE.people,DR=window.CORE.drawings,TG=window.CORE.tags,DOCS=window.CORE.documents,cloneJ=x=>JSON.parse(JSON.stringify(x));
+// item records the data file does not have yet (CORE.data); the data file wins where it has the item
+{const S=window.SCOPE,P=window.CORE.data;for(const t in P){if(t[0]==='_')continue;const o=S[t];for(const k in P[t])o[k]=o[k]||cloneJ(P[t][k])}}
+// corrections read from the AQ-DA drawings (CORE.drawingUpdate, its _rule says what a line may change): the data file is corrected here, before
+// anything reads it. size: the duct bank's quantities use its own outline (qdb length and width). swap, cycle: two or three duct banks take
+// each other's place. outline: a duct bank with none gets the outline written in the line. tag: an unclear-tag outline (an added record) becomes
+// the outline of the tag the drawing names, and the unclear record is gone. The tags of a line leave the list of the drawing audit that the
+// kind of line answers (closes). What the team saves (POS, item properties, added records) is read after this and still wins. DUL = one log
+// line for every corrected tag, named by the kind of its line.
+const DUBY='aqda',DUWHO=(window.CORE.drawingUpdate||{}).who||'',DUL=[];
+// the other source the log names that is not a person: the shape saved on the layout (CORE.layoutShape, applied in 17-item-properties.js)
+const SHBY='layout',SHWHO=(window.CORE.layoutShape||{}).who||'';
+{const U=window.CORE.drawingUpdate,S=window.SCOPE;if(U&&Array.isArray(U.list)&&!window.__PJ){
+  const rect=P=>{let b=null;for(let i=0;i<P.length;i++){const a=P[i],c=P[(i+1)%P.length],d=Math.hypot(c[0]-a[0],c[1]-a[1]);if(d<1e-9)continue;const ux=(c[0]-a[0])/d,uy=(c[1]-a[1])/d,us=P.map(q=>q[0]*ux+q[1]*uy),vs=P.map(q=>-q[0]*uy+q[1]*ux),L=Math.max(...us)-Math.min(...us),w=Math.max(...vs)-Math.min(...vs);if(!b||L*w<b[0])b=[L*w,Math.max(L,w),Math.min(L,w)]}return b?[+b[1].toFixed(3),+b[2].toFixed(3)]:null};
+  const quad=P=>{const d=(a,b)=>Math.hypot(b[0]-a[0],b[1]-a[1]),L=(d(P[0],P[1])+d(P[2],P[3]))/2,w=(d(P[1],P[2])+d(P[3],P[0]))/2;return L>=w?[+L.toFixed(3),+w.toFixed(3)]:[+w.toFixed(3),+L.toFixed(3)]};
+  const cen=P=>[P.reduce((a,p)=>a+p[0],0)/P.length,P.reduce((a,p)=>a+p[1],0)/P.length],areaOf=c=>{const r=(S.areas||[]).find(r=>c[0]>=r.bbox[0]&&c[0]<=r.bbox[1]&&c[1]>=r.bbox[2]&&c[1]<=r.bbox[3]);return r?r.id:null};
+  const row=k=>S.items.find(r=>r[0]===k),add=k=>(S.aqadd||[]).find(a=>a.tag===k),has=k=>!!(row(k)&&S.qdb&&S.qdb[k]&&S.qdb[k][0]!=null&&S.foot&&S.foot[k]&&S.foot[k].length>2),sz=a=>a[0].toFixed(2)+' × '+a[1].toFixed(2),t=Date.parse(U.date+'T08:00:00Z');
+  const kind=op=>(U.kind||{})[op==='cycle'?'swap':op]||'',line=(k,from,op,now)=>DUL.push({t,by:DUBY,k:kind(op),id:k,from,v:sz(now||S.qdb[k])});
+  const shut=(k,op)=>{const g=((S.aqaud||{}).g||[]).find(x=>x[0]===(U.closes||{})[op==='cycle'?'swap':op]);if(g&&Array.isArray(g[1])){const i=g[1].indexOf(k);if(i>=0)g[1].splice(i,1)}};
+  // a place = what goes with an outline: the outline, its point and area, its size, and the trench it is linked to (the link's system is the
+  // trench's; with no trench linked it is the tag's own)
+  const place=k=>({f:S.foot[k],r:row(k).slice(2,5),q:[S.qdb[k][0],S.qdb[k][1]],d:(S.dbind||{})[k]||null});
+  const put=(k,p)=>{S.foot[k]=p.f;const r=row(k);r[2]=p.r[0];r[3]=p.r[1];r[4]=p.r[2];S.qdb[k][0]=p.q[0];S.qdb[k][1]=p.q[1];
+   if(p.d)(S.dbind=S.dbind||{})[k]={t:p.d.t||[],lv:p.d.lv??null,sys:(p.d.t&&p.d.t.length)?p.d.sys:(/-IY-/.test(k)?'IY':'EY')};else if(S.dbind)delete S.dbind[k]};
+  for(const [op,a,b,c] of U.list){
+   if(op==='size'){if(!has(a))continue;const q=S.qdb[a],from=sz(q),m=rect(S.foot[a]);if(!m)continue;q[0]=m[0];q[1]=m[1];line(a,from,op)}
+   else if(op==='swap'||op==='cycle'){const ks=op==='swap'?[a,b]:[a,b,c];if(!ks.every(has))continue;const P=ks.map(place),from=ks.map(k=>sz(S.qdb[k]));
+    ks.forEach((k,i)=>put(k,P[(i+1)%ks.length]));ks.forEach((k,i)=>{line(k,from[i],op);shut(k,op)})}
+   else if(op==='outline'){const r=row(a);if(!r||r[1]!=='DB'||(S.foot&&S.foot[a])||!Array.isArray(b)||b.length!==4)continue;const q=(S.qdb=S.qdb||{})[a]||(S.qdb[a]=[null,null,null,null,null,null,null,null,null,null,null]);
+    const from=q[4]!=null&&q[5]!=null?sz([q[4],q[5]]):'',m=quad(b),p=cen(b);(S.foot=S.foot||{})[a]=b;r[2]=+p[0].toFixed(2);r[3]=+p[1].toFixed(2);r[4]=areaOf(p)||r[4];q[0]=m[0];q[1]=m[1];line(a,from,op);shut(a,op)}
+   else if(op==='tag'){const A=add(a);if(!A||!Array.isArray(A.poly)||A.poly.length<3)continue;const r=row(b),B=add(b),p=cen(A.poly);if(r&&r[1]!=='DB')continue;
+    if(r){const q=(S.qdb=S.qdb||{})[b]||(S.qdb[b]=[null,null,A.toc??null,A.boc??null,null,null,A.hs??null,null,A.phi||null,A.r||null,A.c||null]);(S.foot=S.foot||{})[b]=A.poly;r[2]=+p[0].toFixed(2);r[3]=+p[1].toFixed(2);r[4]=areaOf(p)||r[4];q[0]=A.L;q[1]=A.W}
+    else if(B){B.poly=A.poly;B.L=A.L;B.W=A.W;B.ang=A.ang;for(const f of ['r','c','phi','size','toc','boc','hs'])if(B[f]==null&&A[f]!=null)B[f]=A[f]}
+    else{S.aqadd.push(Object.assign({},A,{tag:b,id:'A'+b.replace(/[^A-Za-z0-9]/g,''),note:(A.note||'').replace(/^Tag not clear on /,'From ')}))}
+    // the unclear tag is known as renamed (aqren, as a tag renamed in a later revision is): its row in the status sheet asks for no decision,
+    // and a workbook that still has it is read as the real tag
+    S.aqadd.splice(S.aqadd.indexOf(A),1);if(S.aqtnc)delete S.aqtnc[a];if(S.aqtncp)delete S.aqtncp[a];(S.aqren=S.aqren||{})[a]=b;line(b,a,op,[A.L,A.W]);shut(a,op)}}}}
+const SHS=window.CORE.sheets.status,SHU=window.CORE.sheets.ugMaster,SHE=window.CORE.sheets.export,SHO=window.CORE.sheets.order.map(k=>SHS[k]);
+const DRD=new RegExp('^'+DR.docPrefix),DRA=DR.docPrefix+DR.series+'-',DRF=new RegExp('^'+DR.docPrefix+DR.family+'-'),DRG=new RegExp('^'+DR.family+'-'),SERRE=new RegExp(SITE.seriesRe),DASH=new RegExp('^(?:'+DR.series+'-?)?'+DR.short.replace(/-$/,'')+'-?(\\d{1,2})$');
+const short=t=>PRJ.prefixes.reduce((a,[p,s])=>a.replace(p,s),t);
 const AREA=Object.fromEntries(D.areas.map(a=>[a.id,a]));
 const NEAR=3.0, TIE=25;
+// the project line: empty parts are left out (a project added on the device may have only a name)
+const prjLine=(sc,...a)=>a.concat(PRJ.subcontract?[(sc?'Subcontract ':'')+PRJ.subcontract]:[]).filter(Boolean).join(' · ');
+// a section of Home by its number and name (core.layout.sections, in order): its plate says it in capitals, the menus of EDIT HOME as written
+const secName=c=>String(Object.keys(window.CORE.layout.sections).indexOf(c)+1).padStart(2,'0')+' · '+window.CORE.layout.sections[c];
+{const HM=window.CORE.layout.modules,L={sec1:secName('c1').toUpperCase(),sec2:secName('c2').toUpperCase(),sec3:secName('c3').toUpperCase(),modSt:HM.st,modWk:HM.wk,modHmi:HM.hmi,modAn:HM.an,modLog:HM.log,brandSub:prjLine(1,PRJ.name,PRJ.package,PRJ.contractor),heroKey:prjLine(0,PRJ.name,PRJ.package,PRJ.contractor),searchPh:(a=>a.length?'Search: '+a.join(' · '):'Search')([TG.sample.search,TG.family,TG.sampleArea&&TG.sampleArea+' not cast'].filter(Boolean)),aqAlt:`${DR.family} drawing`,viewerUrl:SITE.viewer.url,viewerCode:SITE.viewer.code,pgDash:window.CORE.pages.dash,pgViewer:window.CORE.pages.viewer,viewerTip:'Access code of '+window.CORE.pages.viewer+' · click to copy'};
+ for(const k in window.CORE.layout.keys)L['key.'+k]=window.CORE.layout.keys[k]; // the keys of section 01 (data-prj="key.load" …)
+ document.querySelectorAll('[data-prj]').forEach(e=>{e.textContent=L[e.dataset.prj]});
+ document.querySelectorAll('[data-prja]').forEach(e=>{const [a,k]=e.dataset.prja.split(':');e.setAttribute(a,L[k])});
+ // map legend: the letter in the dot and the label of each stage
+ document.querySelectorAll('[data-stl]').forEach(e=>{const v=STV[e.dataset.stl];e.firstChild.textContent=ST_LETTER[v];e.appendChild(document.createTextNode(ST_LABEL[v]))})}
 const CATS=[['ALL','All','All'],['WET','Piping & Drainage','Piping'],['EI','Electrical & Instrumentation','E&I']];
 // Piping & Drainage = manholes, catch basins, valve pits, soakaways + pipes · E&I = electrical / instrument / telecom / earthing pits + duct banks + cable trenches
 const EIFAM=/^(MM\d+U-)?(EY|EYL|IY|EG)-|^\d{6}-/;
 const gCat=g=>g.cat==='DB'||g.title==='E&I Pits, Etisalat & Earthing'?'EI':g.title==='All Pits'?'':'WET';
 const TYPES=['Pit','DB','Earthing','Soakaway','Etisalat'];
-const TMAP={'Duct Banks':'DB','Pits':'Pit','Earthing Pits':'Earthing','Sokaways':'Soakaway','Etisalat Pits':'Etisalat'};
+const TMAP={[SHS.db]:'DB',[SHS.pit]:'Pit',[SHS.ep]:'Earthing',[SHS.soa]:'Soakaway',[SHS.et]:'Etisalat'};
 const LS=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(_){return d}};
 let _dl=null;function dlNs(){if(!_dl)_dl=(window.claude&&window.claude.use)?Promise.resolve(window.claude.use('downloads')).catch(()=>null):Promise.resolve(null);return _dl}
 async function dlFile(name,data){const d=await dlNs();if(d){try{await d.save({filename:name,data});return true}catch(e){if(e&&(e.code==='declined'||e.code==='rate_limited'))return false}}
@@ -39,7 +95,7 @@ try{const s=JSON.parse(localStorage.getItem('scope.v2')||'null'); if(s&&s.map){s
 let tab=LS('scope.t7','work'), sub=LS('scope.s7',{work:'install',trench:'backfill',reports:'summary'});
 let cat='ALL', groupBy='family', exclEtis=true, selArea=null, selKeys=null, focusKey=null, selRun=null;
 try{cat=localStorage.getItem('scope.cat')||'ALL';cat=({PIT:'WET',DB:'EI'})[cat]||cat;if(!['ALL','WET','EI'].includes(cat))cat='ALL';groupBy=localStorage.getItem('scope.group')||'family';exclEtis=localStorage.getItem('scope.excl')!=='0'}catch(e){}
-const FDEF=()=>({st:[...ST_ORDER,'Unknown'],ty:[...TYPES],fam:'',area:'',dmin:0});
+const FDEF=()=>({st:[...ST_ORDER,STV.unk],ty:[...TYPES],fam:'',area:'',dmin:0});
 let filt=Object.assign(FDEF(),LS('scope.filt',{}));
 let layers=Object.assign({road:1,net:1,bld:1,us:1,found:1,areas:1,trench:1,names:1,labels:1,foot:1,trn:1},LS('scope.layers',{}));
 const UTIL=[['FW','Fire water','#c2476f'],['PW','Potable water','#4a8fd0'],['IW','Irrigation water','#4a8a55'],['SS','Sanitary sewer','#92796f'],['SWS','Storm water','#3aa5b5'],['AOC - HDPE','Oily water (AOC) – HDPE','#d9823a'],['AOC - CS','Oily water (AOC) – steel','#75594f'],['CHS','Chilled water supply','#5563a8'],['CHR','Chilled water return','#8a4ea3']];
@@ -59,12 +115,12 @@ if(!HIST.length){HIST=[{asof:D.asof,saved:new Date().toISOString().slice(0,10),m
 const saveAll=()=>{save('scope.ov',OV);save('scope.plan',PLAN);save('scope.filt',filt);save('scope.layers',layers)};
 
 // ---------- classification ----------
-function famOf(key){const sh=sheet[key];
-  if(sh==='Etisalat Pits')return 'Etisalat'; if(sh==='Earthing Pits')return 'Earthing'; if(sh==='Sokaways')return 'Soakaway';
+function famOf(key,SH){const sh=(SH||sheet)[key]; // SH: another sheet map (Add project builds a summary before the project opens)
+  if(sh===SHS.et)return 'Etisalat'; if(sh===SHS.ep)return 'Earthing'; if(sh===SHS.soa)return 'Soakaway';
   const s=short(key).replace(/\s.*$/,''); const m=s.match(/^([A-Z]+-[A-Z]+)-/); if(m)return m[1]; const m2=s.match(/^([A-Z]+)-/); return m2?m2[1]:'Other'}
-function catOfKey(key){const sh=sheet[key];if(sh==='Duct Banks'||sh==='Earthing Pits'||sh==='Etisalat Pits')return 'EI';if(sh==='Sokaways')return 'WET';const it=byKey[key];if(it&&(it.type==='DB'||it.type==='Earthing'||it.type==='Etisalat'))return 'EI';return EIFAM.test(String(key))?'EI':'WET'}
+function catOfKey(key){const sh=sheet[key];if(sh===SHS.db||sh===SHS.ep||sh===SHS.et)return 'EI';if(sh===SHS.soa)return 'WET';const it=byKey[key];if(it&&(it.type==='DB'||it.type==='Earthing'||it.type==='Etisalat'))return 'EI';return EIFAM.test(String(key))?'EI':'WET'}
 const MT=k=>{const b=(D.meta||{})[k]||{},l=META&&META[k];if(!l)return b;const m=Object.assign({},b,l);if(!l.aq&&b.aq)m.aq=b.aq;else if(l.aq&&b.aq){m.aq=l.aq.slice();b.aq.forEach(s=>{if(!m.aq.some(x=>x.replace(/_\d+$/,'')===s.replace(/_\d+$/,'')))m.aq.push(s)})}return m};
-const shDA=s=>s.replace(/^4422-/,'');
+const shDA=s=>s.replace(DRD,'');
 const fdate=d=>{if(!d)return '';const t=new Date(d);return isNaN(t)?d:t.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'-')};
 const ago=d=>{const n=daysSince(d);return n==null?'':n<=0?'today':n===1?'1 day ago':n+' days ago'};
 const typeOf=k=>(byKey[k]&&byKey[k].type)||TMAP[sheet[k]]||'Pit';
@@ -113,7 +169,7 @@ function buildRuns__base(){
     D.areas.forEach(a=>{const[e0,e1,n0,n1]=a.bbox; if(r.ce>=e0&&r.ce<=e1&&r.cn>=n0&&r.cn<=n1)best=a.id}); r.area=best;});
   maskRuns();
 }
-function buildRuns(){const h=HK.buildRuns,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=buildRuns__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function buildRuns(){return hkRun('buildRuns',buildRuns__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function pState(p){const s=(window.__PS||{})[p.id];return s?s.s:((D.pinit||{})[p.id]||'N')}
 function maskRuns(){const P=window.__PARTS||[];if(!P.length){runs.forEach(r=>r.vis=null);return}
   const g={},C=10;P.forEach((p,i)=>{const n=Math.max(1,Math.ceil(p.L/C));for(let k=0;k<=n;k++){const x=p.x0+(p.x1-p.x0)*k/n,y=p.y0+(p.y1-p.y0)*k/n;const key=Math.floor(x/C)+','+Math.floor(y/C);(g[key]=g[key]||new Set()).add(i)}});
@@ -126,16 +182,16 @@ function inPoly(x,y,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){if
 items.forEach(it=>{it.bld=null;let bd=TIE;for(const nm in BLD){const p=BLD[nm].p;const d=inPoly(it.e,it.n,p)?0:dpoly(it.e,it.n,p.concat([p[0]]));if(d<bd){bd=d;it.bld=nm}}});
 
 // ---------- helpers ----------
-const sheetS=k=>status[k]||'Unknown';
+const sheetS=k=>status[k]||STV.unk;
 const S=k=>(OV[k]&&OV[k].s)||sheetS(k);
-const isCast=s=>s==='Precast Yard'||s==='Casted';
+const isCast=s=>s===STV.yard||s===STV.cast;
 const today=()=>new Date().toISOString().slice(0,10);
 function pass(k){const s=S(k);if(!filt.st.includes(s))return false;if(!filt.ty.includes(typeOf(k)))return false;
   if(filt.fam&&famOf(k)!==filt.fam)return false;if(filt.area){const it=byKey[k];if(!it||it.area!==filt.area)return false}
   if(filt.dmin>0&&ducts(k)<filt.dmin)return false;return true}
 const fltOn=()=>{const d=FDEF();return filt.st.length!==d.st.length||filt.ty.length!==d.ty.length||filt.fam||filt.area||filt.dmin>0};
 const showIt=it=>inCat(it)&&(window.__passD?window.__passD(it.key):pass(it.key));
-function counts(list){const c={T:0,'Installed':0,'Precast Yard':0,'Casted':0,'Not Cast':0,'Unknown':0};list.forEach(i=>{const k=i.key||i;c.T++;c[S(k)]++});return c}
+function counts(list){const c={T:0,[STV.inst]:0,[STV.yard]:0,[STV.cast]:0,[STV.nc]:0,[STV.unk]:0};list.forEach(i=>{const k=i.key||i;c.T++;c[S(k)]++});return c}
 function stackBar(c){const T=c.T||1;return '<div class="bar" aria-hidden="true">'+ST_ORDER.map(s=>`<span style="width:${100*c[s]/T}%;background:var(${stVar(s)})"></span>`).join('')+'</div>'}
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const fmt=v=>Math.round(v).toLocaleString();
@@ -151,31 +207,31 @@ const allFams=()=>{const s=new Set(Object.keys(status).map(famOf));const fo=famO
 // ---------- analyses ----------
 function areaRows(){
   return D.areas.map(a=>{const its=items.filter(i=>i.area===a.id&&showIt(i)&&pass(i.key)&&!(exclEtis&&i.type==='Etisalat'));const c=counts(its);
-    const yard=c['Precast Yard']+c['Casted'], rem=c.T-c['Installed'];
-    return {a,its,c,yard,rem,nc:c['Not Cast'],ready:rem?yard/rem:1}}).filter(r=>r.c.T).sort((x,y)=>y.ready-x.ready||y.yard-x.yard);}
+    const yard=c[STV.yard]+c[STV.cast], rem=c.T-c[STV.inst];
+    return {a,its,c,yard,rem,nc:c[STV.nc],ready:rem?yard/rem:1}}).filter(r=>r.c.T).sort((x,y)=>y.ready-x.ready||y.yard-x.yard);}
 const allKeys=()=>Object.keys(status).filter(k=>inCatKey(k)&&pass(k));
-const needCast=()=>allKeys().filter(k=>S(k)==='Not Cast');
+const needCast=()=>allKeys().filter(k=>S(k)===STV.nc);
 const needInstall=()=>allKeys().filter(k=>isCast(S(k)));
 function backfill(){const yr=runs.filter(r=>r.st==='Y'&&r.items.some(inCat));
-  return {ready:yr.filter(r=>r.items.every(i=>S(i.key)==='Installed')),wait:yr.filter(r=>!r.items.every(i=>S(i.key)==='Installed'))}}
+  return {ready:yr.filter(r=>r.items.every(i=>S(i.key)===STV.inst)),wait:yr.filter(r=>!r.items.every(i=>S(i.key)===STV.inst))}}
 function daysSince(d){const t=Date.parse(d);return isNaN(t)?null:Math.floor((Date.now()-t)/864e5)}
 function alerts(){const its=items.filter(showIt);const onplan=new Set(items.map(i=>i.key));
   return [
-    {id:'bf',t:'On a backfilled trench, but not installed',d:`Item within ${NEAR} m of a red (backfilled) trench while its status is not Installed.`,keys:its.filter(i=>i.tr==='R'&&S(i.key)!=='Installed').map(i=>i.key)},
-    {id:'nc',t:'Not cast, inside an open trench',d:'Excavated trench is waiting on an item that is not cast yet – it blocks backfilling.',keys:its.filter(i=>i.tr==='Y'&&S(i.key)==='Not Cast').map(i=>i.key)},
-    {id:'old',t:'In the precast yard for more than 30 days',d:'Counted from the first status sheet loaded that showed it in the yard. Builds up as you load new sheets.',keys:allKeys().filter(k=>S(k)==='Precast Yard'&&SINCE[k]&&SINCE[k].s==='Precast Yard'&&daysSince(SINCE[k].date)>30)},
-    {id:'tbc',t:'Cast, location not recorded',d:'Status shows cast but no location (yard / installed).',keys:allKeys().filter(k=>S(k)==='Casted')},
+    {id:'bf',t:'On a backfilled trench, but not installed',d:`Item within ${NEAR} m of a red (backfilled) trench while its status is not Installed.`,keys:its.filter(i=>i.tr==='R'&&S(i.key)!==STV.inst).map(i=>i.key)},
+    {id:'nc',t:'Not cast, inside an open trench',d:'Excavated trench is waiting on an item that is not cast yet – it blocks backfilling.',keys:its.filter(i=>i.tr==='Y'&&S(i.key)===STV.nc).map(i=>i.key)},
+    {id:'old',t:'In the precast yard for more than 30 days',d:'Counted from the first status sheet loaded that showed it in the yard. Builds up as you load new sheets.',keys:allKeys().filter(k=>S(k)===STV.yard&&SINCE[k]&&SINCE[k].s===STV.yard&&daysSince(SINCE[k].date)>30)},
+    {id:'tbc',t:'Cast, location not recorded',d:'Status shows cast but no location (yard / installed).',keys:allKeys().filter(k=>S(k)===STV.cast)},
     {id:'ov',t:'Changed on site, not in the sheet yet',d:'Status you changed in this app. It clears by itself when a newer sheet shows the same status.',keys:Object.keys(OV).filter(k=>inCatKey(k))},
-    {id:'off',t:'In the sheet, not on the drawings',d:'Tag not found on the drawings, so it cannot be shown on the map.',keys:allKeys().filter(k=>!onplan.has(k))}]}
+    {id:'off',t:'In the sheet, not on the drawings',d:'Tag not found on the drawings, so it cannot be shown on the layout.',keys:allKeys().filter(k=>!onplan.has(k))}]}
 function changesBetween(a,b){const out=[];for(const k in b){const p=a[k];if(p&&p!==b[k]&&inCatKey(k))out.push([k,p,b[k]])}return out}
 function sumTotals(){
-  const pick=t=>summary.find(g=>g.title===t); const P=pick('All Pits'),B=pick('Duct Banks'),U=pick('UG Pits & Soakaways'),V=pick('Valve Pits'),E=pick('E&I Pits, Etisalat & Earthing');
+  const pick=t=>summary.find(g=>g.title===t); const P=pick('All Pits'),B=pick(SHS.db),U=pick('UG Pits & Soakaways'),V=pick('Valve Pits'),E=pick('E&I Pits, Etisalat & Earthing');
   const z={total:0,cast:0,toCast:0,inst:0,toInst:0,conc:0,concCast:0};
   const add=(a,b)=>{if(b)for(const k in z)a[k]+=b[k]||0;return a};
   let t; if(cat==='WET')t=add(add({...z},U&&U.total),V&&V.total); else if(cat==='EI')t=add(add({...z},E&&E.total),B&&B.total); else t=add(add({...z},P&&P.total),B&&B.total);
   // on-site edits on top of the sheet
-  for(const k in OV){if(!inCatKey(k))continue;const o=OV[k],p=o.prev,s=o.s;const wc=p!=='Not Cast'&&p!=='Unknown',ic=s!=='Not Cast';
-    t.cast+=ic-wc;t.toCast-=ic-wc;t.inst+=(s==='Installed')-(p==='Installed');t.toInst-=(s==='Installed')-(p==='Installed')}
+  for(const k in OV){if(!inCatKey(k))continue;const o=OV[k],p=o.prev,s=o.s;const wc=p!==STV.nc&&p!==STV.unk,ic=s!==STV.nc;
+    t.cast+=ic-wc;t.toCast-=ic-wc;t.inst+=(s===STV.inst)-(p===STV.inst);t.toInst-=(s===STV.inst)-(p===STV.inst)}
   return t}
 
 // ---------- KPIs ----------
@@ -183,7 +239,7 @@ function renderKPIs__base(){const t=sumTotals();const pct=(a,b)=>b?Math.round(10
   const k=[['Total items',fmt(t.total),'--accent','per Summary sheet'],
     ['Cast',fmt(t.cast),'--yard',pct(t.cast,t.total)+' of total'],
     ['Need to cast',fmt(t.toCast),'--nc','remaining to cast'],
-    ['Installed',fmt(t.inst),'--inst',pct(t.inst,t.total)+' of total'],
+    [ST_LABEL[STV.inst],fmt(t.inst),'--inst',pct(t.inst,t.total)+' of total'],
     ['Remaining to install',fmt(t.toInst),'--yard',needInstall().length+' cast & ready · '+needCast().length+' not cast'],
     ['Concrete cast',fmt(t.concCast)+' m³','--cast','of '+fmt(t.conc)+' m³ ('+pct(t.concCast,t.conc)+')']];
   document.getElementById('kmenulist').innerHTML=k.map(([l],i)=>`<label><input type="checkbox" data-kv="${i}" ${KV[i]!==0?'checked':''}>${l}</label>`).join('')+'<button data-kreset="1">Reset size</button>';
@@ -196,7 +252,7 @@ function renderKPIs__base(){const t=sumTotals();const pct=(a,b)=>b?Math.round(10
     fb.innerHTML=`<strong>Filters on:</strong> ${esc(p.join(' · '))} <button class="btn sm" data-clearf="1">Clear</button>`;fb.hidden=false}else fb.hidden=true;
   document.getElementById('fltbtn').classList.toggle('on',!!fltOn());
 }
-function renderKPIs(){const h=HK.renderKPIs,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=renderKPIs__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function renderKPIs(){return hkRun('renderKPIs',renderKPIs__base,this,arguments,false)} // hooks: docs/PATCHES.md
 
 // ---------- views ----------
 const TABS=[['work','Outstanding activities'],['trench','Trenches'],['qty','Quantities'],['notes','Comments']];
@@ -208,7 +264,7 @@ function subBar(t){const c={install:needInstall().length,cast:needCast().length,
   return `<div class="subtabs">${SUBS[t].map(([id,l])=>`<button class="chipbtn" aria-pressed="${sub[t]===id}" data-sub="${t}:${id}">${l}${c[id]!=null?`<span class="cnt">${c[id]}</span>`:''}</button>`).join('')}</div>`}
 const etisToggle=()=>cat==='WET'?'':`<label class="chk"><input type="checkbox" id="excl" ${exclEtis?'checked':''}> Exclude Etisalat pits (separate schedule)</label>`;
 const groupToggle=()=>`<div class="segs small"><button class="seg" aria-pressed="${groupBy==='family'}" data-group="family">By tag type</button><button class="seg" aria-pressed="${groupBy==='area'}" data-group="area">By area</button></div>`;
-const listBtns=(keys,name)=>`<button class="btn sm" data-show="${keys.join(',')}">Show on map</button><button class="btn sm" data-addplan="${keys.join(',')}">+ Plan</button><button class="btn sm" data-xls="${esc(name)}" data-keys="${keys.join(',')}">Excel</button>`;
+const listBtns=(keys,name)=>`<button class="btn sm" data-show="${keys.join(',')}">Show on layout</button><button class="btn sm" data-addplan="${keys.join(',')}">+ Plan</button><button class="btn sm" data-xls="${esc(name)}" data-keys="${keys.join(',')}">Excel</button>`;
 
 // Today
 function vToday(){const ni=needInstall(),nc=needCast(),ar=areaRows().filter(r=>r.yard>0).slice(0,5),B=backfill(),AL=alerts().filter(a=>a.keys.length&&a.id!=='off');
@@ -216,18 +272,18 @@ function vToday(){const ni=needInstall(),nc=needCast(),ar=areaRows().filter(r=>r
   const pt=planTotals();
   return `<div class="cards">
   <div class="card c-inst"><h3><span class="big num">${ni.length}</span> ready to install now</h3><div class="sub">Cast and waiting (precast yard or location TBC). Best areas to go next:</div>
-   <table class="mini"><tbody>${ar.map(r=>`<tr><td><strong>${r.a.id}</strong> ${esc(r.a.name)}${stackBar(r.c)}</td><td><span class="num">${r.yard}</span> in yard<br><button class="btn sm" data-area="${r.a.id}">Map</button> <button class="btn sm" data-addplan="${r.its.filter(i=>isCast(S(i.key))).map(i=>i.key).join(',')}">+ Plan</button></td></tr>`).join('')}</tbody></table>
+   <table class="mini"><tbody>${ar.map(r=>`<tr><td><strong>${r.a.id}</strong> ${esc(r.a.name)}${stackBar(r.c)}</td><td><span class="num">${r.yard}</span> in yard<br><button class="btn sm" data-area="${r.a.id}">Layout</button> <button class="btn sm" data-addplan="${r.its.filter(i=>isCast(S(i.key))).map(i=>i.key).join(',')}">+ Plan</button></td></tr>`).join('')}</tbody></table>
    <div class="sel-row"><button class="btn sm" data-goto="work:install">Full list</button>${listBtns(ni,'Need to install')}</div></div>
   <div class="card c-nc"><h3><span class="big num">${nc.length}</span> still to cast</h3><div class="sub">Biggest tag types still to cast:</div>
    <div class="tags">${fams.map(([f,n])=>`<button class="tag" data-fam="${esc(f)}">${esc(f)} <b class="num">${n}</b></button>`).join('')}</div>
    <div class="sel-row"><button class="btn sm" data-goto="work:cast">Full list</button><button class="btn sm" data-xls="To cast" data-keys="${nc.join(',')}">Excel</button></div></div>
   <div class="card c-warn"><h3>Needs your attention</h3><div class="sub">Where the sheet, the trenches and the site disagree.</div>
-   ${AL.length?`<table class="mini"><tbody>${AL.map(a=>`<tr><td>${esc(a.t)}</td><td><b class="num">${a.keys.length}</b> <button class="btn sm" data-show="${a.keys.join(',')}">Map</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">Nothing to check.</p>'}
+   ${AL.length?`<table class="mini"><tbody>${AL.map(a=>`<tr><td>${esc(a.t)}</td><td><b class="num">${a.keys.length}</b> <button class="btn sm" data-show="${a.keys.join(',')}">Layout</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">Nothing to check.</p>'}
    <div class="sel-row"><button class="btn sm" data-goto="reports:alerts">All alerts</button></div></div>
   <div class="card c-tr"><h3>Trenches</h3><div class="sub">Backfilled ${fmt(trLen('R'))} m · excavated ${fmt(trLen('Y'))} m</div>
    <p style="margin:0 0 6px"><b class="num">${B.ready.length}</b> runs ready to backfill (${fmt(B.ready.reduce((s,r)=>s+r.len,0))} m) · <b class="num">${B.wait.length}</b> open runs waiting on items</p>
    <div class="sel-row"><button class="btn sm" data-goto="trench:backfill">Open</button><button class="btn sm" data-edit="1">Update trenches</button></div></div>
-  <div class="card c-plan"><h3>Look-ahead${PLAN.title?' · '+esc(PLAN.title):''}</h3><div class="sub">${PLAN.keys.length?`${PLAN.keys.length} items · ~${fmt(pt.conc)} m³ · ~${pt.trips} trailer trips · ~${pt.days} crane-days`:'Empty. Add items with “+ Plan” from any list, the map card or a selected area.'}</div>
+  <div class="card c-plan"><h3>Look-ahead${PLAN.title?' · '+esc(PLAN.title):''}</h3><div class="sub">${PLAN.keys.length?`${PLAN.keys.length} items · ~${fmt(pt.conc)} m³ · ~${pt.trips} trailer trips · ~${pt.days} crane-days`:'Empty. Add items with “+ Plan” from any list, the item card or a selected area.'}</div>
    <div class="sel-row"><button class="btn sm" data-goto="work:plan">Open plan</button></div></div>
   </div>`}
 
@@ -248,9 +304,9 @@ const vInstall=()=>seqList(needInstall(),'Items cast (precast yard or location T
 // Week plan
 function planTotals(){const ks=PLAN.keys;const conc=ks.reduce((s,k)=>s+concOf(k),0);const d=ks.reduce((s,k)=>s+ducts(k),0);
   return {n:ks.length,conc,ducts:d,trips:Math.ceil(ks.length/Math.max(1,PLAN.perTrailer)),days:Math.ceil(ks.length/Math.max(1,PLAN.perDay)),
-    nc:ks.filter(k=>S(k)==='Not Cast').length,inst:ks.filter(k=>S(k)==='Installed').length}}
+    nc:ks.filter(k=>S(k)===STV.nc).length,inst:ks.filter(k=>S(k)===STV.inst).length}}
 function vPlan(){const t=planTotals();const by={};PLAN.keys.forEach(k=>{const it=byKey[k];const a=it?it.area:'—';(by[a]=by[a]||[]).push(k)});
-  return `<div class="plan"><p class="lead">Pick what the site will install this week. Add items with “+ Plan” from lists, the map card, a selected area or Today.</p>
+  return `<div class="plan"><p class="lead">Pick what the site will install this week. Add items with “+ Plan” from lists, the item card, a selected area or Today.</p>
   <div class="row"><label>Plan name <input id="pl-title" value="${esc(PLAN.title)}" placeholder="e.g. Week 45 · 2–8 Nov"></label></div>
   <div class="tot"><div><span>Items</span><b class="num">${t.n}</b></div><div><span>Concrete ≈</span><b class="num">${fmt(t.conc)} m³</b></div><div><span>Ducts</span><b class="num">${t.ducts}</b></div><div><span>Trailer trips ≈</span><b class="num">${t.trips}</b></div><div><span>Crane-days ≈</span><b class="num">${t.days}</b></div></div>
   <div class="row hint"><label>Items per trailer <input type="number" id="pl-trl" min="1" value="${PLAN.perTrailer}" style="width:60px"></label><label>Installs per crane-day <input type="number" id="pl-day" min="1" value="${PLAN.perDay}" style="width:60px"></label></div>
@@ -267,18 +323,18 @@ function vSummary(){const gs=summary.filter(g=>g.title!=='All Pits'&&(cat==='ALL
    ${g.rows.map(r=>`<tr tabindex="0" data-fam="${esc(r.tag)}"><td><strong>${esc(r.tag)}</strong>${bar(r.cast,r.total,'--yard')}${bar(r.inst,r.total,'--inst')}</td><td class="num">${fmt(r.total)}</td><td class="num">${fmt(r.cast)}</td><td class="num ${r.toCast?'red':''}">${fmt(r.toCast)}</td><td class="num">${fmt(r.inst)}</td><td class="num">${fmt(r.toInst)}</td><td class="num">${fmt(r.concCast)} / ${fmt(r.conc)}</td></tr>`).join('')}
    <tr class="tot"><td>Total</td><td class="num">${fmt(g.total.total)}</td><td class="num">${fmt(g.total.cast)}</td><td class="num">${fmt(g.total.toCast)}</td><td class="num">${fmt(g.total.inst)}</td><td class="num">${fmt(g.total.toInst)}</td><td class="num">${fmt(g.total.concCast)} / ${fmt(g.total.conc)}</td></tr>
    </tbody></table></div></details>`).join('')}
-  <p class="note">Yellow bar = cast, green bar = installed. Click a tag type to show it on the map.</p>`}
+  <p class="note">Yellow bar = cast, green bar = installed. Click a tag type to show it on the layout.</p>`}
 
 function vAreas(){const rows=areaRows();
-  return `<p class="lead">Areas ranked by how much of the remaining work is already cast and waiting. Top = best next area to install. Click a row to show it on the map.</p>
+  return `<p class="lead">Areas ranked by how much of the remaining work is already cast and waiting. Top = best next area to install. Click a row to show it on the layout.</p>
   <div class="row">${etisToggle()}</div>
   <div style="overflow-x:auto"><table><thead><tr><th>Area</th><th class="num">Left to install</th><th class="num">In yard</th><th class="num">Not cast</th><th class="num">Ready</th></tr></thead><tbody>
   ${rows.map(r=>`<tr tabindex="0" data-area="${r.a.id}" class="${selArea===r.a.id?'sel':''}"><td><strong>${r.a.id}</strong> ${esc(r.a.name)}${stackBar(r.c)}</td><td class="num">${r.rem}</td><td class="num">${r.yard}</td><td class="num">${r.nc}</td><td class="num"><span class="ready" style="color:var(${r.ready>=.65?'--inst':r.ready>=.45?'--yard':'--nc'})">${Math.round(100*r.ready)}%</span></td></tr>`).join('')}
   </tbody></table></div><p class="note">Counts here are items placed on the drawings.</p>`}
 
-function vDucts(){const ks=Object.keys(status).filter(k=>sheet[k]==='Duct Banks'&&pass(k));const has=ks.filter(k=>dbc(k));
-  const bySz={};has.forEach(k=>{const c=dbc(k);const z=c[2]?'Ø'+c[2].replace('-',' '):'Size not shown';const r=bySz[z]=bySz[z]||{db:0,d:0,inst:0,yard:0,nc:0,keys:[]};const n=c[0]*c[1];const s=S(k);r.db++;r.d+=n;r.keys.push(k);if(s==='Installed')r.inst+=n;else if(isCast(s))r.yard+=n;else r.nc+=n});
-  const byCfg={};has.forEach(k=>{const c=dbc(k);const z=c[0]+' × '+c[1];const r=byCfg[z]=byCfg[z]||{n:0,inst:0,keys:[],d:c[0]*c[1]};r.n++;r.keys.push(k);if(S(k)==='Installed')r.inst++});
+function vDucts(){const ks=Object.keys(status).filter(k=>sheet[k]===SHS.db&&pass(k));const has=ks.filter(k=>dbc(k));
+  const bySz={};has.forEach(k=>{const c=dbc(k);const z=c[2]?'Ø'+c[2].replace('-',' '):'Size not shown';const r=bySz[z]=bySz[z]||{db:0,d:0,inst:0,yard:0,nc:0,keys:[]};const n=c[0]*c[1];const s=S(k);r.db++;r.d+=n;r.keys.push(k);if(s===STV.inst)r.inst+=n;else if(isCast(s))r.yard+=n;else r.nc+=n});
+  const byCfg={};has.forEach(k=>{const c=dbc(k);const z=c[0]+' × '+c[1];const r=byCfg[z]=byCfg[z]||{n:0,inst:0,keys:[],d:c[0]*c[1]};r.n++;r.keys.push(k);if(S(k)===STV.inst)r.inst++});
   const T=Object.values(bySz).reduce((a,r)=>({db:a.db+r.db,d:a.d+r.d,inst:a.inst+r.inst,yard:a.yard+r.yard,nc:a.nc+r.nc}),{db:0,d:0,inst:0,yard:0,nc:0});
   return `<p class="lead">Ducts counted from the info box of each duct bank on the drawings (rows × columns). ${ks.length-has.length} of ${ks.length} duct banks have no box, so they are not counted.</p>
   <h3 class="h">By duct size</h3><div style="overflow-x:auto"><table><thead><tr><th>Size</th><th class="num">DBs</th><th class="num">Ducts</th><th class="num">Installed</th><th class="num">In yard</th><th class="num">Not cast</th></tr></thead><tbody>
@@ -286,13 +342,13 @@ function vDucts(){const ks=Object.keys(status).filter(k=>sheet[k]==='Duct Banks'
   <tr class="tot"><td>Total</td><td class="num">${T.db}</td><td class="num">${fmt(T.d)}</td><td class="num">${fmt(T.inst)}</td><td class="num">${fmt(T.yard)}</td><td class="num">${fmt(T.nc)}</td></tr></tbody></table></div>
   <h3 class="h" style="margin-top:14px">By arrangement (rows × columns)</h3><div style="overflow-x:auto"><table><thead><tr><th>Arrangement</th><th class="num">Ducts each</th><th class="num">DBs</th><th class="num">Installed</th></tr></thead><tbody>
   ${Object.entries(byCfg).sort((a,b)=>b[1].n-a[1].n).map(([z,r])=>`<tr tabindex="0" data-showk="${r.keys.join(',')}"><td><strong class="mono">${z}</strong></td><td class="num">${r.d}</td><td class="num">${r.n}</td><td class="num">${r.inst}</td></tr>`).join('')}</tbody></table></div>
-  <p class="note">Click a row to show those duct banks on the map.</p>`}
+  <p class="note">Click a row to show those duct banks on the layout.</p>`}
 
 function vHistory(){const n=HIST.length;
   if(n<2)return `<p class="lead">Every time you load a new status sheet, the app keeps it as a history point, so you can compare any two dates.</p><p class="muted">Only one point so far (${esc(HIST[0].asof)}). Load the next sheet to start comparing.</p>`;
   const a=+(sub.ha!=null?sub.ha:n-2),b=+(sub.hb!=null?sub.hb:n-1);const A=HIST[Math.min(a,n-1)],B=HIST[Math.min(b,n-1)];
   const opt=(sel,id)=>`<select id="${id}">${HIST.map((h,i)=>`<option value="${i}" ${i===sel?'selected':''}>${esc(h.asof)}</option>`).join('')}</select>`;
-  const cnt=m=>{const c={T:0,Installed:0,cast:0};for(const k in m){if(!inCatKey(k))continue;c.T++;if(m[k]==='Installed')c.Installed++;if(m[k]!=='Not Cast')c.cast++}return c};
+  const cnt=m=>{const c={T:0,[STV.inst]:0,cast:0};for(const k in m){if(!inCatKey(k))continue;c.T++;if(m[k]===STV.inst)c[STV.inst]++;if(m[k]!==STV.nc)c.cast++}return c};
   const ca=cnt(A.map),cb=cnt(B.map);const L=changesBetween(A.map,B.map);const by={};L.forEach(r=>{const k=ST_LABEL[r[1]]+' → '+ST_LABEL[r[2]];(by[k]=by[k]||[]).push(r[0])});
   const dd=(x,y)=>{const d=y-x;return `<span class="${d>0?'change-up':''}">${d>0?'+':''}${d}</span>`};
   return `<p class="lead">Compare any two status sheets you have loaded.</p>
@@ -300,7 +356,7 @@ function vHistory(){const n=HIST.length;
   <table><thead><tr><th></th><th class="num">${esc(A.asof)}</th><th class="num">${esc(B.asof)}</th><th class="num">Change</th></tr></thead><tbody>
   <tr><td>Items in sheet</td><td class="num">${ca.T}</td><td class="num">${cb.T}</td><td class="num">${dd(ca.T,cb.T)}</td></tr>
   <tr><td>Cast (incl. installed)</td><td class="num">${ca.cast}</td><td class="num">${cb.cast}</td><td class="num">${dd(ca.cast,cb.cast)}</td></tr>
-  <tr><td>Installed</td><td class="num">${ca.Installed}</td><td class="num">${cb.Installed}</td><td class="num">${dd(ca.Installed,cb.Installed)}</td></tr></tbody></table>
+  <tr><td>Installed</td><td class="num">${ca[STV.inst]}</td><td class="num">${cb[STV.inst]}</td><td class="num">${dd(ca[STV.inst],cb[STV.inst])}</td></tr></tbody></table>
   <h3 class="h" style="margin-top:12px">Status changes <span class="muted num">${L.length}</span></h3>
   ${L.length?Object.entries(by).map(([k,ks])=>`<details class="group" open><summary><h3>${esc(k)}</h3><span class="muted">${ks.length}</span>${listBtns(ks,'Changes '+k)}</summary><div class="body tags">${sortKeys(ks).map(x=>tagChip(x)).join('')}</div></details>`).join(''):'<p class="muted">No status changes.</p>'}
   <p class="note">Counts here come from the tag lists in each sheet (not the Summary sheet).</p>`}
@@ -310,8 +366,8 @@ function vAlerts(){const AL=alerts();
   ${AL.map(a=>`<details class="group" ${a.keys.length&&a.id!=='off'?'open':''}><summary><h3>${esc(a.t)}</h3><span class="muted">${a.keys.length}</span>${a.keys.length?listBtns(a.keys,a.t):''}</summary><div class="body"><p class="muted" style="margin:0 0 6px">${esc(a.d)}</p><div class="tags">${sortKeys(a.keys).map(k=>tagChip(k)).join('')}</div></div></details>`).join('')}`}
 
 function vBackfill(){const B=backfill();
-  const runRow=r=>{const its=r.items.filter(inCat);const c=counts(its);return `<tr tabindex="0" data-run="${r.i}"><td>${r.area||'–'} ${r.area?esc(AREA[r.area].name):''}${stackBar(c)}</td><td class="num">${Math.round(r.len)} m</td><td class="num">${c.T}</td><td class="num">${c['Installed']}/${c.T}</td></tr>`};
-  const waitRow=r=>{const bl=r.items.filter(i=>S(i.key)!=='Installed');return `<tr tabindex="0" data-run="${r.i}"><td>${r.area||'–'} ${r.area?esc(AREA[r.area].name):''}<div class="tags" style="margin-top:4px">${bl.map(i=>tagChip(i.key)).join('')}</div></td><td class="num">${Math.round(r.len)} m</td><td class="num">${bl.length}</td></tr>`};
+  const runRow=r=>{const its=r.items.filter(inCat);const c=counts(its);return `<tr tabindex="0" data-run="${r.i}"><td>${r.area||'–'} ${r.area?esc(AREA[r.area].name):''}${stackBar(c)}</td><td class="num">${Math.round(r.len)} m</td><td class="num">${c.T}</td><td class="num">${c[STV.inst]}/${c.T}</td></tr>`};
+  const waitRow=r=>{const bl=r.items.filter(i=>S(i.key)!==STV.inst);return `<tr tabindex="0" data-run="${r.i}"><td>${r.area||'–'} ${r.area?esc(AREA[r.area].name):''}<div class="tags" style="margin-top:4px">${bl.map(i=>tagChip(i.key)).join('')}</div></td><td class="num">${Math.round(r.len)} m</td><td class="num">${bl.length}</td></tr>`};
   const lg=TE.log.slice(-8).reverse();
   return `<div class="row"><span class="pill" style="color:var(--tr-r)">Backfilled ${fmt(trLen('R'))} m</span><span class="pill" style="color:var(--tr-y)">Excavated ${fmt(trLen('Y'))} m</span><button class="btn" data-edit="1">Update excavation / backfill</button></div>
   ${lg.length?`<details class="group"><summary><h3>Recent trench updates</h3><span class="muted">${TE.log.length}</span></summary><div class="body"><table><tbody>${lg.map(l=>`<tr><td class="mono">${esc(l.date)}</td><td>${esc(l.what)}</td><td class="num">${l.len?fmt(l.len)+' m':''}</td></tr>`).join('')}</tbody></table></div></details>`:''}
@@ -324,7 +380,7 @@ function vBackfill(){const B=backfill();
 function vBld(){const names=Object.keys(BLD).sort();
   return `<p class="lead">Items within ${TIE} m of each building — the tie-in side of the network.</p>
   <div style="overflow-x:auto"><table><thead><tr><th>Building</th><th class="num">Items</th><th class="num">Inst.</th><th class="num">Yard</th><th class="num">Not cast</th></tr></thead><tbody>
-  ${names.map(nm=>{const its=items.filter(i=>i.bld===nm&&showIt(i)&&pass(i.key));const c=counts(its);return `<tr tabindex="0" data-bld="${esc(nm)}"><td><strong>${esc(nm)}</strong>${stackBar(c)}</td><td class="num">${c.T}</td><td class="num">${c['Installed']}</td><td class="num">${c['Precast Yard']+c['Casted']}</td><td class="num">${c['Not Cast']}</td></tr>`}).join('')}
+  ${names.map(nm=>{const its=items.filter(i=>i.bld===nm&&showIt(i)&&pass(i.key));const c=counts(its);return `<tr tabindex="0" data-bld="${esc(nm)}"><td><strong>${esc(nm)}</strong>${stackBar(c)}</td><td class="num">${c.T}</td><td class="num">${c[STV.inst]}</td><td class="num">${c[STV.yard]+c[STV.cast]}</td><td class="num">${c[STV.nc]}</td></tr>`}).join('')}
   </tbody></table></div>`}
 
 function keysSummary(ks,title,name){const c=counts(ks);const d=ks.reduce((s,k)=>s+ducts(k),0),conc=ks.reduce((s,k)=>s+concOf(k),0);
@@ -335,14 +391,14 @@ function keysSummary(ks,title,name){const c=counts(ks);const d=ks.reduce((s,k)=>
   <div class="sel-row">${listBtns(ks,name)}</div>
   <div class="tags">${sortKeys(ks).map(k=>tagChip(k)).join('')}</div>`}
 function vSearch(){if(!searchRes)return '';return `<p class="lead">Results for “${esc(searchRes.q)}”.</p>`+keysSummary(searchRes.keys,'Search results','Search '+searchRes.q)}
-function vSel(){if(!boxRes)return '';return `<p class="lead">Items inside the box you drew on the map.</p>`+keysSummary(boxRes.keys,'Selected area','Selection')+`<div class="sel-row"><button class="btn sm primary" data-printsel="1">Print this area</button></div>`+partsInBoxHtml()}
+function vSel(){if(!boxRes)return '';return `<p class="lead">Items inside the box you drew on the layout.</p>`+keysSummary(boxRes.keys,'Selected area','Selection')+`<div class="sel-row"><button class="btn sm primary" data-printsel="1">Print this area</button></div>`+partsInBoxHtml()}
 
 const VIEWS={search:vSearch,sel:vSel,notes:vNotes,qty:vQty,
   work:()=>subBar('work')+({install:vInstall,cast:vCast,plan:vPlan}[sub.work]||vInstall)(),
   trench:()=>subBar('trench')+({backfill:vBackfill,tiein:vBld}[sub.trench]||vBackfill)(),
 };
 function render__base(){if(!VIEWS[tab]||(tab==='search'&&!searchRes)||(tab==='sel'&&!boxRes))tab='work';renderKPIs();renderTabs();const v=document.getElementById('view');const st=v.scrollTop;v.innerHTML=VIEWS[tab]();v.scrollTop=st;if(focusKey&&byKey[focusKey]&&!document.getElementById('info').hidden)showInfo(byKey[focusKey]);draw()}
-function render(){const h=HK.render,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=render__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function render(){return hkRun('render',render__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function go(t,s){tab=t;if(s)sub[t]=s;save('scope.t7',tab);save('scope.s7',sub);const v=document.getElementById('view');v.scrollTop=0;render();v.classList.remove('anim');void v.offsetWidth;v.classList.add('anim')}
 
 // ---------- plan / excel / status edits ----------
@@ -352,7 +408,7 @@ function rowOf(k){const it=byKey[k],c=dbc(k);return {Tag:k,Type:typeOf(k),'Tag t
   ...qRow(k),Trench:it?(it.tr==='R'?'Backfilled':it.tr==='Y'?'Excavated':''):'',E:it?it.e:'',N:it?it.n:''}}
 async function exportXls(ks,name){const rows=sortKeys(ks).map(rowOf);if(!rows.length){toast('Nothing to export');return}
   const fn=(name||'list').replace(/[\\/:*?"<>|]/g,'-').slice(0,60)+'_'+today()+'.xlsx';
-  try{const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=Object.keys(rows[0]).map(h=>({wch:h==='Tag'?30:Math.max(8,h.length+2)}));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'List');dlFile(fn,XLSX.write(wb,{bookType:'xlsx',type:'array'}));toast('Saved '+fn)}
+  try{const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=Object.keys(rows[0]).map(h=>({wch:h==='Tag'?30:Math.max(8,h.length+2)}));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,SHE.list);dlFile(fn,XLSX.write(wb,{bookType:'xlsx',type:'array'}));toast('Saved '+fn)}
   catch(_){try{const h=Object.keys(rows[0]);await navigator.clipboard.writeText([h.join('\t')].concat(rows.map(r=>h.map(c=>r[c]).join('\t'))).join('\n'));toast('Copied '+rows.length+' rows – paste into Excel')}catch(__){toast('Could not save the file here. Open the copy saved on your computer')}}}
 function setStatus(k,s){const sh=sheetS(k);if(s===sh)delete OV[k];else OV[k]={s,prev:sh,date:today()};saveAll();render();toast(short(k)+' → '+ST_LABEL[s]+(s===sh?' (same as sheet)':' · saved on this computer'))}
 function exportUpdates(){const txt=JSON.stringify(Object.assign({},TE,{st:OV,plan:PLAN,pos:POS,notes:NOTES,trnedit:TRE,ps:window.__PS,po:window.__PO,ppo:window.__PPO,ppa:window.__PPA,psz:window.__PSZ}));
@@ -396,14 +452,14 @@ view.addEventListener('click',act);
 view.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('tr[tabindex]'))act(e)});
 
 // smart search
-const STW={NOTCAST:['Not Cast'],NC:['Not Cast'],YARD:['Precast Yard'],PRECAST:['Precast Yard'],INSTALLED:['Installed'],INST:['Installed'],TBC:['Casted'],CASTED:['Casted'],CAST:['Precast Yard','Casted'],READY:['Precast Yard','Casted']};
+const STW=Object.fromEntries(Object.entries(window.CORE.status.search).map(([w,r])=>[w,r.map(x=>STV[x])]));
 const TYW={DB:'DB',DBS:'DB',PIT:'Pit',PITS:'Pit',EARTHING:'Earthing',EP:'Earthing',SOKAWAY:'Soakaway',SOAKAWAY:'Soakaway',ETISALAT:'Etisalat'};
 function runSearch(raw){const q=raw.trim().toUpperCase().replace(/\bNOT\s+CAST\b/g,'NOTCAST');if(!q)return;
   {const qq=q.replace(/\s/g,'');if(/BD-?W/.test(qq)&&D.trn){const tr=D.trn.find(t=>t[0].toUpperCase().endsWith(qq))||D.trn.find(t=>t[0].toUpperCase().includes(qq));if(tr){focusTrn(tr);return}}}
   const toks=q.split(/\s+/);let st=null,ty=null,ar=null;const txt=[];
-  let dw=null;toks.forEach(t=>{const md=t.match(/^(?:AQ-?)?DA-?(\d{1,2})$/);if(md){dw=md[1].padStart(2,'0');return}if(/^A\d{2}$/.test(t)&&AREA[t])ar=t;else if(STW[t])st=STW[t];else if(TYW[t])ty=TYW[t];else txt.push(t)});
+  let dw=null;toks.forEach(t=>{const md=t.match(DASH);if(md){dw=md[1].padStart(2,'0');return}if(/^A\d{2}$/.test(t)&&AREA[t])ar=t;else if(STW[t])st=STW[t];else if(TYW[t])ty=TYW[t];else txt.push(t)});
   const keys=Object.keys(status).concat(items.map(i=>i.key).filter(k=>!(k in status)));
-  const res=keys.filter(k=>{const K=k.toUpperCase().replace(/\s/g,'');if(txt.some(t=>!K.includes(t)))return false;if(st&&!st.includes(S(k)))return false;if(ty&&typeOf(k)!==ty)return false;if(ar){const it=byKey[k];if(!it||it.area!==ar)return false}if(dw){const aq=MT(k).aq||[];if(!aq.some(s=>new RegExp('00790U000000-'+dw+'(_\\d+)?$').test(s)))return false}return true});
+  const res=keys.filter(k=>{const K=k.toUpperCase().replace(/\s/g,'');if(txt.some(t=>!K.includes(t)))return false;if(st&&!st.includes(S(k)))return false;if(ty&&typeOf(k)!==ty)return false;if(ar){const it=byKey[k];if(!it||it.area!==ar)return false}if(dw){const aq=MT(k).aq||[];if(!aq.some(s=>new RegExp(SITE.mainSeries+'-'+dw+'(_\\d+)?$').test(s)))return false}return true});
   if(!res.length){toast('No tag matches “'+raw+'”.');return}
   if(txt.length&&!st&&!ty&&!ar&&!dw){const exact=res.filter(k=>k.toUpperCase().replace(/\s/g,'').endsWith(txt.join('')));if(res.length===1||exact.length===1){const k=res.length===1?res[0]:exact[0];if(byKey[k])focusTag(k);else toast(short(k)+' · '+ST_LABEL[S(k)]+(ductTxt(k)?' · '+ductTxt(k):'')+' · not on the drawings');return}}
   searchRes={q:raw,keys:res};selKeys=new Set(res);go('search');fitKeys(res.filter(k=>byKey[k]))}
@@ -417,24 +473,27 @@ document.addEventListener('click',e=>{const m=document.getElementById('kmenu');i
 function parseSummary(rows){const groups=[];let cur=null,tagc=0;const num=v=>typeof v==='number'?v:0;
   for(const r of rows){if(!r||r[0]==null)continue;const h=String(r[0]).trim();
     if(r.length>1&&String(r[1]).trim()==='Total'){if(h==='TAG')tagc++;
-      const title={'Valve Pits':'Valve Pits','Duct Bank Type':'Duct Banks'}[h]||({1:'UG Pits & Soakaways',2:'E&I Pits, Etisalat & Earthing',3:'All Pits'}[tagc])||h;
+      const title={'Valve Pits':'Valve Pits','Duct Bank Type':SHS.db}[h]||({1:'UG Pits & Soakaways',2:'E&I Pits, Etisalat & Earthing',3:'All Pits'}[tagc])||h;
       cur={title,cat:h==='Duct Bank Type'?'DB':'PIT',rows:[],total:null};groups.push(cur);continue}
     if(!cur)continue;
     const rec={tag:h,total:num(r[1]),cast:num(r[2]),toCast:num(r[3]),inst:num(r[4]),toInst:num(r[5]),conc:num(r[6]),concCast:num(r[7])};
     if(/^(OVERALL )?TOTAL$/i.test(h)){cur.total=rec;cur=null}else cur.rows.push(rec)}
   return groups.filter(g=>g.total)}
-document.getElementById('xl').addEventListener('change',async e=>{const f=e.__f||e.target.files[0];if(!f)return;
-  try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});const map={},sh={},meta={};let date=null,sum=null;
-    try{const s=XLSX.utils.sheet_to_json(wb.Sheets['Summary'],{header:1,defval:null});for(const r of s.slice(0,4))for(const c of r||[])if(typeof c==='string'&&/Date/i.test(c))date=c.replace(/Date:\s*/i,'').trim();sum=parseSummary(s)}catch(_){}
+// reads the status workbook (one sheet per item group, header on row 3): used by the status-sheet load and by Add project
+function xlParse(wb){const map={},sh={},meta={},pos={};let date=null,sum=null;
+    try{const s=XLSX.utils.sheet_to_json(wb.Sheets[SHS.summary],{header:1,defval:null});for(const r of s.slice(0,4))for(const c of r||[])if(typeof c==='string'&&/Date/i.test(c))date=c.replace(/Date:\s*/i,'').trim();sum=parseSummary(s)}catch(_){}
     const XC={dup:[],odd:[],unk:[]},XNOT=/\b(not|no|un)[ -]?cast/;
-    for(const name of ['Duct Banks','Pits','Sokaways','Earthing Pits','Etisalat Pits']){const ws=wb.Sheets[name];if(!ws)continue;
+    for(const name of [...SHO]){const ws=wb.Sheets[name];if(!ws)continue;
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});const hdr=(rows[2]||[]).map(h=>h?String(h).trim():'');
       const ti=hdr.findIndex(h=>/TAG/i.test(h)&&h.toUpperCase()!=='TYPE'),ci=hdr.indexOf('Cast Status'),li=hdr.indexOf('Location');const hc=n=>hdr.findIndex(h=>h.toLowerCase().startsWith(n));const iu=hc('last update'),ia=hc('aq-da'),ir=hc('rfi'),im=hc('remarks');
-      if(ti<0||ci<0||li<0)continue;
+      if(ti<0||ci<0||li<0)continue;const ie=hdr.indexOf(XLPOS[0]),inn=hdr.indexOf(XLPOS[1]);
       for(const r of rows.slice(3)){const t=r[ti];if(!t)continue;const cs=String(r[ci]||'').toLowerCase().trim(),lo=String(r[li]||'').toLowerCase().trim();const k=String(t).trim();
         if(k in map)XC.dup.push([k,sh[k]+' · '+name]);if(!/^(MM\d{7}U-[A-Z0-9]+(-[A-Z0-9]+)+|\d{6}-[A-Z]+-\d+|TAG-NOT-CLEAR-\d+)$/.test(k))XC.odd.push([k,name]);
         if((cs&&!/^cast(ed)?$/.test(cs))||(lo&&!/install|yard|precast/.test(lo)))XC.unk.push([k,[r[ci],r[li]].filter(Boolean).join(' · ')]);
-        map[k]=((cs.includes('cast')&&!XNOT.test(cs))||lo)?(lo.includes('install')?'Installed':(lo.includes('yard')||lo.includes('precast'))?'Precast Yard':'Casted'):'Not Cast';sh[k]=name;const m={};const u=iu>=0?r[iu]:null;if(u instanceof Date&&!isNaN(u))m.u=new Date(u.getTime()-u.getTimezoneOffset()*6e4+432e5).toISOString().slice(0,10);if(ia>=0&&r[ia])m.aq=[String(r[ia]).trim()];if(ir>=0&&r[ir])m.rfi=String(r[ir]).trim();if(im>=0&&r[im])m.rem=String(r[im]).trim();if(Object.keys(m).length)meta[k]=m}}
+        map[k]=((cs.includes('cast')&&!XNOT.test(cs))||lo)?(lo.includes('install')?STV.inst:(lo.includes('yard')||lo.includes('precast'))?STV.yard:STV.cast):STV.nc;sh[k]=name;const m={};const u=iu>=0?r[iu]:null;if(u instanceof Date&&!isNaN(u))m.u=new Date(u.getTime()-u.getTimezoneOffset()*6e4+432e5).toISOString().slice(0,10);if(ia>=0&&r[ia])m.aq=[String(r[ia]).trim()];if(ir>=0&&r[ir])m.rfi=String(r[ir]).trim();if(im>=0&&r[im])m.rem=String(r[im]).trim();if(Object.keys(m).length)meta[k]=m;if(ie>=0&&inn>=0){const e=+r[ie],n=+r[inn];if(r[ie]!=null&&r[inn]!=null&&isFinite(e)&&isFinite(n))pos[k]=[e,n]}}}
+  return {map,sh,meta,date,sum,XC,pos}}
+document.getElementById('xl').addEventListener('change',async e=>{const f=e.__f||e.target.files[0];if(!f)return;
+  try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});const {map,sh,meta,date,sum,XC}=xlParse(wb);
     const n=Object.keys(map).length; if(n<100)throw new Error('Could not find the status sheets in this file.');
     window.__XLCHK=XC;if(!await xlReview({map,meta,date:date||f.name}))return;
     const nd=date||f.name;const loadDate=isNaN(Date.parse(nd))?today():nd;
@@ -456,11 +515,12 @@ const cv=document.getElementById('map'),wrap=document.getElementById('mapwrap');
 let PR=null;
 let edit=false,emode='Y',pend=[],boxMode=false,box=null;
 let W=0,H=0,dpr=1,sc=1,ox=0,oy=0;
-function resize(){const r=wrap.getBoundingClientRect();dpr=window.devicePixelRatio||1;W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;draw()}
+function resize(){const r=wrap.getBoundingClientRect();dpr=window.corePx();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;draw()}
+window.corePxWatch(()=>{if(W)resize()}); // another monitor, with the window at the same size: the layout takes the new number (core.pixels)
 function fitBox(e0,e1,n0,n1){if(!W)return;sc=Math.min(W/(e1-e0),H/(n1-n0))*0.92;ox=(e0+e1)/2-W/2/sc;oy=(n0+n1)/2+H/2/sc;draw()}
 function fitKeys(ks){const L=ks.map(k=>byKey[k]).filter(Boolean);if(!L.length){toast('None of these are on the drawings');return}
   const xs=L.map(i=>i.e),ys=L.map(i=>i.n);fitBox(Math.min(...xs)-25,Math.max(...xs)+25,Math.min(...ys)-25,Math.max(...ys)+25)}
-function fitAll(){fitBox(4560,5010,1080,1760)}
+function fitAll(){fitBox(...window.CORE.site.frame)} // the frame of the open project (core.site.frame; an added project frames its own items)
 const X=e=>(e-ox)*sc, Y=n=>(oy-n)*sc;
 const SX=x=>ox+x/sc, SY=y=>oy-y/sc;
 const LY=k=>PR?(k!=='labels'||true):layers[k];
@@ -531,13 +591,15 @@ function draw(){if(!W)return;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0
   if(!PR&&window.__SNAPPT&&(partDrag||trnDraw||pend.length||(window.__SNAP!==0&&cableMode))){const s=window.__SNAPPT;ctx.strokeStyle='#e8590c';ctx.lineWidth=2;const q=X(s[0]),w=Y(s[1]);if(s.on){ctx.beginPath();ctx.moveTo(q-6,w-6);ctx.lineTo(q+6,w+6);ctx.moveTo(q+6,w-6);ctx.lineTo(q-6,w+6);ctx.stroke()}else ctx.strokeRect(q-6,w-6,12,12)}
   const nice=[.1,.2,.5,1,2,5,10,20,50,100,200,500];const m=nice.find(v=>v*sc>70)||500;if(HUDC){ctx.fillStyle=css('--ink');ctx.fillRect(14,H-18,m*sc,3);ctx.textAlign='left';ctx.font='500 11px "JetBrains Mono", monospace';ctx.fillText(m+' m',14,H-24)}
 }
-function focusTag(k){focusKey=k;const it=byKey[k];if(!it){toast(short(k)+' · '+ST_LABEL[S(k)]+' · not on the drawings');return}
-  const A0={sc,ox,oy};sc=Math.max(sc,6);ox=it.e-W/2/sc;oy=it.n+H/2/sc;showInfo(it);draw();mvAnim(A0)}
+// aim (optional): called with the item once its card is shown and before the picture moves, to put the item somewhere else than the middle
+// by setting ox, oy – the network check does, to keep it clear of its bar (31-charts-network-audit.js, auAim). One move, to the place it ends at.
+function focusTag(k,aim){focusKey=k;const it=byKey[k];if(!it){toast(short(k)+' · '+ST_LABEL[S(k)]+' · not on the drawings');return}
+  const A0={sc,ox,oy};sc=Math.max(sc,6);ox=it.e-W/2/sc;oy=it.n+H/2/sc;showInfo(it);if(typeof aim==='function')aim(it);draw();mvAnim(A0)}
 function metaHtml(k){const m=MT(k);const rows=[];
   if(m.u)rows.push(`<span>Status date</span><span><b>${fdate(m.u)}</b> <span class="muted">· ${ago(m.u)}</span></span>`);
-  const L=(D.aq&&D.aq.loc[k])||[];if(L.length)rows.push(`<span>Open drawing</span><span>${L.map(([pg])=>`<button class="aqlink" data-aqopen="${pg}">📄 ${esc(aqName(pg).replace(/^4422-AQ-DA-/,'DA-'))}</button>`).join('')}</span>`);
-  else if(m.aq&&m.aq.length){const pg=aqPageOf(m.aq[0]);if(pg)rows.push(`<span>Open drawing</span><span><button class="aqlink" data-aqopen="${pg}">📄 ${esc(shDA(m.aq[0]).replace(/^AQ-DA-/,'DA-'))}</button></span>`)}
-  if(m.aq&&m.aq.length)rows.push(`<span>AQ-DA drawing</span><span class="mono"><b>${esc(shDA(m.aq[0]))}</b>${m.aq.length>1?`<br><span class="muted">also on ${m.aq.slice(1).map(s=>esc(shDA(s).replace(/^AQ-DA-/,''))).join(', ')}</span>`:''}</span>`);
+  const L=(D.aq&&D.aq.loc[k])||[];if(L.length)rows.push(`<span>Open drawing</span><span>${L.map(([pg])=>`<button class="aqlink" data-aqopen="${pg}">📄 ${esc(aqName(pg).replace(DRF,DR.short))}</button>`).join('')}</span>`);
+  else if(m.aq&&m.aq.length){const pg=aqPageOf(m.aq[0]);if(pg)rows.push(`<span>Open drawing</span><span><button class="aqlink" data-aqopen="${pg}">📄 ${esc(shDA(m.aq[0]).replace(DRG,DR.short))}</button></span>`)}
+  if(m.aq&&m.aq.length)rows.push(`<span>${DR.family} drawing</span><span class="mono"><b>${esc(shDA(m.aq[0]))}</b>${m.aq.length>1?`<br><span class="muted">also on ${m.aq.slice(1).map(s=>esc(shDA(s).replace(DRG,''))).join(', ')}</span>`:''}</span>`);
   if(m.rfi)rows.push(`<span>RFI</span><span class="mono">${esc(m.rfi)}</span>`);
   if(m.rem)rows.push(`<span>Remarks</span><span>${esc(m.rem)}</span>`);
   return rows.length?`<div class="kv" style="border-top:1px solid var(--line);padding-top:8px">${rows.join('')}</div>`:''}
@@ -584,10 +646,10 @@ function showInfo__base(it){const k=it.key,s=S(k),a=AREA[it.area];
   <div class="kv"><span>Area</span><span>${a?a.id+' · '+esc(a.name):'–'}</span><span>Building</span><span>${it.bld?esc(it.bld):'–'}</span><span>Trench</span><span>${tr}</span>${hasSec(k)?'':`<span>Concrete ≈</span><span>${concOf(k)?fmt1(concOf(k))+' m³':'–'}</span>`}<span>Coordinates</span><span class="mono">E ${it.e.toFixed(2)} · N ${it.n.toFixed(2)}</span></div>
   ${metaHtml(k)}
   ${nb.length?`<div class="hint">Nearby (12 m)</div><div class="tags" style="margin-top:4px">${nb.map(j=>tagChip(j.key)).join('')}</div>`:''}
-  <div class="hint" style="margin-top:10px">Change status on site</div>
-  <div class="stset">${['Not Cast','Precast Yard','Installed'].map(x=>`<button class="btn sm${s===x?' on':''}" data-setst="${x}">${ST_LABEL[x]}</button>`).join('')}${OV[k]?`<button class="btn sm ghost" data-setst="${esc(sheetS(k))}">Undo</button>`:''}</div>
+  <div class="hint sthint" style="margin-top:10px">Change status on site</div>
+  <div class="stset">${[STV.nc,STV.yard,STV.inst].map(x=>`<button class="btn sm${s===x?' on':''}" data-setst="${x}">${ST_LABEL[x]}</button>`).join('')}${OV[k]?`<button class="btn sm ghost" data-setst="${esc(sheetS(k))}">Undo</button>`:''}</div>
   <div class="acts"><button class="btn sm" data-sarea="1">Same area</button><button class="btn sm" data-planone="1">${inPlan(k)?'In plan ✓':'+ Plan'}</button><button class="btn sm" data-xone="1">Excel</button><button class="btn sm${moveKey===k?' on':''}" data-move="1">${moveKey===k?'Click the new place…':'Move point'}</button>${POS[k]?'<button class="btn sm ghost" data-unmove="1">Reset position</button>':''}</div>${ductSec(k)}`}
-function showInfo(){const h=HK.showInfo,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=showInfo__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function showInfo(){return hkRun('showInfo',showInfo__base,this,arguments,false)} // hooks: docs/PATCHES.md
 document.getElementById('info').addEventListener('click',e=>{const t=e.target;const k=focusKey;const it=byKey[k];
   if(t.closest('[data-close]')){document.getElementById('info').hidden=true;focusKey=null;draw();return}
   const tg=t.closest('.tag[data-key]');if(tg){focusTag(tg.dataset.key);return}
@@ -596,7 +658,7 @@ document.getElementById('info').addEventListener('click',e=>{const t=e.target;co
   if(t.closest('[data-sarea]')){selKeys=new Set(items.filter(i=>i.area===it.area&&showIt(i)).map(i=>i.key));const a=AREA[it.area];if(a)fitBox(a.bbox[0],a.bbox[1],a.bbox[2],a.bbox[3]);return}
   if(t.closest('[data-planone]')){if(!inPlan(k))addPlan([k]);return}
   if(t.closest('[data-xone]')){exportXls([k],short(k))}
-  if(t.closest('[data-move]')){if(moveKey===k){moveKey=null;cv.style.cursor='';draw();showInfo(it);return}setEdit(false);setBox(false);moveKey=k;cv.style.cursor='crosshair';showInfo(it);draw();toast('Click the right place on the map. Inside a dashed outline it snaps to it. Esc to cancel')}
+  if(t.closest('[data-move]')){if(moveKey===k){moveKey=null;cv.style.cursor='';draw();showInfo(it);return}setEdit(false);setBox(false);moveKey=k;cv.style.cursor='crosshair';showInfo(it);draw();toast('Click the right place on the layout. Inside a dashed outline it snaps to it. Esc to cancel')}
   if(t.closest('[data-unmove]')){delete POS[k];const r=D.items.find(r=>r[0]===k);if(r){it.e=r[2];it.n=r[3]}else if(it.added&&it.added.poly){const c=polyC(it.added.poly);it.e=c[0];it.n=c[1]}save('scope.pos',POS);buildRuns();render();showInfo(it);toast('Back to the drawing position')}});
 function placeMove(x,y){const k=moveKey,it=byKey[k];moveKey=null;cv.style.cursor='';if(!it)return;const e=SX(x),n=SY(y);
   let snap=null;if(D.spare)for(const f of D.spare){if(inPoly(e,n,f)){snap=f;break}}
@@ -613,7 +675,7 @@ cv.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect();if(delD
   if(box){box.x1=e.clientX-r.left;box.y1=e.clientY-r.top;const b=document.getElementById('boxsel');b.hidden=false;b.style.left=Math.min(box.x0,box.x1)+'px';b.style.top=Math.min(box.y0,box.y1)+'px';b.style.width=Math.abs(box.x1-box.x0)+'px';b.style.height=Math.abs(box.y1-box.y0)+'px';return}
   if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>(e.pointerType==='touch'?9:3))moved=true;ox=drag.ox-dx/sc;oy=drag.oy+dy/sc;draw()});
 cv.addEventListener('pointerup',e=>{if(delDrag){delPU();return}if(pipeDrag){pipePU();return}if(partDrag){cablePU();return}
-  if(box){const b=box;box=null;document.getElementById('boxsel').hidden=true;if(Math.abs(b.x1-b.x0)<8||Math.abs(b.y1-b.y0)<8){toast('Drag a box on the map');return}
+  if(box){const b=box;box=null;document.getElementById('boxsel').hidden=true;if(Math.abs(b.x1-b.x0)<8||Math.abs(b.y1-b.y0)<8){toast('Drag a box on the layout');return}
     const e0=SX(Math.min(b.x0,b.x1)),e1=SX(Math.max(b.x0,b.x1)),n0=SY(Math.max(b.y0,b.y1)),n1=SY(Math.min(b.y0,b.y1));
     const ks=items.filter(i=>showIt(i)&&i.e>=e0&&i.e<=e1&&i.n>=n0&&i.n<=n1).map(i=>i.key);setBox(false);
     boxRes={keys:[],b:[e0,e1,n0,n1]};const pin=partsInBox();if(!ks.length&&!pin.length){toast('Nothing inside that box');return}
@@ -635,9 +697,9 @@ document.getElementById('zin').onclick=()=>zoomAt(1.4,W/2,H/2);
 document.getElementById('zout').onclick=()=>zoomAt(1/1.4,W/2,H/2);
 document.getElementById('zfit').onclick=()=>{if(selKeys&&selKeys.size)fitKeys([...selKeys]);else fitAll()};
 new ResizeObserver(()=>{const first=!W;resize();if(first)fitAll()}).observe(wrap);
-function setBox(on){boxMode=on;if(on){setEdit(false);closePops()}document.getElementById('boxbtn').classList.toggle('on',on);cv.style.cursor=on?'crosshair':'';if(on)toast('Drag a box on the map')}
+function setBox(on){boxMode=on;if(on){setEdit(false);closePops()}document.getElementById('boxbtn').classList.toggle('on',on);cv.style.cursor=on?'crosshair':'';if(on)toast('Drag a box on the layout')}
 document.getElementById('boxbtn').onclick=()=>setBox(!boxMode);
-document.getElementById('fullbtn').onclick=()=>{const on=!document.body.classList.contains('mapfull');document.body.classList.toggle('mapfull',on);document.body.classList.remove('drawer');document.getElementById('fullbtn').classList.toggle('on',on);const fb=document.getElementById('fullbtn');fb.innerHTML=on?'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10h-6V4M4 14h6v6M14 10l7-7M10 14l-7 7"/></svg>':'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';fb.title=on?'Exit full map':'Full map';setTimeout(resize,250)};
+document.getElementById('fullbtn').onclick=()=>{const on=!document.body.classList.contains('mapfull');document.body.classList.toggle('mapfull',on);document.body.classList.remove('drawer');document.getElementById('fullbtn').classList.toggle('on',on);const fb=document.getElementById('fullbtn');fb.innerHTML=on?'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10h-6V4M4 14h6v6M14 10l7-7M10 14l-7 7"/></svg>':'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';fb.title=on?'Exit full layout':'Full layout';setTimeout(resize,250)};
 document.getElementById('drawerbtn').onclick=()=>document.body.classList.toggle('drawer');
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(boxMode)setBox(false);closePops();document.body.classList.remove('drawer')}});
 
@@ -650,7 +712,7 @@ function renderFilters(){const p=document.getElementById('fltpop');const fams=al
   <div class="grp"><label>Tag type <select id="f-fam"><option value="">All</option>${fams.map(f=>`<option ${filt.fam===f?'selected':''}>${esc(f)}</option>`).join('')}</select></label>
   <label>Area <select id="f-area"><option value="">All</option>${D.areas.map(a=>`<option value="${a.id}" ${filt.area===a.id?'selected':''}>${a.id} ${esc(a.name)}</option>`).join('')}</select></label></div>
   <div class="grp"><label>Duct banks with at least <input type="number" id="f-dmin" min="0" value="${filt.dmin||0}" style="width:60px"> ducts</label></div>
-  <div class="row" style="margin:0"><button class="btn sm" data-fclear="1">Clear all</button><span class="hint">Filters apply to the map and all lists. The top numbers stay as in the Summary sheet.</span></div>`}
+  <div class="row" style="margin:0"><button class="btn sm" data-fclear="1">Clear all</button><span class="hint">Filters apply to the layout and all lists. The top numbers stay as in the Summary sheet.</span></div>`}
 function renderLayers(){const p=document.getElementById('laypop');const L=[['foot','Item outlines (pits & duct banks, coloured by status)'],['trn','Electrical trenches (BD-W), real width'],['labels','Tag labels (when zoomed in)'],['trench','Trenches'],['us','Other structures'],['net','Networks & perimeter'],['road','Roads'],['bld','Buildings'],['found','Foundations'],['areas','Area boxes'],['names','Building names']];
   const crow=(key,label,val,on,lay)=>`<div style="display:flex;align-items:center;gap:8px">${lay?`<input type="checkbox" data-lay="${lay}" ${on?'checked':''}>`:''}<input type="color" data-col="${esc(key)}" value="${val}" style="width:28px;height:22px;border:0;padding:0;background:none;cursor:pointer"><span>${esc(label)}</span></div>`;
   p.innerHTML=`<div class="row" style="margin:0;justify-content:space-between"><h4>Layers &amp; colours</h4><button class="x" data-closepop="1" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
@@ -662,7 +724,7 @@ function renderLayers(){const p=document.getElementById('laypop');const L=[['foo
 document.getElementById('fltbtn').onclick=()=>{const p=document.getElementById('fltpop');const show=p.hidden;closePops();if(show){setBox(false);setEdit(false);renderFilters();p.hidden=false}};
 document.getElementById('laybtn').onclick=()=>{const p=document.getElementById('laypop');const show=p.hidden;closePops();if(show){setBox(false);setEdit(false);renderLayers();p.hidden=false;document.getElementById('laybtn').classList.add('on')}};
 document.getElementById('fltpop').addEventListener('change',e=>{const t=e.target;
-  if(t.dataset.fst){const s=t.dataset.fst;filt.st=t.checked?[...new Set(filt.st.concat(s,s==='Not Cast'?[]:[]))]:filt.st.filter(x=>x!==s)}
+  if(t.dataset.fst){const s=t.dataset.fst;filt.st=t.checked?[...new Set(filt.st.concat(s,s===STV.nc?[]:[]))]:filt.st.filter(x=>x!==s)}
   if(t.dataset.fty){const s=t.dataset.fty;filt.ty=t.checked?[...new Set(filt.ty.concat(s))]:filt.ty.filter(x=>x!==s)}
   if(t.id==='f-fam')filt.fam=t.value;if(t.id==='f-area')filt.area=t.value;if(t.id==='f-dmin')filt.dmin=Math.max(0,+t.value||0);
   saveAll();render()});
@@ -704,10 +766,12 @@ document.getElementById('eexport').onclick=exportUpdates;
 document.getElementById('eimport').onchange=e=>{const f=e.target.files[0];if(f)importUpdates(f);e.target.value=''};
 
 // ---------- print ----------
-function snapMap(bounds,opts,pw,ph){
+// k = the pixels for a point of the picture (core.pixels): a printed sheet takes the number for pictures that are kept; a picture shown
+// on the screen gives the pixels the screen shows for it (the Home snapshot)
+function snapMap(bounds,opts,pw,ph,k){k=k||window.CORE.pixels.keep;
   const keep={W,H,dpr,sc,ox,oy,ctx,selKeys,focusKey,pend};
-  const c=document.createElement('canvas');c.width=pw*2;c.height=ph*2;
-  ctx=c.getContext('2d');W=pw;H=ph;dpr=2;selKeys=null;focusKey=null;pend=[];PR=opts||{};
+  const c=document.createElement('canvas');c.width=Math.round(pw*k);c.height=Math.round(ph*k);
+  ctx=c.getContext('2d');W=pw;H=ph;dpr=k;selKeys=null;focusKey=null;pend=[];PR=opts||{};
   const [e0,e1,n0,n1]=bounds;sc=Math.min(W/(e1-e0),H/(n1-n0))*0.96;ox=(e0+e1)/2-W/2/sc;oy=(n0+n1)/2+H/2/sc;
   draw();const url=c.toDataURL('image/png');
   ({W,H,dpr,sc,ox,oy,ctx,selKeys,focusKey,pend}=keep);PR=null;draw();return url}
@@ -715,7 +779,7 @@ const PLEG_=()=>{const c=v=>css(v);const ut=UTIL.filter(u=>uon(u[0])&&D.pipes&&D
   return `<div class="pl"><span><i style="background:${c('--inst')}"></i>Installed</span><span><i style="background:${c('--yard')}"></i>Precast yard</span><span><i style="background:${c('--cast')}"></i>Cast – location TBC</span><span><i style="background:${c('--nc')}"></i>Not cast</span><span><b class="hb-r"></b>Trench backfilled</span><span><b class="hb-y"></b>Trench excavated</span>${ut}</div>`};
 function page(title,body){const catL={ALL:'All items',WET:'Piping & Drainage',EI:'Electrical & Instrumentation'}[cat];
   const H=prtHead(),proj=(document.querySelector('body>.top .brand .sub')||{}).textContent||'';
-  return `<section class="pp"><div class="pphb"><span>${esc(proj.split('·').slice(0,2).join('·').trim().toUpperCase())} · INTERCONNECTING</span><span data-ph="doc">${esc((H.doc||'—')+' · REV '+(H.rev||'—'))}</span></div><div class="ph"><h2>${esc(title)}</h2><div class="m">Interconnecting Pits · BAGC (S7) · Subcontract 7500-123025<br>${esc(catL)} · Status as of ${esc(asof)} · Printed ${today()}</div></div><div class="ppb">${body}</div><table class="pprev"><tr><th>Rev</th><th>Date</th><th>Description</th><th>Prepared</th><th>Checked</th><th>Approved</th></tr><tr data-ph="rev"><td>${esc(H.rev||'')}</td><td>${esc(today())}</td><td>${esc(H.desc||'')}</td><td>${esc(H.prep||'')}</td><td>${esc(H.chk||'')}</td><td>${esc(H.app||'')}</td></tr></table></section>`}
+  return `<section class="pp"><div class="pphb"><span>${esc(proj.split('·').slice(0,2).join('·').trim().toUpperCase())} · INTERCONNECTING</span><span data-ph="doc">${esc((H.doc||'—')+' · REV '+(H.rev||'—'))}</span></div><div class="ph"><h2>${esc(title)}</h2><div class="m">${prjLine(1,PRJ.scope,PRJ.contractor)}<br>${esc(catL)} · Status as of ${esc(asof)} · Printed ${today()}</div></div><div class="ppb">${body}</div><table class="pprev"><tr><th>Rev</th><th>Date</th><th>Description</th><th>Prepared</th><th>Checked</th><th>Approved</th></tr><tr data-ph="rev"><td>${esc(H.rev||'')}</td><td>${esc(today())}</td><td>${esc(H.desc||'')}</td><td>${esc(H.prep||'')}</td><td>${esc(H.chk||'')}</td><td>${esc(H.app||'')}</td></tr></table></section>`}
 // print header (design 10B): typed in the print preview bar, kept on this computer
 function prtHead(){try{return Object.assign({doc:'',rev:'A',desc:'Issued for information',prep:'',chk:'',app:''},JSON.parse(localStorage.getItem('scope.prthead')||'{}'))}catch(_){return {doc:'',rev:'A',desc:'Issued for information',prep:'',chk:'',app:''}}}
 function openPrint(pages){document.getElementById('ppages').innerHTML=pages.join('');document.getElementById('printroot').hidden=false;setTimeout(()=>{try{window.print()}catch(_){}} ,300)}
@@ -726,7 +790,7 @@ function printKeys(ks,title,bounds,isPlan){if(!ks.length){toast('Nothing to prin
   const L=ks.map(k=>byKey[k]).filter(Boolean);let b=bounds;
   if(!b&&L.length){const xs=L.map(i=>i.e),ys=L.map(i=>i.n);b=[Math.min(...xs)-25,Math.max(...xs)+25,Math.min(...ys)-25,Math.max(...ys)+25]}
   const c=counts(ks);const pages=[];
-  let head=`<div class="kp"><div><div class="l">Items</div><div class="v">${ks.length}</div></div><div><div class="l">Installed</div><div class="v">${c.Installed}</div></div><div><div class="l">Cast, to install</div><div class="v">${c['Precast Yard']+c.Casted}</div></div><div><div class="l">Not cast</div><div class="v">${c['Not Cast']}</div></div></div>`;
+  let head=`<div class="kp"><div><div class="l">Items</div><div class="v">${ks.length}</div></div><div><div class="l">Installed</div><div class="v">${c[STV.inst]}</div></div><div><div class="l">Cast, to install</div><div class="v">${c[STV.yard]+c[STV.cast]}</div></div><div><div class="l">Not cast</div><div class="v">${c[STV.nc]}</div></div></div>`;
   if(isPlan){const t=planTotals();head=`<div class="kp"><div><div class="l">Items</div><div class="v">${t.n}</div></div><div><div class="l">Concrete ≈</div><div class="v">${fmt(t.conc)} m³</div></div><div><div class="l">Trailer trips ≈</div><div class="v">${t.trips}</div></div><div><div class="l">Crane-days ≈</div><div class="v">${t.days}</div></div></div>`}
   if(b)pages.push(page(title,head+`<img alt="" src="${snapMap(b,{keys:ks},1500,800)}">`+PLEG_()));
   for(let i=0;i<ks.length;i+=60)pages.push(page(title+' – list'+(ks.length>60?' ('+(i/60+1)+')':''),keyTable(ks.slice(i,i+60))));
@@ -742,7 +806,7 @@ function printReport(){
   const ct={};P.forEach(p=>{const s=p.tr[1];const r=ct[s]=ct[s]||{L:0,R:0,Y:0,N:0,exc:0};const st=pState(p);r.L+=p.L;r[st]+=p.L;r.exc+=p.L*p.tr[2]*momC(s).dep});
   const CT=Object.entries(ct).sort();const cT=CT.reduce((a,[,r])=>{for(const k in a)a[k]+=r[k];return a},{L:0,R:0,Y:0,N:0,exc:0});
   // duct bank totals by type
-  const dbk=Object.keys(status).filter(k=>sheet[k]==='Duct Banks'&&(D.qdb||{})[k]);const df={};dbk.forEach(k=>{const q=dbQ(k);if(!q||q.src==='none')return;const f=famOf(k);const r=df[f]=df[f]||{n:0,L:0,net:0,rem:0,exc:0};r.n++;r.L+=q.L;r.net+=q.net||0;if(S(k)!=='Installed')r.rem+=q.net||0;r.exc+=q.exc||0});
+  const dbk=Object.keys(status).filter(k=>sheet[k]===SHS.db&&(D.qdb||{})[k]);const df={};dbk.forEach(k=>{const q=dbQ(k);if(!q||q.src==='none')return;const f=famOf(k);const r=df[f]=df[f]||{n:0,L:0,net:0,rem:0,exc:0};r.n++;r.L+=q.L;r.net+=q.net||0;if(S(k)!==STV.inst)r.rem+=q.net||0;r.exc+=q.exc||0});
   const DF=Object.entries(df).sort();const dT=DF.reduce((a,[,r])=>{for(const k in a)a[k]+=r[k];return a},{n:0,L:0,net:0,rem:0,exc:0});
   const pg={};(window.__PP||[]).forEach(p=>{const r=pg[p.util]=pg[p.util]||{L:0,R:0,Y:0,N:0,n:0};r.n++;r.L+=p.L;r[pState(p)]+=p.L});const PG=UTIL.filter(u=>pg[u[0]]).map(u=>[u[0],pg[u[0]]]);const pT=PG.reduce((a,[,r])=>{for(const k in a)a[k]+=r[k];return a},{L:0,R:0,Y:0,N:0,n:0});
   const tleg=`<div class="pl"><span><b class="hb-r"></b>Backfilled ${fmt(cT.R)} m</span><span><b class="hb-y"></b>Excavated ${fmt(cT.Y)} m</span><span><b class="hb-n"></b>Not started</span><span><b style="background:${TCOL.IY}"></b>IY</span><span><b style="background:${TCOL.EY}"></b>EY</span><span><b style="background:${TCOL.EYL}"></b>EYL</span><span>(layer colour = type, lines = status)</span><span>Cable trench total ${fmt(cT.L)} m</span><span>Pipes (pit to pit): backfilled ${fmt(pT.R)} m · excavated ${fmt(pT.Y)} m · not started ${fmt(pT.N)} m (utility colour + same lines)</span></div>`;
@@ -753,7 +817,7 @@ function printReport(){
   const st=gs.map(g=>`<table><thead><tr><th>${esc(g.title)}</th><th>Total</th><th>Cast</th><th>To cast</th><th>Installed</th><th>To install</th><th>Concrete m³</th></tr></thead><tbody>${g.rows.map(r=>`<tr><td>${esc(r.tag)}</td><td>${fmt(r.total)}</td><td>${fmt(r.cast)}</td><td>${fmt(r.toCast)}</td><td>${fmt(r.inst)}</td><td>${fmt(r.toInst)}</td><td>${fmt(r.concCast)} / ${fmt(r.conc)}</td></tr>`).join('')}<tr><td><b>Total</b></td><td><b>${fmt(g.total.total)}</b></td><td><b>${fmt(g.total.cast)}</b></td><td><b>${fmt(g.total.toCast)}</b></td><td><b>${fmt(g.total.inst)}</b></td><td><b>${fmt(g.total.toInst)}</b></td><td><b>${fmt(g.total.concCast)} / ${fmt(g.total.conc)}</b></td></tr></tbody></table>`).join('');
   const dq=`<table><thead><tr><th>Duct banks (CAD)</th><th>DBs</th><th>Length m</th><th>Concrete m³</th><th>Remaining m³</th><th>Excavation m³</th></tr></thead><tbody>${DF.map(([f,r])=>`<tr><td>${esc(f)}</td><td>${r.n}</td><td>${fmt(r.L)}</td><td>${fmt(r.net)}</td><td>${fmt(r.rem)}</td><td>${fmt(r.exc)}</td></tr>`).join('')}<tr><td><b>Total</b></td><td><b>${dT.n}</b></td><td><b>${fmt(dT.L)}</b></td><td><b>${fmt(dT.net)}</b></td><td><b>${fmt(dT.rem)}</b></td><td><b>${fmt(dT.exc)}</b></td></tr></tbody></table>`;
   const tq=`<table><thead><tr><th>Cable trenches</th><th>Length m</th><th>Backfilled m</th><th>Excavated m</th><th>Not started m</th><th>Excavation m³</th></tr></thead><tbody>${CT.map(([s,r])=>`<tr><td>${s}</td><td>${fmt(r.L)}</td><td>${fmt(r.R)}</td><td>${fmt(r.Y)}</td><td>${fmt(r.N)}</td><td>${fmt(r.exc)}</td></tr>`).join('')}<tr><td><b>Total</b></td><td><b>${fmt(cT.L)}</b></td><td><b>${fmt(cT.R)} · ${pct(cT.R,cT.L)}</b></td><td><b>${fmt(cT.Y)}</b></td><td><b>${fmt(cT.N)}</b></td><td><b>${fmt(cT.exc)}</b></td></tr></tbody></table>`;
-  pages.push(page('Summary & quantities',`<div class="cols"><div>${st}</div><div>${dq}<div style="height:12px"></div>${tq}<div style="height:12px"></div>${(()=>{const {G,T}=pipeGroups();const U={};G.forEach(r=>{const u=U[r.u]=U[r.u]||{sz:[],L:0,R:0,Y:0,N:0,A:0,as:0,E:0,B:0};u.sz.push(r.z+(r.as?'*':''));for(const k of ['L','R','Y','N','A','as','E','B'])u[k]+=r[k]});return `<table><thead><tr><th>Pipes (pit to pit)</th><th>Sizes</th><th>Length m</th><th>Backfilled m</th><th>Excavated m</th><th>Not started m</th><th>Excavation m³</th><th>Backfill m³</th></tr></thead><tbody>${Object.entries(U).map(([u,r])=>`<tr><td>${esc(u)}</td><td style="font-size:9.5px">${esc(r.sz.join(' · '))}</td><td>${fmt(r.L)}</td><td>${fmt(r.R)}</td><td>${fmt(r.Y)}</td><td>${fmt(r.N)}</td><td>${fmt(r.E)}</td><td>${fmt(r.B)}</td></tr>`).join('')}<tr><td><b>Total</b></td><td></td><td><b>${fmt(T.L)}</b></td><td><b>${fmt(T.R)} · ${pct(T.R,T.L)}</b></td><td><b>${fmt(T.Y)}</b></td><td><b>${fmt(T.N)}</b></td><td><b>${fmt(T.E)}</b></td><td><b>${fmt(T.B)}</b></td></tr></tbody></table><p style="font-size:10px;color:#5d6872">Pipe trench width: ${PWRN[window.__PWR]} · depth from pit schedules (BOP − 0.15) to NGL ${f2(NGL)} · parallel pipes in one trench counted once (std. drawing 4422-AQ-DX-000000000001-02). * size assumed – no label in the CAD. Width per size: Quantities tab / Excel.</p>`})()}<p style="font-size:10px;color:#5d6872">Quantities from the CAD drawings · NGL ${f2(NGL)} m · duct banks not in the CAD use the sheet size.</p></div></div>`));
+  pages.push(page('Summary & quantities',`<div class="cols"><div>${st}</div><div>${dq}<div style="height:12px"></div>${tq}<div style="height:12px"></div>${(()=>{const {G,T}=pipeGroups();const U={};G.forEach(r=>{const u=U[r.u]=U[r.u]||{sz:[],L:0,R:0,Y:0,N:0,A:0,as:0,E:0,B:0};u.sz.push(r.z+(r.as?'*':''));for(const k of ['L','R','Y','N','A','as','E','B'])u[k]+=r[k]});return `<table><thead><tr><th>Pipes (pit to pit)</th><th>Sizes</th><th>Length m</th><th>Backfilled m</th><th>Excavated m</th><th>Not started m</th><th>Excavation m³</th><th>Backfill m³</th></tr></thead><tbody>${Object.entries(U).map(([u,r])=>`<tr><td>${esc(u)}</td><td style="font-size:9.5px">${esc(r.sz.join(' · '))}</td><td>${fmt(r.L)}</td><td>${fmt(r.R)}</td><td>${fmt(r.Y)}</td><td>${fmt(r.N)}</td><td>${fmt(r.E)}</td><td>${fmt(r.B)}</td></tr>`).join('')}<tr><td><b>Total</b></td><td></td><td><b>${fmt(T.L)}</b></td><td><b>${fmt(T.R)} · ${pct(T.R,T.L)}</b></td><td><b>${fmt(T.Y)}</b></td><td><b>${fmt(T.N)}</b></td><td><b>${fmt(T.E)}</b></td><td><b>${fmt(T.B)}</b></td></tr></tbody></table><p style="font-size:10px;color:#5d6872">Pipe trench width: ${PWRN[window.__PWR]} · depth from pit schedules (BOP − 0.15) to NGL ${f2(NGL)} · parallel pipes in one trench counted once (std. drawing ${DR.docPrefix}${DR.standard}). * size assumed – no label in the CAD. Width per size: Quantities tab / Excel.</p>`})()}<p style="font-size:10px;color:#5d6872">Quantities from the CAD drawings · NGL ${f2(NGL)} m · duct banks not in the CAD use the sheet size.</p></div></div>`));
   {const Q=qtyAll(),A=Q.T.all;const tb=(rows,first,tiles)=>{const ks=Object.keys(rows);const T={};ks.forEach(k=>{for(const f in rows[k])T[f]=(T[f]||0)+rows[k][f]});const c=(t,d)=>`<td>${fmt(t||0)}</td><td>${fmt(d||0)}</td><td>${fmt((t||0)-(d||0))}</td>`;
     const row=(n,r,b)=>`<tr>${b?'<td><b>'+n+'</b></td>':'<td>'+esc(n)+'</td>'}${c(r.exc,r.excD)}${c(r.sand,r.sandD)}${c(r.bf,r.bfD)}${tiles?c(r.tile,r.tileD):''}</tr>`;
     return `<table><thead><tr><th>${first}</th><th>Excavation m³</th><th>Done</th><th>Remain</th><th>Sand filling m³</th><th>Done</th><th>Remain</th><th>Backfill m³</th><th>Done</th><th>Remain</th>${tiles?'<th>Protection tiles m²</th><th>Done</th><th>Remain</th>':''}</tr></thead><tbody>${ks.map(k=>row(k,rows[k])).join('')}${ks.length>1?row('Total',T,1):''}</tbody></table>`};
@@ -799,7 +863,7 @@ function drawNotes__base(){if(!PR&&!layers.notes&&layers.notes!==undefined)retur
     const [e,nn]=noteAnchor(n),x=X(e),y=Y(nn);
     ctx.fillStyle=C;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-6,y-12);ctx.arc(x,y-20,10,Math.PI*0.72,Math.PI*2.28);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.fillStyle='#fff';ctx.font='700 11px Barlow, sans-serif';ctx.textAlign='center';ctx.fillText(String(i+1),x,y-16)})}
-function drawNotes(){const h=HK.drawNotes,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=drawNotes__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function drawNotes(){return hkRun('drawNotes',drawNotes__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function noteHit(x,y){for(let i=NOTES.length-1;i>=0;i--){const [e,n]=noteAnchor(NOTES[i]);if(Math.hypot(X(e)-x,Y(n)-20-y)<13)return NOTES[i]}return null}
 function setNote(on){noteMode=on;notePend=[];noteEditing=null;document.getElementById('notebtn').classList.toggle('on',!!on);
   if(on){setEdit(false);setBox(false);moveKey=null;document.getElementById('fltpop').hidden=true;document.getElementById('laypop').hidden=true;cv.style.cursor='crosshair';noteBar()}else{cv.style.cursor='';document.getElementById('notepop').hidden=true}draw()}
@@ -813,7 +877,7 @@ function finishNoteLine(){if(notePend.length<2){toast('Click at least two points
 function openNote(n){noteEditing=n;cv.style.cursor='';const p=document.getElementById('notepop');p.hidden=false;const i=NOTES.indexOf(n);
   p.innerHTML=`<div class="row" style="margin:0;justify-content:space-between"><h4>${n._new?'New comment':'Comment '+(i+1)}</h4><button class="x" data-nclose="1" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
   <label class="hint">What is it<select id="n-type">${NTYPES.map(t=>`<option ${n.type===t?'selected':''}>${t}</option>`).join('')}</select></label>
-  <label class="hint">Tag number (if known)<input type="text" id="n-tag" value="${esc(n.tag||'')}" placeholder="e.g. IY-DB-312"></label>
+  <label class="hint">Tag number (if known)<input type="text" id="n-tag" value="${esc(n.tag||'')}" placeholder="e.g. ${TG.sample.card}"></label>
   <label class="hint">Comment<textarea id="n-text" placeholder="e.g. DB missing between MH-041 and MH-042, 2×3 Ø160">${esc(n.text||'')}</textarea></label>
   <div class="hint mono">${n.pts.length>1?'Line, '+fmt(n.pts.reduce((s,q,k)=>k?s+Math.hypot(q[0]-n.pts[k-1][0],q[1]-n.pts[k-1][1]):0,0))+' m · ':''}E ${n.pts[0][0].toFixed(1)} · N ${n.pts[0][1].toFixed(1)} · ${esc(n.date)}</div>
   <div class="row" style="margin:0"><button class="btn sm primary" data-nsave="1">Save</button>${n._new?'':'<button class="btn sm" data-ndel="1" style="color:var(--nc)">Delete</button>'}<button class="btn sm" data-nclose="1">Cancel</button></div>`;
@@ -831,9 +895,9 @@ document.getElementById('notepop').addEventListener('click',e=>{const t=e.target
   if(t.closest('[data-nclose]')){noteEditing=null;if(noteMode){cv.style.cursor='crosshair';noteBar()}else document.getElementById('notepop').hidden=true;draw()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(noteMode||noteEditing)&&!(e.target.matches&&e.target.matches('textarea,input,select'))){setNote(false)}});
 function vNotes(){
-  return `<p class="lead">Comments you put on the drawing – missing items, wrong positions or anything to fix. Use <b>💬 Comment</b> on the map to add one, then send me the export file.</p>
-  <div class="row"><button class="btn sm primary" data-nexport="1">Export comments</button><button class="btn sm" data-ncopy="1">Copy as text</button>${NOTES.length?'<button class="btn sm" data-nshowall="1">Show all on map</button>':''}</div>
-  ${NOTES.length?`<table><thead><tr><th>#</th><th>Comment</th><th></th></tr></thead><tbody>${NOTES.map((n,i)=>`<tr class="nrow" tabindex="0" data-nopen="${n.id}"><td><span class="nnum">${i+1}</span></td><td><strong>${esc(n.type)}</strong>${n.tag?' · <span class="mono">'+esc(n.tag)+'</span>':''}<div class="muted">${esc(n.text||'–')}</div><div class="hint mono">${esc(n.date)} · E ${n.pts[0][0].toFixed(1)} N ${n.pts[0][1].toFixed(1)}${n.pts.length>1?' · line':''}</div></td><td><button class="btn sm" data-nopen="${n.id}">Map</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No comments yet.</p>'}`}
+  return `<p class="lead">Comments you put on the drawing – missing items, wrong positions or anything to fix. Use <b>💬 Comment</b> on the layout to add one, then send me the export file.</p>
+  <div class="row"><button class="btn sm primary" data-nexport="1">Export comments</button><button class="btn sm" data-ncopy="1">Copy as text</button>${NOTES.length?'<button class="btn sm" data-nshowall="1">Show all on layout</button>':''}</div>
+  ${NOTES.length?`<table><thead><tr><th>#</th><th>Comment</th><th></th></tr></thead><tbody>${NOTES.map((n,i)=>`<tr class="nrow" tabindex="0" data-nopen="${n.id}"><td><span class="nnum">${i+1}</span></td><td><strong>${esc(n.type)}</strong>${n.tag?' · <span class="mono">'+esc(n.tag)+'</span>':''}<div class="muted">${esc(n.text||'–')}</div><div class="hint mono">${esc(n.date)} · E ${n.pts[0][0].toFixed(1)} N ${n.pts[0][1].toFixed(1)}${n.pts.length>1?' · line':''}</div></td><td><button class="btn sm" data-nopen="${n.id}">Layout</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No comments yet.</p>'}`}
 function notesText(){return NOTES.map((n,i)=>`${i+1}. ${n.type}${n.tag?' ['+n.tag+']':''} – ${n.text||''} | E ${n.pts.map(p=>p[0].toFixed(2)+' N '+p[1].toFixed(2)).join(' → E ')} | ${n.date}`).join('\n')}
 view.addEventListener('click',e=>{const t=e.target;
   const o=t.closest('[data-nopen]');if(o){const n=NOTES.find(x=>x.id===o.dataset.nopen);if(n){const xs=n.pts.map(p=>p[0]),ys=n.pts.map(p=>p[1]);fitBox(Math.min(...xs)-20,Math.max(...xs)+20,Math.min(...ys)-20,Math.max(...ys)+20);openNote(n)}return}
@@ -854,22 +918,20 @@ const aqv=document.getElementById('aqv'),aqimg=document.getElementById('aqimg'),
 function aqApply(){aqwrap.style.transform=`translate(${AQ.x}px,${AQ.y}px) scale(${AQ.s})`}
 function aqFit(){const r=aqstage.getBoundingClientRect();AQ.s=Math.min(r.width/AQ.iw,r.height/AQ.ih)*.96;AQ.x=(r.width-AQ.iw*AQ.s)/2;AQ.y=(r.height-AQ.ih*AQ.s)/2;aqApply()}
 function aqFind__base(){if(!AQ.pt){aqFit();return}const r=aqstage.getBoundingClientRect();const fit=Math.min(r.width/AQ.iw,r.height/AQ.ih);AQ.s=Math.min(1.2,fit*4.5);AQ.x=r.width/2-AQ.pt[0]*AQ.iw*AQ.s;AQ.y=r.height/2-AQ.pt[1]*AQ.ih*AQ.s;aqApply()}
-function aqFind(){const h=HK.aqFind,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=aqFind__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function aqFind(){return hkRun('aqFind',aqFind__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function openAQ__base(k,pg){AQ.k=k;AQ.pg=pg;const L=(k&&D.aq&&D.aq.loc[k])||[];const hit=L.find(l=>l[0]===pg);AQ.pt=hit?[hit[1],hit[2]]:null;
   aqv.hidden=false;document.getElementById('aqtitle').textContent=aqName(pg);document.getElementById('aqsub').textContent=k?short(k)+(AQ.pt?'':' · tag not marked on this sheet'):'';
-  const pages=[...new Set(L.map(l=>l[0]))];document.getElementById('aqtabs').innerHTML=pages.length>1?pages.map(p=>`<button class="chipbtn" aria-pressed="${p===pg}" data-aqpg="${p}">${esc(aqName(p).replace(/^4422-AQ-DA-/,'DA-'))}</button>`).join(''):'';
+  const pages=[...new Set(L.map(l=>l[0]))];document.getElementById('aqtabs').innerHTML=pages.length>1?pages.map(p=>`<button class="chipbtn" aria-pressed="${p===pg}" data-aqpg="${p}">${esc(aqName(p).replace(DRF,DR.short))}</button>`).join(''):'';
   aqmk.hidden=!AQ.pt;document.getElementById('aqload').hidden=false;aqimg.style.visibility='hidden';
   aqimg.onload=()=>{AQ.iw=aqimg.naturalWidth;AQ.ih=aqimg.naturalHeight;aqimg.style.width=AQ.iw+'px';aqimg.style.height=AQ.ih+'px';aqwrap.style.width=AQ.iw+'px';aqwrap.style.height=AQ.ih+'px';if(AQ.pt){aqmk.style.left=AQ.pt[0]*AQ.iw+'px';aqmk.style.top=AQ.pt[1]*AQ.ih+'px'}document.getElementById('aqload').hidden=true;aqimg.style.visibility='';aqFind()};
   aqimg.onerror=()=>{document.getElementById('aqload').textContent='This drawing is not included in this copy.'};
   aqimg.src=aqSrc(pg)}
-function openAQ(){const h=HK.openAQ,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=openAQ__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function openAQ(){return hkRun('openAQ',openAQ__base,this,arguments,false)} // hooks: docs/PATCHES.md
 document.addEventListener('click',e=>{const b=e.target.closest('[data-aqopen]');if(b){openAQ(focusKey,+b.dataset.aqopen);return}const t=e.target.closest('[data-aqpg]');if(t)openAQ(AQ.k,+t.dataset.aqpg)});
 document.getElementById('aqclose').onclick=()=>{aqv.hidden=true};
 document.getElementById('aqfit').onclick=aqFit;document.getElementById('aqfind').onclick=aqFind;
 const aqZoom=(f,cx,cy)=>{const r=aqstage.getBoundingClientRect();if(cx==null){cx=r.width/2;cy=r.height/2}const ns=Math.max(.05,Math.min(4,AQ.s*f));AQ.x=cx-(cx-AQ.x)*ns/AQ.s;AQ.y=cy-(cy-AQ.y)*ns/AQ.s;AQ.s=ns;aqApply()};
 document.getElementById('aqzin').onclick=()=>aqZoom(1.4);document.getElementById('aqzout').onclick=()=>aqZoom(1/1.4);
-
-
 
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!aqv.hidden)aqv.hidden=true});
@@ -935,7 +997,7 @@ function drawTrn__base(){if(!D.trn||(!PR&&layers.trn===0))return;if(sc<0.25&&!PR
     if(sel&&!p.poly){ctx.globalAlpha=1;ctx.strokeStyle=css('--ink');ctx.lineWidth=1.5;ctx.setLineDash([5,4]);const dx=p.x1-p.x0,dy=p.y1-p.y0,L=Math.hypot(dx,dy)||1,nx=-dy/L*tr[2]/2,ny=dx/L*tr[2]/2;ctx.beginPath();ctx.moveTo(X(p.x0+nx),Y(p.y0+ny));ctx.lineTo(X(p.x1+nx),Y(p.y1+ny));ctx.lineTo(X(p.x1-nx),Y(p.y1-ny));ctx.lineTo(X(p.x0-nx),Y(p.y0-ny));ctx.closePath();ctx.stroke();ctx.setLineDash([])}
     if(p.n>1&&p.k>0&&w>=6&&!p.poly){ctx.globalAlpha=on?.9:.2;ctx.strokeStyle='#fff';ctx.lineWidth=2;const dx=p.x1-p.x0,dy=p.y1-p.y0,L=Math.hypot(dx,dy)||1,h=tr[2]/2+.4;ctx.beginPath();ctx.moveTo(X(p.x0-dy/L*h),Y(p.y0+dx/L*h));ctx.lineTo(X(p.x0+dy/L*h),Y(p.y0-dx/L*h));ctx.stroke()}}
   ctx.globalAlpha=1;ctx.lineCap='round'}
-function drawTrn(){const h=HK.drawTrn,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=drawTrn__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function drawTrn(){return hkRun('drawTrn',drawTrn__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function trnHit(x,y){if(!D.trn||layers.trn===0||cat==='WET')return null;let best=null,bd=8;for(const p of (window.__PARTS||[])){const d=p.poly?trPolyDist(x,y,p):dseg(x,y,[X(p.x0),Y(p.y0)],[X(p.x1),Y(p.y1)])-p.tr[2]*sc/2;if(d<bd){bd=d;best=p}}return best}
 function showTrn(tr){selTrn=tr;const i=D.trn.indexOf(tr);const q=trQ(tr,i);const el=document.getElementById('info');el.hidden=false;const s=q.st,T=s.R+s.Y+s.N||1;
   el.innerHTML=`<div class="hd"><div><h3>${esc(short(tr[0]))}</h3><div style="margin-top:4px"><span class="pill" style="color:${TCOL[tr[1]]}">${tr[1]} electrical trench</span></div></div><button class="x" data-close="1" aria-label="Close">×</button></div>
@@ -951,9 +1013,9 @@ function showTrn(tr){selTrn=tr;const i=D.trn.indexOf(tr);const q=trQ(tr,i);const
   el.querySelector('[data-trnfit]').onclick=()=>{const xs=tr[5].flatMap(l=>[l[0],l[2]]),ys=tr[5].flatMap(l=>[l[1],l[3]]);if(xs.length)fitBox(Math.min(...xs)-10,Math.max(...xs)+10,Math.min(...ys)-10,Math.max(...ys)+10)}}
 document.getElementById('info').addEventListener('click',e=>{if(e.target.closest('[data-close]'))selTrn=null});
 function vQty(){
-  const dbk=Object.keys(status).filter(k=>sheet[k]==='Duct Banks'&&pass(k)&&(D.qdb||{})[k]);
+  const dbk=Object.keys(status).filter(k=>sheet[k]===SHS.db&&pass(k)&&(D.qdb||{})[k]);
   const fam={};dbk.forEach(k=>{const f=famOf(k);const q=dbQ(k);const r=fam[f]=fam[f]||{n:0,m:0,L:0,net:0,exc:0,netI:0,netR:0,excR:0,chk:0,keys:[]};r.n++;r.keys.push(k);
-    if(q&&q.src!=='none'){r.m++;r.L+=q.L;r.net+=q.net||0;r.exc+=q.exc||0;if(S(k)==='Installed')r.netI+=q.net||0;else{r.netR+=q.net||0;r.excR+=q.exc||0}if(q.src==='sheet')r.chk++}});
+    if(q&&q.src!=='none'){r.m++;r.L+=q.L;r.net+=q.net||0;r.exc+=q.exc||0;if(S(k)===STV.inst)r.netI+=q.net||0;else{r.netR+=q.net||0;r.excR+=q.exc||0}if(q.src==='sheet')r.chk++}});
   const F=Object.entries(fam).sort();const tot=F.reduce((a,[,r])=>{for(const x in a)a[x]+=r[x];return a},{n:0,m:0,L:0,net:0,exc:0,netI:0,netR:0,excR:0,chk:0});
   const trs=(D.trn||[]).map((tr,i)=>trQ(tr,i));const g={};trs.forEach((q,i)=>{const key=q.sys+'|'+q.W;const r=g[key]=g[key]||{sys:q.sys,W:q.W,n:0,L:0,exc:0,R:0,Y:0,N:0,miss:0,idx:[]};r.n++;r.idx.push(i);if(q.L){r.L+=q.L;r.exc+=q.exc||0;r.R+=q.st.R;r.Y+=q.st.Y;r.N+=q.st.N}else r.miss++});
   const G=Object.values(g).sort((a,b)=>a.sys.localeCompare(b.sys)||a.W-b.W);const tt=G.reduce((a,r)=>{for(const x of ['n','L','exc','R','Y','N','miss'])a[x]+=r[x];return a},{n:0,L:0,exc:0,R:0,Y:0,N:0,miss:0});
@@ -973,7 +1035,7 @@ view.addEventListener('click',e=>{const t=e.target;
   if(t.closest('[data-qxls]')){try{const wb=XLSX.utils.book_new();
     const dbr=Object.keys(D.qdb||{}).sort().map(k=>Object.assign({Tag:k,Status:ST_LABEL[S(k)]||S(k)},qRow(k)));
     const trr=(D.trn||[]).map((tr,i)=>{const q=trQ(tr,i);return {Tag:tr[0],Type:tr[1],'Width (m)':tr[2],'Length (m)':q.L||'','Level':q.lv??'','Depth (m)':q.dep!=null?+q.dep.toFixed(3):'','Excavation (m³)':q.exc!=null?+q.exc.toFixed(3):'','Backfilled (m)':+q.st.R.toFixed(1),'Excavated (m)':+q.st.Y.toFixed(1),'Not started (m)':+q.st.N.toFixed(1)}});
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dbr),'Duct Banks');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(trr),'Electrical Trenches');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dbr),SHS.db);XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(trr),SHE.electricalTrenches);
     const pr=(window.__PP||[]).map(p=>({Pipe:p.util,From:p.a||'',To:p.b||'',Size:p.sz?p.sz.t:'','Size source':p.sz?SZSRC[p.sz.src]:'','OD (mm)':p.sz?p.sz.od:'','Trench width (m)':p.W?+p.W.toFixed(3):'','Length (m)':+p.L.toFixed(2),'Trench area (m²)':p.W?+(p.L*p.W).toFixed(2):'',...(()=>{const q=pQ(p),v=p.inv;return q?{'BOP start (m)':v.b0,'BOP end (m)':v.b1,'Level source':INVSRC[v.s0]+(v.s1!==v.s0?' / '+INVSRC[v.s1]:''),'Average depth (m)':+q.h.toFixed(3),'Measured width (m)':+q.W.toFixed(3),'Excavation (m³)':+q.exc.toFixed(2),'Sand (m³)':+q.sand.toFixed(2),'Backfill (m³)':+q.bf.toFixed(2)}:{}})(),Status:({N:'Not started',Y:'Excavated',R:'Backfilled'})[pState(p)],ID:p.id}));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pr),'Pipe Trenches');
     dlFile('Quantities_'+today()+'.xlsx',XLSX.write(wb,{bookType:'xlsx',type:'array'}));toast('Quantities saved')}catch(_){toast('Excel works from the copy saved on your computer')}return}});
 
@@ -987,7 +1049,7 @@ function applyTRE__base(){for(const k in TRE){const e=TRE[k];if(e&&e.newt&&!(D.t
   const PO=window.__PO||{};const P2=[];P.forEach(p=>{const o=PO[p.id];if(o&&o.del)return;if(o){p.x0=o.x0;p.y0=o.y0;p.x1=o.x1;p.y1=o.y1;p.L=Math.hypot(p.x1-p.x0,p.y1-p.y0);p.moved=1;if(o.poly&&o.poly.length>2)trPolyApply(p,o.poly.map(q=>q.slice()))}P2.push(p)});
   (D.trn||[]).forEach(tr=>{const ps=P2.filter(p=>p.tr===tr);tr[3]=ps.length?ps.reduce((s,p)=>s+p.L,0):null});
   window.__PARTS=P2;buildPParts();TRS=null;buildRuns()}
-function applyTRE(){const h=HK.applyTRE,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=applyTRE__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function applyTRE(){return hkRun('applyTRE',applyTRE__base,this,arguments,false)} // hooks: docs/PATCHES.md
 applyTRE();
 function focusTrn(tr){layers.trn=1;const xs=tr[5].flatMap(l=>[l[0],l[2]]),ys=tr[5].flatMap(l=>[l[1],l[3]]);if(xs.length)fitBox(Math.min(...xs)-10,Math.max(...xs)+10,Math.min(...ys)-10,Math.max(...ys)+10);else{sc=Math.max(sc,6);ox=tr[6][0]-W/2/sc;oy=tr[6][1]+H/2/sc}focusKey=null;showTrn(tr);draw()}
 function startTrnDraw(tr,mode){setEdit(false);setBox(false);moveKey=null;if(noteMode)setNote(false);trnDraw={tr,mode,pts:[]};cv.style.cursor='crosshair';selTrn=tr;
@@ -1006,7 +1068,7 @@ function finishTrnDraw(){const d=trnDraw;if(!d)return;if(d.pts.length<2){toast('
 hkAfter('drawTrn',function(){if(trnDraw&&trnDraw.pts.length){const t=trnDraw.tr;ctx.strokeStyle=TCOL[t[1]]||'#555';ctx.globalAlpha=.6;ctx.lineWidth=Math.max(2,t[2]*sc);ctx.setLineDash([10,6]);ctx.beginPath();trnDraw.pts.forEach((p,k)=>k?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;ctx.fillStyle=css('--ink');trnDraw.pts.forEach(p=>{ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),3.5,0,7);ctx.fill()})}});
 document.addEventListener('keydown',e=>{if(!trnDraw)return;if(e.key==='Escape'){trnDraw=null;cv.style.cursor='';draw()}if(e.key==='Enter')finishTrnDraw()});
 function trnMissHtml(){const miss=(D.trn||[]).filter(t=>!t[5].length);const mine=(D.trn||[]).filter(t=>TRE[t[0]]);
-  return `<details class="group" style="margin-top:12px"${miss.length?' open':''}><summary><h3>Not read from the drawing</h3><span class="muted">${miss.length}</span></summary><div class="body"><p class="hint" style="margin:0 0 6px;display:block">Click a tag, then “Redraw” to draw it on the map.</p><div class="tags">${miss.map(t=>`<button class="tag" data-trnopen="${esc(t[0])}" style="border-left:3px solid ${TCOL[t[1]]}">${esc(short(t[0]))}</button>`).join('')}</div></div></details>
+  return `<details class="group" style="margin-top:12px"${miss.length?' open':''}><summary><h3>Not read from the drawing</h3><span class="muted">${miss.length}</span></summary><div class="body"><p class="hint" style="margin:0 0 6px;display:block">Click a tag, then “Redraw” to draw it on the layout.</p><div class="tags">${miss.map(t=>`<button class="tag" data-trnopen="${esc(t[0])}" style="border-left:3px solid ${TCOL[t[1]]}">${esc(short(t[0]))}</button>`).join('')}</div></div></details>
   ${mine.length?`<details class="group"><summary><h3>Drawn or corrected by you</h3><span class="muted">${mine.length}</span></summary><div class="body tags">${mine.map(t=>`<button class="tag" data-trnopen="${esc(t[0])}" style="border-left:3px solid ${TCOL[t[1]]}">${esc(short(t[0]))} ✎</button>`).join('')}</div></details>`:''}`}
 view.addEventListener('click',e=>{const b=e.target.closest('[data-trnopen]');if(b){e.stopPropagation();const tr=D.trn.find(t=>t[0]===b.dataset.trnopen);if(tr)focusTrn(tr)}},true);
 
@@ -1017,7 +1079,7 @@ function showPart__base(p){selPart=p;selTrn=p.tr;const tr=p.tr,i=D.trn.indexOf(t
   const exc=q.dep!=null?p.L*tr[2]*q.dep:null;const el=document.getElementById('info');el.hidden=false;const mix=(D.pmix||[]).includes(p.id)&&!rec;
   el.innerHTML=`<div class="hd"><div><h3>${esc(short(tr[0]))}</h3><div style="margin-top:4px"><span class="pill" style="color:${TCOL[tr[1]]}">${tr[1]} trench</span> <span class="muted">part ${p.k+1} of ${p.n} · ${f2(p.L)} m</span></div></div><button class="x" data-close="1" aria-label="Close">×</button></div>
   ${mix?'<div class="hint" style="color:#b71c1c;margin-top:6px">Your old lines covered only part of this – please confirm the status.</div>':''}
-  <div class="hint" style="margin-top:8px">Status of this part</div>
+  <div class="hint sthint" data-stnow="1" style="margin-top:8px">Status of this part</div>
   <div class="stset">${[['N','Not started'],['Y','Excavated'],['R','Backfilled']].map(([s,l])=>`<button class="btn sm${st===s?' on':''}" data-pst="${s}">${l}</button>`).join('')}</div>
   <div class="hint" style="margin-top:4px">${rec?'Set by you '+esc(rec.date):(D.pinit||{})[p.id]?'Taken from your old trench lines':'No action yet'}</div>
   <div class="qbox"><div class="qgrid"><span>Width</span><span class="num">${f2(tr[2])} m</span><span></span><span>Length</span><span class="num">${f2(p.L)} m</span><span></span><span>Depth</span><span class="num">${q.dep!=null?f2(q.dep)+' m':'–'}</span><span></span><span>Excavation</span><span class="num"><b>${exc!=null?f2(exc)+' m³':'–'}</b></span><span></span></div></div>
@@ -1025,7 +1087,7 @@ function showPart__base(p){selPart=p;selTrn=p.tr;const tr=p.tr,i=D.trn.indexOf(t
   <div class="acts"><button class="btn sm" data-pwhole="1">Whole trench</button></div>`;
   el.querySelectorAll('[data-pst]').forEach(b=>b.onclick=()=>{setPart([p],b.dataset.pst);showPart(p);toast('Part '+(p.k+1)+' → '+b.textContent)});
   el.querySelector('[data-pwhole]').onclick=()=>{selPart=null;showTrn(tr);draw()}}
-function showPart(){const h=HK.showPart,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=showPart__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function showPart(){return hkRun('showPart',showPart__base,this,arguments,false)} // hooks: docs/PATCHES.md
 document.getElementById('info').addEventListener('click',e=>{if(e.target.closest('[data-close]'))selPart=null});
 function partsInBoxHtml(){if(!boxRes)return '';const P=partsInBox();if(!P.length)return '';
   const c={N:0,Y:0,R:0};P.forEach(p=>c[pState(p)]+=p.L);
@@ -1048,7 +1110,7 @@ function renderCable(){const p=document.getElementById('cablepop');if(!cableMode
   ${delConfirmHtml('c')}${msHtml('c')}${matchHtml('c')}<p class="hint" style="margin:0">${CM[cableMode][1]}</p>
   ${sp?`<div style="border-top:1px solid var(--line);padding-top:8px"><div class="hint">Selected: <b>${esc(short(sp.tr[0]))}</b> · part ${sp.k+1}/${sp.n} · ${f2(sp.L)} m${sp.moved?' · ✎ edited':''}</div>
    <div class="sel-row"><button class="btn sm" data-csnap="1">Snap to drawing</button>${sp.moved?'<button class="btn sm" data-creset="1">Reset part</button>':''}<button class="btn sm" data-cdel="1" style="color:var(--nc)">Delete part</button></div>
-   <div class="sel-row"><button class="btn sm" data-credraw="1">Redraw trench</button><button class="btn sm" data-croute="1">Add a route</button>${TRE[sp.tr[0]]?'<button class="btn sm ghost" data-cback="1">Back to drawing</button>':''}</div></div>`:'<p class="hint" style="margin:0">Click a cable trench part on the map to select it.</p>'}
+   <div class="sel-row"><button class="btn sm" data-credraw="1">Redraw trench</button><button class="btn sm" data-croute="1">Add a route</button>${TRE[sp.tr[0]]?'<button class="btn sm ghost" data-cback="1">Back to drawing</button>':''}</div></div>`:'<p class="hint" style="margin:0">Click a cable trench part on the layout to select it.</p>'}
   <div class="sel-row" style="margin:0"><button class="btn sm" data-cexport="1">Export updates</button><label class="btn sm" for="eimport">Import updates</label></div>`}
 document.getElementById('cablebtn').onclick=()=>setCable(cableMode?null:'status');
 
@@ -1093,7 +1155,7 @@ function liveSnapPart(p){const W=p.tr[2],dx=p.x1-p.x0,dy=p.y1-p.y0,L=Math.hypot(
   let ba=null,bd=9;for(const s of D.net){for(const [e,n] of [[s[0],s[1]],[s[2],s[3]]]){for(const [ex,ey] of [[p.x0,p.y0],[p.x1,p.y1]]){const dd=Math.hypot(X(e)-X(ex),Y(n)-Y(ey));if(dd<bd){bd=dd;ba=[(e-ex)*ux+(n-ey)*uy]}}}}
   if(ba){const t=ba[0];p.x0+=ux*t;p.y0+=uy*t;p.x1+=ux*t;p.y1+=uy*t}}
 // ---------- undo / redo (Ctrl+Z / Ctrl+Y) ----------
-const UKEYS={'scope.mom':'method of measurement','scope.addi':'added item','scope.psz':'pipe size','scope.ppo':'pipe part position','scope.ppa':'pipe route','scope.po':'trench part position','scope.ps':'trench part status','scope.trnedit':'trench route','scope.trench':'pipe trench','scope.ov':'item status','scope.notes':'comment','scope.pos':'item position','scope.plan':'look ahead'};
+const UKEYS={'scope.mom':'method of measurement','scope.mw':'measured work','scope.addi':'added item','scope.psz':'pipe size','scope.ppo':'pipe part position','scope.ppa':'pipe route','scope.po':'trench part position','scope.ps':'trench part status','scope.trnedit':'trench route','scope.trench':'pipe trench','scope.ov':'item status','scope.notes':'comment','scope.pos':'item position','scope.plan':'look ahead'};
 const LAST={};Object.keys(UKEYS).forEach(k=>{try{LAST[k]=localStorage.getItem(k)}catch(_){LAST[k]=null}});
 let UNDO=[],REDO=[],ugroup=null,restoring=false;
 window.__UNDO=(k,s)=>{if(restoring||!(k in UKEYS))return;if(LAST[k]===s)return;if(!ugroup){ugroup=[];UNDO.push(ugroup);if(UNDO.length>50)UNDO.shift();REDO=[];setTimeout(()=>ugroup=null,0)}ugroup.push({k,prev:LAST[k],next:s});LAST[k]=s};
@@ -1104,7 +1166,7 @@ function restoreKey__base(k,s){const v=s==null?null:JSON.parse(s);if(k==='scope.
   if(k==='scope.ov')OV=v||{};if(k==='scope.notes')NOTES=v||[];if(k==='scope.plan')PLAN=Object.assign({title:'',keys:[],perTrailer:2,perDay:6},v||{});
   if(k==='scope.pos'){POS=v||{};items.forEach(i=>{if(i.added)return;const p=POS[i.key]||{e:BASEPOS[i.key][0],n:BASEPOS[i.key][1]};i.e=p.e;i.n=p.n})}
   LAST[k]=s;try{if(s==null)localStorage.removeItem(k);else localStorage.setItem(k,s)}catch(_){}try{window.__SYNCPUSH&&window.__SYNCPUSH(k,s)}catch(e){console.warn(e)}}
-function restoreKey(){const h=HK.restoreKey,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=restoreKey__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return r} // hooks: docs/PATCHES.md
+function restoreKey(){return hkRun('restoreKey',restoreKey__base,this,arguments,true)} // hooks: docs/PATCHES.md
 function applyStep(step,back){restoring=true;try{(back?step.slice().reverse():step).forEach(e=>restoreKey(e.k,back?e.prev:e.next))}finally{restoring=false}
   selPart=null;applyTRE();render();if(cableMode)renderCable();draw();toast((back?'Undone: ':'Redone: ')+[...new Set(step.map(e=>UKEYS[e.k]))].join(', '))}
 function undo(){if(pipeDraw&&pipeDraw.pts.length){pipeDraw.pts.pop();draw();return}if(pend.length){pend.pop();draw();return}if(trnDraw&&trnDraw.pts.length){trnDraw.pts.pop();draw();return}if(notePend.length){notePend.pop();draw();return}
@@ -1152,7 +1214,7 @@ function pQ(p){const v=p.inv,od=p.sz?p.sz.od/1000:0,W=p.Weff||p.W;if(!v||!W)retu
   return {h0,h1,h,W,exc,sand,bf,shared:W<p.W-0.01,assumed:v.s0==='A'||v.s1==='A'}}
 function buildPParts__base(){const O=window.__PPO||{},out=[];(D.pparts||[]).forEach(r=>{const o=O[r[0]];if(o&&o.del)return;const pts=o&&o.pts?o.pts:r[2];out.push({id:r[0],util:(o&&o.util)||r[1],pts,a:(o&&o.a!==undefined)?o.a:r[3],b:(o&&o.b!==undefined)?o.b:r[4],moved:!!(o&&o.pts),L:plLen(pts),pipe:1})});
   (window.__PPA||[]).forEach(a=>{const o=O[a.id];if(o&&o.del)return;const pts=o&&o.pts?o.pts:a.pts;out.push({id:a.id,util:(o&&o.util)||a.util,pts,a:(o&&o.a!==undefined)?o.a:(a.a||null),b:(o&&o.b!==undefined)?o.b:(a.b||null),added:a.date,moved:!!(o&&o.pts),L:plLen(pts),pipe:1,_base:a})});out.forEach(p=>{p.sz=pSize(p,p._base);p.W=trWidth(p.sz);p.inv=pInv(p)});pipeShare(out);window.__PP=out}
-function buildPParts(){const h=HK.buildPParts,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=buildPParts__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function buildPParts(){return hkRun('buildPParts',buildPParts__base,this,arguments,false)} // hooks: docs/PATCHES.md
 const ptOf=(pts,f)=>{let L=plLen(pts)*f;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);if(L<=d){const u=d?L/d:0;return [pts[i-1][0]+(pts[i][0]-pts[i-1][0])*u,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*u]}L-=d}return pts[pts.length-1]};
 
 // delete tool: click = delete one, drag = box (asks first)
@@ -1245,29 +1307,29 @@ function showPipe__base(p){selPipe=p;selPart=null;const st=pState(p),rec=window.
    <span>Sand (bed + 300 above)</span><span class="num">${fmt(q.sand)} m³</span>
    <span>Backfill</span><span class="num">${fmt(q.bf)} m³</span>
    ${odn.length?`<span style="color:#b71c1c">Check</span><span style="color:#b71c1c">Pit schedule shows OD ${odn.map(x=>Math.round(x)).join(' / ')} at this pipe's pit</span>`:''}`})()}</div>
-  <div class="hint" style="margin-top:8px">Status of this pipe run</div>
+  <div class="hint sthint" data-stnow="1" style="margin-top:8px">Status of this pipe run</div>
   <div class="stset">${[['N','Not started'],['Y','Excavated'],['R','Backfilled']].map(([s,l])=>`<button class="btn sm${st===s?' on':''}" data-qst="${s}">${l}</button>`).join('')}</div>
   <div class="hint" style="margin-top:4px">${rec?'Set by you '+esc(rec.date):(D.pinit||{})[p.id]?'Taken from your old trench lines':'No action yet'}</div>
   ${p.a||p.b?`<div class="tags" style="margin-top:8px">${[p.a,p.b].filter(Boolean).map(k=>tagChip(k)).join('')}</div>`:''}`;
   {const sel=el.querySelector('#psz');if(sel)sel.onchange=()=>{window.__PSZ[p.id]=sel.value;save('scope.psz',window.__PSZ);buildPParts();buildRuns();render();draw();const np=(window.__PP||[]).find(x=>x.id===p.id);if(np)showPipe(np);toast('Size '+sel.value+' · trench '+f2(np.W)+' m')}}
   el.querySelectorAll('[data-qst]').forEach(b=>b.onclick=()=>{setPart([p],b.dataset.qst);showPipe((window.__PP||[]).find(x=>x.id===p.id)||p);toast(p.util+' run → '+b.textContent)});
   if(pipeMode)renderPipe()}
-function showPipe(){const h=HK.showPipe,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=showPipe__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function showPipe(){return hkRun('showPipe',showPipe__base,this,arguments,false)} // hooks: docs/PATCHES.md
 document.getElementById('info').addEventListener('click',e=>{if(e.target.closest('[data-close]'))selPipe=null});
 // tools
 const PM={status:['Set status','Click a pipe run, then choose Not started / Excavated / Backfilled.'],move:['Move','Drag a pipe run to its right place. Release to save.'],del:['Delete','Click a pipe run to delete it, or drag a box to delete several. Ctrl+Z brings it back.'],match:['Match properties','Click the run to copy from, then click the runs to change (status + pipe type).'],ends:['Edit ends','Drag the start or end point of a run. Points snap to the drawing.']};
 function setPipe__base(m){pipeMode=m;if(m){if(cableMode)setCable(null);setEdit(false);setBox(false);moveKey=null;if(noteMode)setNote(false);document.getElementById('fltpop').hidden=true;document.getElementById('laypop').hidden=true}
   pipeDraw=null;document.getElementById('editbtn').classList.toggle('on',!!m);cv.style.cursor=m==='move'?'move':m==='ends'||m==='del'?'crosshair':m==='match'?'copy':'';delPend=null;matchSrc=null;if(!m)MS={kind:null,list:[]};renderPipe();draw()}
-function setPipe(){const h=HK.setPipe,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=setPipe__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function setPipe(){return hkRun('setPipe',setPipe__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function renderPipe__base(){const p=document.getElementById('pipepop');if(!pipeMode){p.hidden=true;return}p.hidden=false;const sp=selPipe;
   p.innerHTML=`<div class="row" style="margin:0;justify-content:space-between"><h4>Update pipe trench</h4><button class="x" data-pclose="1" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
   <div class="segs small">${Object.entries(PM).map(([k,[l]])=>`<button class="seg" aria-pressed="${pipeMode===k}" data-pmode="${k}">${l}</button>`).join('')}</div>
   ${delConfirmHtml('p')}${msHtml('p')}${matchHtml('p')}<p class="hint" style="margin:0">${pipeDraw?'Click along the pipe. Double-click or Enter to finish, Esc to cancel.':PM[pipeMode][1]}</p>
   ${sp?`<div style="border-top:1px solid var(--line);padding-top:8px"><div class="hint">Selected: <b>${esc(sp.util)} · ${esc(pipeName(sp))}</b> · ${f2(sp.L)} m</div>
-   <div class="sel-row">${sp.moved?'<button class="btn sm" data-preset="1">Reset run</button>':''}<button class="btn sm" data-predraw="1">Redraw run</button><button class="btn sm" data-pdel="1" style="color:var(--nc)">Delete run</button></div></div>`:'<p class="hint" style="margin:0">Click a pipe run on the map to select it.</p>'}
+   <div class="sel-row">${sp.moved?'<button class="btn sm" data-preset="1">Reset run</button>':''}<button class="btn sm" data-predraw="1">Redraw run</button><button class="btn sm" data-pdel="1" style="color:var(--nc)">Delete run</button></div></div>`:'<p class="hint" style="margin:0">Click a pipe run on the layout to select it.</p>'}
   <div class="sel-row" style="margin:0"><select id="p-util">${UTIL.map(([k,l])=>`<option value="${esc(k)}" ${sp&&sp.util===k?'selected':''}>${esc(k)} · ${esc(l)}</option>`).join('')}</select><button class="btn sm" data-padd="1">Add a route</button></div>
   <div class="sel-row" style="margin:0"><button class="btn sm" data-pexport="1">Export updates</button><label class="btn sm" for="eimport">Import updates</label></div>`}
-function renderPipe(){const h=HK.renderPipe,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=renderPipe__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function renderPipe(){return hkRun('renderPipe',renderPipe__base,this,arguments,false)} // hooks: docs/PATCHES.md
 document.getElementById('pipepop').addEventListener('click',e=>{const t=e.target,sp=selPipe;
   if(t.closest('[data-pclose]')){setPipe(null);return}
   const m=t.closest('[data-pmode]');if(m){setPipe(m.dataset.pmode);return}
@@ -1300,7 +1362,7 @@ function pipeGroups(){const g={};(window.__PP||[]).forEach(p=>{const z=p.sz?p.sz
   const ord=UTIL.map(u=>u[0]);const G=Object.values(g).sort((a,b)=>ord.indexOf(a.u)-ord.indexOf(b.u)||a.dn-b.dn);const T=G.reduce((a,r)=>{for(const k of ['n','L','R','Y','N','A','AR','as','E','S','B','ER','ai'])a[k]+=r[k];return a},{n:0,L:0,R:0,Y:0,N:0,A:0,AR:0,as:0,E:0,S:0,B:0,ER:0,ai:0});return {G,T}}
 function pipeQtyHtml(){if(!(window.__PP||[]).length)return '';const {G,T}=pipeGroups();
   return `<h3 class="h" style="margin-top:14px">Pipes <span class="muted num">${T.n} runs · pit to pit</span></h3>
-  <div class="sel-row" style="margin:4px 0 6px"><span class="hint">Trench width rule (std. drawing 4422-AQ-DX-000000000001-02):</span><select data-pwr="1" style="border:1px solid var(--line);border-radius:5px;padding:3px 6px">${Object.entries(PWRN).map(([k,l])=>`<option value="${k}" ${window.__PWR===k?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="sel-row" style="margin:4px 0 6px"><span class="hint">Trench width rule (std. drawing ${DR.docPrefix}${DR.standard}):</span><select data-pwr="1" style="border:1px solid var(--line);border-radius:5px;padding:3px 6px">${Object.entries(PWRN).map(([k,l])=>`<option value="${k}" ${window.__PWR===k?'selected':''}>${l}</option>`).join('')}</select></div>
   <div style="overflow-x:auto"><table class="qtbl"><thead><tr><th>Pipe</th><th>Size</th><th class="num">Trench W m</th><th class="num">Runs</th><th class="num">Length m</th><th class="num">Backfilled m</th><th class="num">Excavated m</th><th class="num">Not started m</th><th class="num">Excavation m³</th><th class="num">Done m³</th><th class="num">Sand filling m³</th><th class="num">Backfill m³</th></tr></thead><tbody>
   ${G.map(r=>`<tr tabindex="0" data-pfit="${esc(r.u)}"><td><span class="sw" style="background:${ucol(r.u)}"></span> <strong>${esc(r.u)}</strong></td><td>${esc(r.z)}${r.as?` <span class="hint" title="${r.as} runs with no size label – assumed">*</span>`:''}</td><td class="num">${r.W?f2(r.W):'–'}</td><td class="num">${r.n}</td><td class="num">${fmt(r.L)}</td><td class="num">${fmt(r.R)}</td><td class="num">${fmt(r.Y)}</td><td class="num">${fmt(r.N)}</td><td class="num">${fmt(r.E)}${r.ai?`<span class="hint" title="${r.ai} runs with assumed depth"> ~</span>`:''}</td><td class="num">${fmt(r.ER)}</td><td class="num">${fmt(r.S)}</td><td class="num">${fmt(r.B)}</td></tr>`).join('')}
   <tr class="tot"><td>Total</td><td></td><td></td><td class="num">${T.n}</td><td class="num">${fmt(T.L)}</td><td class="num">${fmt(T.R)}</td><td class="num">${fmt(T.Y)}</td><td class="num">${fmt(T.N)}</td><td class="num">${fmt(T.E)}</td><td class="num">${fmt(T.ER)}</td><td class="num">${fmt(T.S)}</td><td class="num">${fmt(T.B)}</td></tr></tbody></table></div>
@@ -1309,7 +1371,10 @@ view.addEventListener('change',e=>{const s=e.target.closest('[data-pwr]');if(!s)
 view.addEventListener('click',e=>{const o=e.target.closest('[data-ppopen]');if(o){const p=(window.__PP||[]).find(x=>x.id===o.dataset.ppopen);if(p){const xs=p.pts.map(q=>q[0]),ys=p.pts.map(q=>q[1]);fitBox(Math.min(...xs)-15,Math.max(...xs)+15,Math.min(...ys)-15,Math.max(...ys)+15);showPipe(p)}}
   const f=e.target.closest('[data-pfit]');if(f){UTIL.forEach(([k])=>layers['u:'+k]=k===f.dataset.pfit?1:0);saveAll();draw();toast('Showing '+f.dataset.pfit+' only – turn the others back on in Layers')}});
 // one-time: carry the status of lines drawn on this computer into the new parts
-(function migrate(){try{if(localStorage.getItem('scope.migr.pipes'))return}catch(_){return}
+// Neither one-time change runs in the site copy for the phone (SITE_ONLY): its data is given to it whole, from a backup file, before
+// the program has ever run on that phone, so it is not old data – run there, the second one dropped the status of every pipe run
+// and every edited pipe route
+(function migrate(){if(window.SITE_ONLY)return;try{if(localStorage.getItem('scope.migr.pipes'))return}catch(_){return}
   const has=TE.added.length||Object.keys(TE.status).length||TE.removed.length;
   if(has){const old=D.trench.map((t,i)=>({st:TE.status['b'+i]||t[0],pl:t[1],id:'b'+i})).filter(r=>!TE.removed.includes(r.id)).concat(TE.added.filter(a=>!TE.removed.includes(a.id)).map(a=>({st:TE.status[a.id]||a.st,pl:a.pl})));
     const stAt=(x,y)=>{let s='N',bd=2;for(const r of old){const d=dpoly(x,y,r.pl);if(d<bd){bd=d;s=r.st}}return s};
@@ -1318,7 +1383,7 @@ view.addEventListener('click',e=>{const o=e.target.closest('[data-ppopen]');if(o
     if(k){try{localStorage.setItem('scope.ps',JSON.stringify(window.__PS))}catch(_){}}}
   try{localStorage.setItem('scope.migr.pipes','1')}catch(_){}})();
 // v25: pipe runs rebuilt (straight joins) – old pipe ids no longer match, re-derive from old lines
-(function migr2(){try{if(localStorage.getItem('scope.migr.pipes2'))return}catch(_){return}
+(function migr2(){if(window.SITE_ONLY)return;try{if(localStorage.getItem('scope.migr.pipes2'))return}catch(_){return}
   Object.keys(window.__PS).forEach(k=>{if(k.startsWith('P|'))delete window.__PS[k]});
   if(Object.keys(window.__PPO).length){window.__PPO={};try{buildPParts()}catch(_){}}
   const has=TE.added.length||Object.keys(TE.status).length||TE.removed.length;

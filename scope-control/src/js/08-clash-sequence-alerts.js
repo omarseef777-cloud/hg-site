@@ -8,7 +8,7 @@ function segX4(a,b,c,d){const r=[b[0]-a[0],b[1]-a[1]],s=[d[0]-c[0],d[1]-c[1]],de
 function pipeSegs(p){const P=p.pts||[],out=[];let acc=0;const L=p.L||1;for(let i=0;i<P.length-1;i++){const l=Math.hypot(P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]);out.push({a:P[i],b:P[i+1],f0:acc/L,f1:(acc+l)/L});acc+=l}return out}
 function pipeBand(p,f){const v=p.inv;if(!v||v.b0==null||v.b1==null||v.s0==='A'||v.s1==='A')return null;const od=p.sz&&p.sz.od?p.sz.od/1000:0;const b=v.b0+(v.b1-v.b0)*Math.max(0,Math.min(1,f));return [b,b+od]}
 const gapOf=(A,B)=>Math.max(A[0],B[0])-Math.min(A[1],B[1]); // >0: clear distance, <0: overlap
-function alertsCalc(){const out={lvl:[],seq:[],unk:0,t:Date.now()};const PP=window.__PP||[],CP=window.__PARTS||[];
+function alertsCalc(){if(RS.on&&RS.al)return RS.al;const out={lvl:[],seq:[],unk:0,t:Date.now()};const PP=window.__PP||[],CP=window.__PARTS||[];
   // grid of cable parts and DB footprints
   const G=new Map(),cell=40,key=(i,j)=>i+','+j,addB=(o,x0,y0,x1,y1)=>{for(let i=Math.floor(Math.min(x0,x1)/cell);i<=Math.floor(Math.max(x0,x1)/cell);i++)for(let j=Math.floor(Math.min(y0,y1)/cell);j<=Math.floor(Math.max(y0,y1)/cell);j++){const k=key(i,j);if(!G.has(k))G.set(k,[]);G.get(k).push(o)}};
   CP.forEach(p=>addB({c:p},p.x0,p.y0,p.x1,p.y1));
@@ -27,12 +27,12 @@ function alertsCalc(){const out={lvl:[],seq:[],unk:0,t:Date.now()};const PP=wind
         const id='pp|'+p.id+'|'+q.id;if(seen.has(id))return;seen.add(id);const pa=pipeBand(p,sg.f0+(sg.f1-sg.f0)*X.t),pb=pipeBand(q,o.s.f0+(o.s.f1-o.s.f0)*X.u);if(!pa||!pb){out.unk++;return}const g=gapOf(pa,pb);
         if(g<CLR)out.lvl.push({id,kind:'Pipe × pipe',a:p,b2:q,an:p.util+' pipe',bn:q.util+' pipe',x:X.x,y:X.y,gap:g,la:pa,lb:pb})}})})});
   // sequence: backfilled before the item it connects to is installed
-  PP.forEach(p=>{if(pState(p)!=='R')return;[p.a,p.b].forEach(k=>{if(!k||!byKey[k])return;const s=S(k);if(s!=='Installed')out.seq.push({id:'sp|'+p.id+'|'+k,kind:'Pipe trench backfilled – pit not installed',a:p,k,an:p.util+' pipe',bn:short(k),st:s,x:byKey[k].e,y:byKey[k].n})})});
+  PP.forEach(p=>{if(pState(p)!=='R')return;[p.a,p.b].forEach(k=>{if(!k||!byKey[k])return;const s=S(k);if(s!==STV.inst)out.seq.push({id:'sp|'+p.id+'|'+k,kind:'Pipe trench backfilled – pit not installed',a:p,k,an:p.util+' pipe',bn:short(k),st:s,x:byKey[k].e,y:byKey[k].n})})});
   const dbAt=new Map();Object.entries(D.dbind||{}).forEach(([k,v])=>(v.t||[]).forEach(t=>{if(!dbAt.has(t))dbAt.set(t,[]);dbAt.get(t).push(k)}));
-  CP.forEach(c=>{if(pState(c)!=='R')return;(dbAt.get(c.tr[0])||[]).forEach(k=>{const it=byKey[k];if(!it)return;const s=S(k);if(s==='Installed')return;const f=footOf(k);
+  CP.forEach(c=>{if(pState(c)!=='R')return;(dbAt.get(c.tr[0])||[]).forEach(k=>{const it=byKey[k];if(!it)return;const s=S(k);if(s===STV.inst)return;const f=footOf(k);
     const dd=f&&f.length>2?Math.min(...f.map((q,i)=>Math.min(dseg(q[0],q[1],[c.x0,c.y0],[c.x1,c.y1]),dseg(c.x0,c.y0,q,f[(i+1)%f.length]),dseg(c.x1,c.y1,q,f[(i+1)%f.length])))):dseg(it.e,it.n,[c.x0,c.y0],[c.x1,c.y1]);
     if(dd<1.5)out.seq.push({id:'sc|'+c.id+'|'+k,kind:'Cable trench backfilled – duct bank not installed',c,k,an:short(c.tr[0]),bn:short(k),st:s,x:it.e,y:it.n})})});
-  out.lvl.sort((a,b)=>a.gap-b.gap);ALC=out;return out}
+  out.lvl.sort((a,b)=>a.gap-b.gap);ALC=out;if(RS.on)RS.al=out;return out}
 const lv=v=>v==null?'–':v.toFixed(2);
 function alertsHtml(){const A=alertsCalc(),LV=alAct(A.lvl),SQ=alAct(A.seq),cl=LV.filter(a=>a.gap<0).length,IG=A.lvl.concat(A.seq).filter(a=>ALIG[a.id]);const ro=!!SYN.db&&!SYN.admin;
   const chk=a=>`<td class="ck"><input type="checkbox" data-alig="${esc(a.id)}" ${ALIG[a.id]?'checked':''} ${ro?'disabled':''} aria-label="Ignore"></td>`;
@@ -42,8 +42,8 @@ function alertsHtml(){const A=alertsCalc(),LV=alAct(A.lvl),SQ=alAct(A.seq),cl=LV
         cgS='<colgroup><col style="width:34%"><col style="width:20%"><col style="width:20%"><col style="width:12%"><col style="width:8%"><col style="width:6%"></colgroup>',
         thS='<th>Alert</th><th class="tl">Trench</th><th class="tl">Item</th><th class="tl">Item status</th><th></th><th class="ck">Ignore</th>';
   const IL=IG.filter(a=>a.gap!=null),IS=IG.filter(a=>a.gap==null);
-  return `<div class="k4">${kcard2('Level clashes',cl,'#b71c1c')}${kcard2('Tight crossings (< '+CLR.toFixed(2)+' m)',LV.length-cl,'#e3a00d')}${kcard2('Sequence alerts',SQ.length,'#8e24aa')}${kcard2('Crossings – pipe level assumed',A.unk,'#607d8b')}</div>
-  <div class="sec"><h2>Level clashes &amp; tight crossings</h2><div class="sel-row" style="margin-bottom:8px"><button class="btn sm${ALSHOW?' on':''}" data-alshow="1">${ALSHOW?'Shown on map ✓':'Show all on map'}</button></div>
+  return `<div class="k4">${kcard2('Level clashes',cl,'#b71c1c')}${kcard2('Tight crossings under '+CLR.toFixed(2)+' m',LV.length-cl,'#e3a00d')}${kcard2('Sequence alerts',SQ.length,'#8e24aa')}${kcard2('Crossings – pipe level assumed',A.unk,'#607d8b')}</div>
+  <div class="sec"><h2>Level clashes &amp; tight crossings</h2><div class="sel-row" style="margin-bottom:8px"><button class="btn sm${ALSHOW?' on':''}" data-alshow="1">${ALSHOW?'Shown on layout ✓':'Show all on layout'}</button></div>
    <div class="scroll"><table class="fx">${cgL}<thead><tr>${thL}</tr></thead><tbody>
    ${LV.map(a=>row(a,1)).join('')||'<tr><td colspan="8" class="muted">No level clash.</td></tr>'}</tbody></table></div></div>
   <div class="sec"><h2>Sequence alerts</h2><div class="scroll"><table class="fx">${cgS}<thead><tr>${thS}</tr></thead><tbody>
@@ -62,10 +62,6 @@ document.getElementById('repv').addEventListener('click',e=>{const b=e.target.cl
 {hkAfter('drawNotes',function(){if(typeof PR!=='undefined'&&PR)return;const L=[];if(ALSHOW&&ALC)L.push(...alAct(ALC.lvl),...alAct(ALC.seq));if(ALSEL&&!L.includes(ALSEL))L.push(ALSEL);if(!L.length)return;ctx.save();
   L.forEach(a=>{const x=X(a.x),y=Y(a.y),sel=a===ALSEL,c=a.gap!=null?(a.gap<0?'#d32f2f':'#e3a00d'):'#8e24aa',r=sel?11:7;ctx.strokeStyle='#fff';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x-r,y-r);ctx.lineTo(x+r,y+r);ctx.moveTo(x+r,y-r);ctx.lineTo(x-r,y+r);ctx.stroke();ctx.strokeStyle=c;ctx.lineWidth=2.5;ctx.stroke();
     if(sel){ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r+8,0,Math.PI*2);ctx.stroke()}});ctx.restore()});}
-// home: alert count
-{hkAfter('renderHome',function(){const b=document.getElementById('halerts');if(!b)return;setTimeout(()=>{try{const A=alertsCalc(),LV=alAct(A.lvl),n=LV.length+alAct(A.seq).length,c=LV.filter(a=>a.gap<0).length;b.hidden=!n;b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>${n} alert${n===1?'':'s'}${c?' · '+c+' clash'+(c===1?'':'es'):''}`}catch(e){console.warn(e)}},0)});}
 if(!document.getElementById('homev').hidden)setTimeout(renderHome,0);
-document.getElementById('homev').addEventListener('click',e=>{if(e.target.closest('#halerts')){repSel='alerts';save('scope.rep2','alerts');goView('rep')}if(e.target.closest('[data-site]'))siteOn(true)});
-
 
 

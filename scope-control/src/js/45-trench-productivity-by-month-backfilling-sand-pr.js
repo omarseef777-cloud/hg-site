@@ -25,3 +25,16 @@
  hkAfter('showPart',function(p){try{box(p,()=>(window.__PARTS||[]).filter(x=>x.tr===p.tr),'Whole trench',()=>showPart(p))}catch(_){}});
  hkAfter('showPipe',function(p){try{box(p,()=>(window.__PP||[]).filter(x=>x.util===p.util&&bmOf(x)==='No date'),'All '+p.util+' with no month',()=>showPipe(p))}catch(_){}});
  try{if(/[?&]p1test/.test(location.search))window.__prodT={bmOf,box:()=>{const p=(window.__PP||[]).find(x=>pState(x)==='R');showPipe(p);return !!document.getElementById('bfm')},rep:()=>prodHtml().length,q:()=>{const Q=qtyAll();return [Q.T.pipe.bfD,Q.T.cable.bfD,Q.T.pipe.sandD,Q.T.cable.sandD,Q.T.cable.tileD]}}}catch(_){}}
+// The link to the site copy (CORE.pages.viewer) and its access code are written in the Home page (HMI screen) from CORE.site.viewer.
+// Home plot plan: satellite photo under the drawing (only when the imagery loads in this browser)
+{const HS={ok:null};
+ const homeSat=()=>{lis();const a=document.getElementById('h2map'),im=document.getElementById('h2mi');if(!a||!im||!window.__satPaint)return;let c=document.getElementById('h2sat');
+   if(HS.ok!==true){if(c)c.hidden=true;return}const pw=Math.round(im.clientWidth),ph=Math.round(im.clientHeight);if(pw<60||ph<60)return;
+   if(!c){c=document.createElement('canvas');c.id='h2sat';a.insertBefore(c,a.firstChild)}const k=h2Px(a);c.hidden=false;c.width=Math.round(pw*k);c.height=Math.round(ph*k);c.style.cssText='position:absolute;inset:0;width:100%;height:100%;display:block';im.style.position='relative';
+   const [e0,e1,n0,n1]=window.CORE.site.frame,s=Math.min(pw/(e1-e0),ph/(n1-n0))*0.96,vox=(e0+e1)/2-pw/2/s,voy=(n0+n1)/2+ph/2/s,g=c.getContext('2d');g.fillStyle='#d9c3a5';g.fillRect(0,0,c.width,c.height);window.__satPaint(g,pw,ph,k,s,vox,voy,1)};
+ // test one tile first: if this browser cannot load the imagery the panel stays as it was
+ const probe=()=>{if(HS.ok!==null)return;HS.ok='wait';const t=new Image();t.crossOrigin='anonymous';t.onload=()=>{HS.ok=true;try{h2Snap(true)}catch(_){}};t.onerror=()=>{HS.ok=false};const ll=plant2ll(4785,1420),q=llTile(ll[0],ll[1],14);t.src='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/14/'+Math.floor(q[1])+'/'+Math.floor(q[0]);setTimeout(()=>{if(HS.ok==='wait')HS.ok=false},8000)};
+ let hr=0,reg=false;const lis=()=>{if(reg||!window.__SATL)return;reg=true;window.__SATL.add(()=>{if(HS.ok===true&&!hr)hr=setTimeout(()=>{hr=0;homeSat()},150)})};
+ const _hs=h2Snap;h2Snap=function(){if(HS.ok!==true){probe();return _hs.apply(this,arguments)}const th=H2.th,r=document.documentElement,had=r.classList.contains('sat');H2.th='light';r.classList.add('sat');CSSV.clear();
+   try{_hs.apply(this,arguments)}finally{H2.th=th;if(!had)r.classList.remove('sat');CSSV.clear();try{draw()}catch(_){}}homeSat()}}
+

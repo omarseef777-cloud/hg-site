@@ -40,7 +40,7 @@ function paDefaults(util){const f=PADD.form,r=nwRefPipe(PADD.pts,util);f.util=ut
   f.sz=r?((window.__PSZ||{})[r.p.id]||(r.p.sz&&r.p.sz.t)||''):'';f.st=r?pState(r.p):'N'}
 function paFinish__base(){if(!PADD||PADD.form)return;if(PADD.pts.length<2){toast('Click at least two points along the pipe');return}
   const any=nwRefPipe(PADD.pts,null);PADD.form={};PADD.hov=null;SNAPH=null;paDefaults(any?any.p.util:UTIL[0][0]);cv.style.cursor='';nwRender();draw()}
-function paFinish(){const h=HK.paFinish,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=paFinish__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function paFinish(){return hkRun('paFinish',paFinish__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function nwPipeHtml(){const f=PADD.form,u=UTIL.some(x=>x[0]===f.util)?UTIL:UTIL.concat([[f.util,f.util]]);
   return `<div class="row" style="margin:0;justify-content:space-between"><h4>New pipe trench</h4><button class="x" data-nwx="1" aria-label="Cancel" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
   <div class="tff"><div class="hint">Route · ${PADD.pts.length} points · <b>${f2(paLen(PADD.pts))} m</b></div>
@@ -108,10 +108,10 @@ function nwChange(e){const t=e.target;if(!nwIsPipe())return;const f=PADD.form;
 function adDefaults(fromForm){if(!addMode||addPts.length<4)return;if(!addEdit)addEdit={kind:'Pit'};if(addEdit.id)return;if(fromForm)Object.assign(addEdit,readAddForm());
   const dv=addEdit._dv||{};for(const k in dv){if(addEdit[k]===dv[k])delete addEdit[k]}
   const kind=addEdit.kind||'Pit',r=nwRefItem(kind,polyC(addPts)),v={};
-  if(r){const s=S(r.k);if(['Not Cast','Precast Yard','Casted','Installed'].includes(s))v.st=s;
+  if(r){const s=S(r.k);if([STV.nc,STV.yard,STV.cast,STV.inst].includes(s))v.st=s;
     if(kind==='DB'){const P=itemProps(r.k),a=ADDI.find(x=>normTag(x.tag)===r.k),sz=(a&&a.size)||((dbc(r.k)||[])[2]);
       if(P.r)v.r=+P.r;if(P.c)v.c=+P.c;if(P.phi)v.phi=+P.phi;if(sz)v.size=sz;if(P.toc!=null&&!isNaN(P.toc))v.toc=+(+P.toc).toFixed(3);if(P.boc!=null&&!isNaN(P.boc))v.boc=+(+P.boc).toFixed(3)}}
-  const ap={};for(const k in v){const c=addEdit[k];if(c==null||c===''||(k==='st'&&c==='Not Cast')){addEdit[k]=v[k];ap[k]=v[k]}}
+  const ap={};for(const k in v){const c=addEdit[k];if(c==null||c===''||(k==='st'&&c===STV.nc)){addEdit[k]=v[k];ap[k]=v[k]}}
   addEdit._dv=ap;addEdit._dk=kind;addEdit._dref=r}
 {const _ac=addClick;addClick=function(x,y){const n=addPts.length;_ac(x,y);if(n<4&&addPts.length===4&&addEdit&&!addEdit.id){adDefaults(true);renderAdd()}}}
 {const _ra=renderAdd;renderAdd=function(){if(addMode&&addEdit&&!addEdit.id&&addPts.length===4&&addEdit._dk&&addEdit._dk!==(addEdit.kind||'Pit'))adDefaults(false);_ra();

@@ -42,7 +42,7 @@ function pdDrawPlan__base(k){const F=pdFrame(k);if(!F)return;if(F.circ)return pd
   if(L1*sc>72&&!F.noOri){ctx.font='700 '+Math.max(9,Math.min(13,sc*.55))+'px '+css('--f-mono');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=css('--ink');
     const o=t+Math.max(.18,10/sc);[['A',0,L2/2+o],['B',L1/2+o,0],['C',0,-L2/2-o],['D',-L1/2-o,0]].forEach(([s,x,y])=>{const p=P(x,y);ctx.lineWidth=3;ctx.strokeStyle=css('--map-bg');ctx.strokeText(s,p[0],p[1]);ctx.fillText(s,p[0],p[1])});ctx.textBaseline='alphabetic'}
   ctx.restore()}
-function pdDrawPlan(){const h=HK.pdDrawPlan,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=pdDrawPlan__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function pdDrawPlan(){return hkRun('pdDrawPlan',pdDrawPlan__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function pdDrawCirc(F){const Ri=F.Ri,Ro=F.Ro;if(2*Ro*sc<12)return;const P=(x,y)=>{const w=pdW(F,x,y);return [X(w[0]),Y(w[1])]},C=P(0,0),col=css(stVar(S(F.k)));ctx.save();
   ctx.globalAlpha=.10;ctx.fillStyle=col;ctx.beginPath();ctx.arc(C[0],C[1],Ri*sc,0,7);ctx.fill();ctx.globalAlpha=1;
   ctx.save();ctx.beginPath();ctx.rect(-1e4,-1e4,3e4,3e4);(F.d.op||[]).forEach(op=>{const p=pdOp(F,op),w=pdOw(op)/2,[dx,dy]=p.dir,nx=-dy,ny=dx,r0=Ri-.02,r1=Ro+.02;
@@ -172,19 +172,15 @@ document.getElementById('info').addEventListener('click',e=>{const b=e.target.cl
 try{Object.assign(window.__T,{pdt:()=>PDT,pdFrame,pdPlanSvg,pdSecSvg})}catch(_){}
 // ---------- drawing references: pit schedule + structural details, opened in the drawing viewer ----------
 const PDOC=(window.SCOPE&&window.SCOPE.pdoc)||{map:{},pages:{}};
-const DOCT={'DC-000000000032-13':'AOC manhole pit schedule','DC-000000000038-08':'SWS manhole pit schedule','DC-000000000039-05':'SS pit schedule','DC-000000000031-15':'AOC catch basin pit schedule','DC-000000000031-16':'SWS catch basin pit schedule',
-  'DC-000000000035-08':'AOC weir manhole pit schedule','DC-000000000001-07':'Fire water valve pit schedule','DC-000000000033-09':'AOC valve pit schedule','DC-000000000034-05':'AOC diverter pit schedule','DC-000000000047-02':'Irrigation water valve pit schedule',
-  'DC-000000000040-09':'Electrical cable pull pit schedule','DC-000000000041-08':'Instrument cable pull pit schedule','DC-000000000047-01':'Soakaway pit schedule','DC-000000000041-16':'Etisalat cable pit schedule',
-  'DC-000000000051-01':'Earthing pit list','DC-000000000051-12':'Earthing pit list','DC-000000000051-16':'Earthing pit list','DC-000000000051-17':'Earthing pit list',
-  'DC-000000000004-01':'Square manhole & catch basin details','DC-000000000025-01':'Earthing pit details','DC-000000000024-01':'Electrical & instrumentation cable pull pits','DC-000000000087-01':'SWS soakaway pit details'};
+const DOCT=Object.assign({},DOCS.titles);
 const stdSrc=(key,pg)=>'std/'+key+((PDOC.pages[key]||1)>1?'-'+(pg+1):'')+'.webp';
 function openStd__base(key,pg,k,pt){pg=pg||0;const n=PDOC.pages[key]||1;AQ.k=k;AQ.pg=null;AQ.pt=pt||null;aqv.hidden=false;
-  document.getElementById('aqtitle').textContent='4422-AQ-'+key+' · '+(DOCT[key]||'');document.getElementById('aqsub').textContent=k?short(k)+(pt?'':''):'';
+  document.getElementById('aqtitle').textContent=DRA+key+' · '+(DOCT[key]||'');document.getElementById('aqsub').textContent=k?short(k)+(pt?'':''):'';
   document.getElementById('aqtabs').innerHTML=n>1?Array.from({length:n},(_,i)=>`<button class="chipbtn" aria-pressed="${i===pg}" data-stdopen="${key}" data-stdpg="${i}">Sheet ${i+1}</button>`).join(''):'';
   aqmk.hidden=!AQ.pt;const ld=document.getElementById('aqload');ld.hidden=false;ld.textContent='Loading drawing…';aqimg.style.visibility='hidden';
   aqimg.onload=()=>{AQ.iw=aqimg.naturalWidth;AQ.ih=aqimg.naturalHeight;aqimg.style.width=AQ.iw+'px';aqimg.style.height=AQ.ih+'px';aqwrap.style.width=AQ.iw+'px';aqwrap.style.height=AQ.ih+'px';if(AQ.pt){aqmk.style.left=AQ.pt[0]*AQ.iw+'px';aqmk.style.top=AQ.pt[1]*AQ.ih+'px'}ld.hidden=true;aqimg.style.visibility='';aqFind()};
   aqimg.onerror=()=>{ld.textContent='This drawing is not included in this copy.'};aqimg.src=stdSrc(key,pg)}
-function openStd(){const h=HK.openStd,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=openStd__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function openStd(){return hkRun('openStd',openStd__base,this,arguments,false)} // hooks: docs/PATCHES.md
 document.addEventListener('click',e=>{const b=e.target.closest('[data-stdopen]');if(!b)return;e.preventDefault();const k=b.dataset.stdk||AQ.k||focusKey,key=b.dataset.stdopen,pg=+b.dataset.stdpg||0,r=PDOC.map[k];
   openStd(key,pg,k,r&&r[0]===key&&r[1]===pg&&r[3]!=null?[r[3],r[4]]:null)});
 {const _mh=metaHtml;metaHtml=function(k){let h=_mh(k);const r=PDOC.map[k];if(!r)return h;const [sk,pg,sd]=r;
@@ -205,7 +201,7 @@ function pdSyncFoot__base(){D.foot=D.foot||{};D.foot0=D.foot0||{};const nf={};fo
     if(F.circ){const P=[];for(let i=0;i<36;i++){const a=i/36*2*Math.PI;P.push([+(F.c[0]+Math.cos(a)*F.Ro).toFixed(3),+(F.c[1]+Math.sin(a)*F.Ro).toFixed(3)])}nf[k]=P}
     else{const t=F.t,x=F.L1/2+t,y=F.L2/2+t;nf[k]=[pdW(F,-x,-y),pdW(F,x,-y),pdW(F,x,y),pdW(F,-x,y)].map(q=>[+q[0].toFixed(3),+q[1].toFixed(3)])}}
   Object.assign(D.foot,nf);try{OSG=null}catch(_){}}
-function pdSyncFoot(){const h=HK.pdSyncFoot,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=pdSyncFoot__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function pdSyncFoot(){return hkRun('pdSyncFoot',pdSyncFoot__base,this,arguments,false)} // hooks: docs/PATCHES.md
 pdSyncFoot();
 // pits drawn from the schedule keep their schedule shape: no corner handles on the map
 {const _ih=itHandles;itHandles=function(k){return PDT[k]?[]:_ih(k)}}

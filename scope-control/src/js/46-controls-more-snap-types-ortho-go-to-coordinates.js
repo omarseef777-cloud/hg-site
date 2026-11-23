@@ -70,7 +70,7 @@
   const _mm=window.__mapMenu;if(_mm)window.__mapMenu=function(e){try{const r=cv.getBoundingClientRect(),h=mmHit(e.clientX-r.left,e.clientY-r.top);CT.ctxHit=h&&(h.k==='item'||h.k==='part'||h.k==='pipe')&&!(h.k==='item'&&MSI.size>1&&MSI.has(h.it.key))?h:null}catch(_){CT.ctxHit=null}const o=_mm.apply(this,arguments);CT.ctxHit=null;return o}}
  // ---- double-click an item: zoom to it (the card / properties open as before)
  cv.addEventListener('dblclick',e=>{if(busy()||isSite())return;const r=cv.getBoundingClientRect(),h=mmHit(e.clientX-r.left,e.clientY-r.top);if(!h)return;let c=null;if(h.k==='item')c=[h.it.e,h.it.n];else if(h.k==='part')c=[(h.p.x0+h.p.x1)/2,(h.p.y0+h.p.y1)/2];else if(h.k==='pipe'&&h.p.pts)c=ptOf(h.p.pts,.5);if(!c)return;sc=Math.max(sc,10);ox=c[0]-W/2/sc;oy=c[1]+H/2/sc;draw()},true);
- // ---- copy / paste an item, select all, go to coordinates (Ctrl keys only on the dashboard, not while typing)
+ // ---- copy / paste an item, select all, go to coordinates (Ctrl keys only on the Layout page, not while typing)
  const typing=t=>t&&t.closest&&t.closest('input,textarea,select,[contenteditable="true"]');
  const dashOn=()=>{const h=document.getElementById('homev');return !(h&&!h.hidden)&&!document.querySelector('.ovl:not([hidden])')};
  window.addEventListener('keydown',e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey||typing(e.target)||isSite()||!dashOn())return;const k=e.key.toLowerCase();const txt=(window.getSelection&&String(window.getSelection()))||'';
@@ -107,12 +107,12 @@
    if(lo)[['Select all in view','Ctrl + A',selectAll],['Zoom to selection','Z',zoomSel],['Go to coordinates','Ctrl + G',coordPop],['Save current view','V',()=>viewsKey()],['Add pit','O',()=>addKind('Pit')],['Add duct bank','D',()=>addKind('DB')],['Add cable trench','T',()=>addKind('cable')],['Add pipe trench','W',()=>addKind('pipe')]].forEach(([l,k,f])=>{if(l.toLowerCase().includes(lo))out.push({g:'Commands',lab:l,sub:k,run:f})});
    return out}}
  // ---- KPI cards filter the map and the lists (click again to clear)
- const KF={'Cast':['Installed','Precast Yard','Casted'],'Need to cast':['Not Cast'],'Installed':['Installed'],'Remaining to install':['Precast Yard','Casted','Not Cast']};
+ const KF={'Cast':[STV.inst,STV.yard,STV.cast],'Need to cast':[STV.nc],[ST_LABEL[STV.inst]]:[STV.inst],'Remaining to install':[STV.yard,STV.cast,STV.nc]};
  const stEq=(a,b)=>a.length===b.length&&a.every(x=>b.includes(x));
  function kpiWire(){const el=document.getElementById('kpis');if(!el)return;el.querySelectorAll('.kpi').forEach(k=>{const l=(k.querySelector('.l')||{}).textContent||'',f=KF[l];if(l==='Total items')kpiOne(k,null);else if(f)kpiOne(k,f)})}
- function kpiOne(k,f){k.style.cursor='pointer';k.tabIndex=0;k.title=f?'Show only these on the map and lists (click again to show all)':'Show all';const on=f&&stEq(filt.st,f);k.classList.toggle('kon',!!on);
+ function kpiOne(k,f){k.style.cursor='pointer';k.tabIndex=0;k.title=f?'Show only these on the layout and lists (click again to show all)':'Show all';const on=f&&stEq(filt.st,f);k.classList.toggle('kon',!!on);
    const go=()=>{const cur=f&&stEq(filt.st,f);filt.st=(!f||cur)?FDEF().st:f.slice();try{saveAll()}catch(_){}render();toast(!f||cur?'Showing all statuses':'Showing: '+f.map(s=>ST_LABEL[s]||s).join(', '))};k.onclick=go;k.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}}
- {const s=document.createElement('style');s.textContent='.msq span{color:var(--muted)}.msq b{text-align:right;font-family:var(--f-mono);font-weight:600}.kpi.kon{box-shadow:0 0 0 2px var(--c,var(--accent)) inset}.kpi[tabindex]:hover{transform:translateY(-1px)}#viewsbtn{white-space:nowrap}';document.head.appendChild(s)}
+ 
  {hkAfter('renderKPIs',function(){try{kpiWire()}catch(_){}});}try{kpiWire()}catch(_){}
  if(location.protocol==='file:')window.__ctlT={cs:(x,y)=>cornerSnap(x,y),XY:(e,n)=>[X(e),Y(n)],it:k=>byKey[k],items:()=>items.filter(showIt).map(i=>[i.key,i.e,i.n]),meas:()=>MEAS&&MEAS.pts.slice(),ms:()=>[MSI.size,MSP.size],filt:()=>filt.st.slice(),dup:()=>!!dupMode,add:()=>[!!addMode,!!PADD,cableMode],view:()=>[ox,oy,sc],busy,pst:q=>pState(q),open:(t,id)=>{if(t==='item')showInfo(items.find(i=>i.key.includes(id)));else if(t==='part')showPart(window.__PARTS.find(q=>q.id===id));else showPipe(window.__PP.find(q=>q.id===id))},sel:()=>[selTrn&&selTrn[0],selPart&&selPart.id,typeof selPipe!=='undefined'&&selPipe&&selPipe.id],hit:(x,y)=>mmHit(x,y),fk:()=>focusKey,setSc:v=>{const c=[SX(W/2),SY(H/2)];sc=v;ox=c[0]-W/2/sc;oy=c[1]+H/2/sc;draw()}};
  Object.assign(CT,{lastPt,coordPop,goTo,addPointAt,selectAll,zoomSel,addKind,repeatTool,viewMenu:viewsKey,views,viewGo,similarItems,similarParts,selSet});

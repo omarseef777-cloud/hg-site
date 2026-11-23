@@ -1,5 +1,5 @@
 // ================= Design pack (Nov-2026, approved 1A 2A 3A 4A 5A 6A 7A 8A 9A 10B): compact reports, TODAY strip, site offline lamp, print header =================
-// CSS: shell #design2. Status letters: 00-core draw (ST_LETTER). Search look: 42 + #design2. Print band / revision table: 00-core page().
+// CSS: shell css/45-design2. Status letters: 00-core draw (ST_LETTER). Search look: 42 + css/45-design2. Print band / revision table: 00-core page().
 // ---- 6A compact reports: a plate in the report bar; per viewer
 {let on=false;try{on=localStorage.getItem('scope.rcompact')==='1'}catch(_){}document.body.classList.toggle('rcompact',on);
  const plate=()=>{const bar=document.querySelector('#repv .rbar');if(!bar||bar.querySelector('.d2cmp'))return;const b=document.createElement('button');b.type='button';b.className='btn d2cmp'+(on?' on':'');b.textContent='Compact';b.title='Less frame, sticky table headers, a filter on every table';
@@ -19,8 +19,8 @@ function d2Today(){const hv=document.getElementById('homev');if(!hv||hv.hidden)r
   let crit=0;try{crit=auList().filter(z=>auTier(z.t,z.z)==='C').length}catch(_){}try{crit+=alAct(alertsCalc().lvl).filter(a=>a.gap<0).length}catch(_){}
   const ns=(typeof OBX!=='undefined'?OBX.length:0)+(SYN.conflicts?SYN.conflicts.length:0);let dec=0;try{dec=decCount()}catch(_){}
   const day=d0.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase().replace(/ /g,'-');
-  el.innerHTML=`<div class="t">TODAY · ${esc(day)}</div>`+[['log','STATUS CHANGES','CHANGES',chg,chg?'g':''],['paud','CRITICAL NOT REVIEWED','CRITICAL',crit,crit?'r':'g'],['ns','NOT SAVED ONLINE','NOT SAVED',ns,ns?'a':'g'],['dec','DECISIONS OPEN','DECISIONS',dec,dec?'a':'']].map(([k,l,sl,v,c])=>`<button type="button" data-d2="${k}" title="${esc(l)}"><span><i class="${c}"></i><span class="ll">${l}</span><span class="sl">${sl}</span></span><b>${fmt(v)}</b></button>`).join('')}
-hkAfter('renderHome',()=>{try{d2Today()}catch(e){console.warn('today',e)}});setTimeout(()=>{try{d2Today()}catch(_){}},0);
+  el.innerHTML=`<div class="t"><span>TODAY · ${esc(day)}${window.__PJ?' · '+esc(PRJ.name.toUpperCase()):''}</span><button type="button" class="d2lay" data-h3lay="1">Edit Home</button></div>`+[['log','STATUS CHANGES','CHANGES',chg,chg?'g':''],['paud','CRITICAL NOT REVIEWED','CRITICAL',crit,crit?'r':'g'],['ns','NOT SAVED ONLINE','NOT SAVED',ns,ns?'a':'g'],['dec','DECISIONS OPEN','DECISIONS',dec,dec?'a':'']].map(([k,l,sl,v,c])=>`<button type="button" data-d2="${k}" title="${esc(l)}"><span><i class="${c}"></i><span class="ll">${l}</span><span class="sl">${sl}</span></span><b>${fmt(v)}</b></button>`).join('')}
+hkAfter('h2Ref',()=>{try{d2Today()}catch(e){console.warn('today',e)}}); // with the Home panels (after h3Ref), once per refresh
 // ---- 10B print header: fields in the preview bar, pages update as you type
 {const bar=document.querySelector('#printroot .pbar');if(bar){const H=prtHead(),F=[['doc','Doc no.'],['rev','Rev'],['desc','Description'],['prep','Prepared'],['chk','Checked'],['app','Approved']];const w=document.createElement('span');w.className='d2ph';
   w.innerHTML=F.map(([k,l])=>`<label for="d2ph_${k}">${l}</label><input id="d2ph_${k}" data-phk="${k}" value="${esc(H[k]||'')}">`).join('');bar.appendChild(w);

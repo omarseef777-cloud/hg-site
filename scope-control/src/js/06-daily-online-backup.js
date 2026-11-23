@@ -41,18 +41,17 @@ async function bakPanel(){const b=mdl(`<div class="mhd"><h3>Online backups</h3><
   syNames(body);
   body.onclick=async e=>{const t=e.target.closest('button');if(!t)return;
     if(t.dataset.bnow){t.disabled=true;t.textContent='Backing up…';try{await bakTake('Manual');toast('Backup saved online');bakPanel()}catch(er){toast('Backup failed: '+(er.message||er));t.disabled=false;t.textContent='Back up now'}return}
-    if(t.dataset.bcur){dlFile('scope_backup_'+today()+'.json',bakFile(bakState(),'Current data '+today())).then(ok=>{if(ok){try{localStorage.setItem('scope.lastdl',today())}catch(_){}bakDot();toast('Backup file saved')}});return}
+    if(t.dataset.bcur){dlFile('scope_backup_'+today()+'.json',bakFile(bakState(),'Current data '+today())).then(ok=>{if(ok){try{localStorage.setItem('scope.lastdl',today())}catch(_){}toast('Backup file saved')}});return}
     const m=L[+(t.dataset.bdl??t.dataset.brs)];if(!m)return;t.disabled=true;
-    try{const st=await bakLoad(m);if(t.dataset.bdl!=null){const ok=await dlFile('scope_backup_'+m.id+'.json',bakFile(st,bakFmt(m)));if(ok){try{localStorage.setItem('scope.lastdl',today())}catch(_){}bakDot()}}else await bakRestore(st,bakFmt(m))}catch(er){toast('Could not open that backup: '+(er.message||er))}t.disabled=false}}
-function bakDot(){const b=document.getElementById('hbackup');if(!b)return;let d='';try{d=localStorage.getItem('scope.lastdl')||''}catch(_){}b.classList.toggle('due',d!==today())}
+    try{const st=await bakLoad(m);if(t.dataset.bdl!=null){const ok=await dlFile('scope_backup_'+m.id+'.json',bakFile(st,bakFmt(m)));if(ok){try{localStorage.setItem('scope.lastdl',today())}catch(_){}}}else await bakRestore(st,bakFmt(m))}catch(er){toast('Could not open that backup: '+(er.message||er))}t.disabled=false}}
 // auto daily snapshot: owner, once all data has arrived
 (function bakAuto(){let tries=0;const tick=async()=>{tries++;if(!SYN.db){if(tries<30)setTimeout(tick,2000);return}
     const ready=Object.keys(SYMAP).every(k=>SYN.ready[k]);if(!ready||!SYN.logsReady){if(tries<60)setTimeout(tick,2000);return}
-    const ob=document.getElementById('hbaks');if(ob)ob.hidden=!SYN.admin;if(!SYN.admin)return;
+    BAK.admin=!!SYN.admin;if(!SYN.admin)return; // the Online backups key shows on Home (section 01) from here
     try{const L=await bakList();if(!L.some(m=>m.day===today()&&m.tag==='Daily')){await new Promise(r=>setTimeout(r,1500));const m=await bakTake();console.info('daily backup',m.id)}BAK.ok=true}catch(e){BAK.err=e;console.warn('daily backup',e)}};
   setTimeout(tick,3000)})();
-{const hb=document.getElementById('hbackup');if(hb){hb.onclick=()=>{dlFile('scope_backup_'+today()+'.json',bakFile(bakState(),'Data '+today())).then(ok=>{if(ok){try{localStorage.setItem('scope.lastdl',today())}catch(_){}bakDot();toast('Backup file saved – Import updates restores it')}})}}
-  const ob=document.getElementById('hbaks');if(ob)ob.onclick=()=>bakPanel();bakDot()}
+// Backup on Home (section 01): one file with every site update; Import updates restores it
+function bakDownload(){dlFile('scope_backup_'+today()+'.json',bakFile(bakState(),'Data '+today())).then(ok=>{if(ok){try{localStorage.setItem('scope.lastdl',today())}catch(_){}toast('Backup file saved – Import updates restores it')}})}
 // importing a full backup file
 {const _iu=importUpdates;importUpdates=async function(f){let t=null;try{t=JSON.parse(await f.text())}catch(_){}
   if(t&&t.kind==='snapshot'&&t.data){await bakRestore(t.data,t.label||'backup file');return}return _iu(f)}}

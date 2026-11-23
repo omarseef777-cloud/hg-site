@@ -9,6 +9,7 @@ const SYMAP={ // local key -> how it is stored
   'scope.ppo':{col:'ppo',t:'map',lab:'Pipe run'},
   'scope.ppa':{col:'ppa',t:'arr',lab:'Pipe route'},
   'scope.addi':{col:'addi',t:'arr',lab:'Added item'},
+  'scope.mw':{col:'mw',t:'arr',lab:'Measured work'},
   'scope.psz':{doc:'cfg/psz',t:'whole',adm:1,lab:'Pipe size'},
   'scope.pos':{doc:'cfg/pos',t:'whole',adm:1,lab:'Item position'},
   'scope.notes':{doc:'cfg/notes',t:'whole',adm:1,lab:'Comment'},
@@ -138,16 +139,16 @@ function sySubscribe(){const db=SYN.db;
     if(mine&&SYN.logsReady){const k=today()+'_'+SYN.uid,cur=SYN.logs[k]||[],seen=new Set(cur.map(i=>i.t+'|'+i.k+'|'+(i.id||'')));SYN.logs[k]=cur.concat(mine.filter(i=>!seen.has(i.t+'|'+i.k+'|'+(i.id||'')))).sort((a,b)=>a.t-b.t)}
     if(!SYN.logsReady&&!snap.metadata.fromCache){SYN.logsReady=true;const pl=SYN.pendLog||[];SYN.pendLog=[];if(pl.length)syLog(pl)}if(!document.getElementById('repv').hidden&&repSel==='log')renderReport()},()=>{})}
 function syBadge__base(){const b=document.getElementById('sybadge');if(!b)return;const st=!SYN.db?['off','Offline copy · saved on this computer']:SYN.admin?['live','Live · owner']:SYN.write?['live','Live · you can update statuses & trenches']:['ro','Live · view only'];
-  const hf=document.getElementById('hfoot');
   b.className='sybadge '+st[0];b.textContent=st[0]==='off'?'Offline':'Live';b.title=st[1];
   document.body.classList.toggle('ro',!!SYN.db&&!SYN.write&&!SYN.admin);document.body.classList.toggle('nadm',!!SYN.db&&!SYN.admin)}
-function syBadge(){const h=HK.syBadge,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=syBadge__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
-(async()=>{if(!(window.claude&&window.claude.use)){syBadge();return}
+function syBadge(){return hkRun('syBadge',syBadge__base,this,arguments,false)} // hooks: docs/PATCHES.md
+(async()=>{if(window.__PJ||!(window.claude&&window.claude.use)){syBadge();return} // another project: this device only, never the shared database
   try{const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);if(!db){syBadge();return}
     SYN.db=db;SYN.uid=user?await user.id():null;SYN.admin=user?await user.canEdit():false;const w=user?await user.can('data.write'):null;SYN.write=SYN.admin||w!==false;SYN.user=user;
     syBadge();sySubscribe();setTimeout(obxFlush,4000)}catch(e){console.warn('sync init',e);syBadge()}})();
 // who changed what – resolved names
-async function syNames(el){if(!SYN.user)return;const ids=[...new Set([...el.querySelectorAll('[data-uid]')].map(x=>x.dataset.uid))];if(!ids.length)return;
+async function syNames(el){for(const [id,nm] of [[DUBY,DUWHO],[SHBY,SHWHO]])el.querySelectorAll('[data-uid="'+id+'"]').forEach(x=>{x.textContent=nm;x.removeAttribute('data-uid')}); // a correction read from the drawings, a size taken from a saved shape: not a person, the core names the source
+  if(!SYN.user)return;const ids=[...new Set([...el.querySelectorAll('[data-uid]')].map(x=>x.dataset.uid))];if(!ids.length)return;
   const ps=await SYN.user.profiles(ids);el.querySelectorAll('[data-uid]').forEach(x=>{const p=ps[x.dataset.uid];x.textContent=p&&p.name?window.corePerson(p.name):'Someone'})}
 REPS.push({id:'log',t:'Updates log',d:'Who changed what, when',h:()=>{const rows=[];for(const key in SYN.logs){const by=key.slice(key.indexOf('_')+1);(SYN.logs[key]||[]).forEach(e=>rows.push(Object.assign({by},e)))}
   rows.sort((a,b)=>b.t-a.t);const nm=id=>id?short(String(id).split('|')[0])+(String(id).includes('|')?' · '+String(id).split('|').slice(1).join(' '):''):'';

@@ -1,7 +1,7 @@
 // ================= Data check: impossible or suspicious values in the built-in data (pit schedules, duct banks, trenches, items) =================
 // Rules only flag; drawings already refuse impossible pit levels (pdLvOk). Families set aside for now are skipped.
-const DCK_SKIP=/-(SWS-SW|SWS-DT|EY-TR|IY-BC|IY-MA|IY-SZ|EY-SZ)-/;
-const DCK_ST=new Set(['Installed','Precast Yard','Casted','Not Cast']);
+const DCK_SKIP=new RegExp('-('+TG.skip.join('|')+')-');
+const DCK_ST=new Set([STV.inst,STV.yard,STV.cast,STV.nc]);
 function dataCheck(){const out=[],add=(k,sev,what,val)=>{if(!DCK_SKIP.test(k))out.push({k,sev,what,val})};
   const nv=v=>typeof v==='number'&&isFinite(v),near=(z,r)=>nv(z)&&Math.abs(z-NGL)<=r,f3=v=>nv(v)?(+v).toFixed(3):String(v);
   // pits from the pit schedules
@@ -27,10 +27,10 @@ function dataCheck(){const out=[],add=(k,sev,what,val)=>{if(!DCK_SKIP.test(k))ou
   // items: position, footprint, status
   const A=D.areas||[];if(A.length){const x0=Math.min(...A.map(a=>a.bbox[0]))-60,x1=Math.max(...A.map(a=>a.bbox[1]))+60,y0=Math.min(...A.map(a=>a.bbox[2]))-60,y1=Math.max(...A.map(a=>a.bbox[3]))+60;
     for(const it of items){if(!nv(it.e)||!nv(it.n)||it.e<x0||it.e>x1||it.n<y0||it.n>y1)add(it.key,'err','Position outside the site',`${it.e}, ${it.n}`)}}
-  const seen=new Set();for(const it of items){if(seen.has(it.key))add(it.key,'err','Tag on the map twice','');seen.add(it.key)}
+  const seen=new Set();for(const it of items){if(seen.has(it.key))add(it.key,'err','Tag on the layout twice','');seen.add(it.key)}
   for(const k in (D.foot||{})){const P=D.foot[k];if(!Array.isArray(P)||P.length<3){add(k,'err','Footprint has under 3 corners','');continue}
     let a=0;for(let i=0;i<P.length;i++){const p=P[i],q=P[(i+1)%P.length];a+=p[0]*q[1]-q[0]*p[1]}a=Math.abs(a/2);if(a<0.05)add(k,'err','Footprint area ≈ 0',a.toFixed(3)+' m²');else if(a>400)add(k,'warn','Footprint area over 400 m²',a.toFixed(0)+' m²')}
-  for(const k in status){const s=status[k];if(!DCK_ST.has(s)&&s!=='Unknown')add(k,'err','Unknown status in the sheet',String(s))}
+  for(const k in status){const s=status[k];if(!DCK_ST.has(s)&&s!==STV.unk)add(k,'err','Unknown status in the sheet',String(s))}
   const sv={err:0,warn:1};return out.sort((a,b)=>sv[a.sev]-sv[b.sev]||a.what.localeCompare(b.what)||a.k.localeCompare(b.k))}
 REPS.push({id:'dchk',t:'Data check',d:'Impossible or suspicious values in the data',h:()=>{const L=dataCheck(),ne=L.filter(x=>x.sev==='err').length,nw=L.length-ne,by={};L.forEach(x=>{(by[x.what]=by[x.what]||[]).push(x)});
   const kc=(t,v,c)=>`<div class="kc" style="--c:${c}"><div class="t">${t}</div><div class="v">${fmt(v)}</div></div>`;

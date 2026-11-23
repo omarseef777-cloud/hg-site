@@ -16,7 +16,7 @@ function mpBar(){let b=document.getElementById('mpbar');if(!b){b=document.create
    <button class="btn sm" data-mpx="1">Cancel</button>`}
 function mpSet__base(on){if(on){try{if(MEAS)measSet(false);if(addMode)setAdd(false);if(SHP)shpEnd();if(SEC.draw)secCancel();if(INS.open)closeInsp();if(pipeMode)setPipe(null);if(cableMode)setCable(null)}catch(_){}MP={src:null};cv.style.cursor='copy';document.getElementById('info').hidden=true;focusKey=null;selPart=null;selPipe=null}
   else{MP=null;if(cv.style.cursor==='copy')cv.style.cursor=''}document.getElementById('matchbtn').classList.toggle('on',!!MP);mpBar();draw()}
-function mpSet(){const h=HK.mpSet,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=mpSet__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return r} // hooks: docs/PATCHES.md
+function mpSet(){return hkRun('mpSet',mpSet__base,this,arguments,true)} // hooks: docs/PATCHES.md
 function mpApply(src,tgt){const adm=mpAdmin(),by=(SYN&&SYN.uid)||null,day=today(),done=[];
   if(tgt.kind!==src.kind||(src.kind==='item'&&isDB(src.k)!==isDB(tgt.k))){toast('Pick a '+mpKindLabel(src)+' – properties only go to the same kind of item');return false}
   if((tgt.k&&tgt.k===src.k)||(tgt.id&&tgt.id===src.id))return false;

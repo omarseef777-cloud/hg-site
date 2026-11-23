@@ -93,7 +93,6 @@ function renderMom(){const el=document.getElementById('mombody');if(!el)return;c
 document.addEventListener('click',e=>{const n=e.target.closest('[data-momsec]');if(n){momSel=n.dataset.momsec;save('scope.momsel',momSel);renderMom()}});
 {const _gv=goView;goView=function(v){document.getElementById('momv').hidden=v!=='mom';_gv(v==='mom'?'__none':v);if(v==='mom'){document.body.classList.add('ovopen');renderMom()}}}
 
-
 // ---- drag the ends of the selected cable trench part (any mode) ----
 const cEndHit=(x,y)=>{const p=selPart;if(!p||p.poly||(typeof TF!=='undefined'&&TF)||cableMode==='fill'||document.body.classList.contains('ro')||addMode||pipeDraw||(typeof trnDraw!=='undefined'&&trnDraw))return null;
   for(const [k,e,n] of [['end0',p.x0,p.y0],['end1',p.x1,p.y1]])if(Math.hypot(X(e)-x,Y(n)-y)<10)return k;return null};
@@ -102,5 +101,4 @@ cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),x=e.cli
 cv.addEventListener('pointermove',e=>{if(e.buttons||addMode)return;const r=cv.getBoundingClientRect();if(cEndHit(e.clientX-r.left,e.clientY-r.top))cv.style.cursor='grab'},{capture:true});
 {hkAfter('drawNotes',function(){const p=selPart;if(p&&!p.poly&&!TF&&!PR&&!document.body.classList.contains('ro')){ctx.save();[[p.x0,p.y0],[p.x1,p.y1]].forEach(q=>{ctx.fillStyle='#fff';ctx.strokeStyle=css('--ink');ctx.lineWidth=2;ctx.beginPath();ctx.rect(X(q[0])-5,Y(q[1])-5,10,10);ctx.fill();ctx.stroke()});ctx.restore()}
   if(partDrag&&window.__ENDHV)drawSnapMark(window.__ENDHV)});}
-
 

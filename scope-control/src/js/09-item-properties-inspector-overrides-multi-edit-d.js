@@ -1,20 +1,31 @@
 // ================= Item properties: inspector, overrides, multi-edit, duplicate, measure =================
 let OVR=LS('scope.ovr',{})||{};SYMAP['scope.ovr']={doc:'cfg/ovr',t:'whole',adm:1,lab:'Item properties',nolog:1};UKEYS['scope.ovr']='item properties';
 INVSRC.U='set by hand';
-const OBQ={},OBC={},OBI={};let OVK=new Set();
+const OBQ={},OBC={},OBI={};let OVK=new Set(),SHQ=new Set();
 function applyOvr(){for(const k of OVK){if(k in OBQ){if(OBQ[k])D.qdb[k]=OBQ[k];else delete D.qdb[k]}if(k in OBC){if(OBC[k])D.dbc[k]=OBC[k];else delete D.dbc[k]}}OVK=new Set();
   for(const k in OVR){if(k.startsWith('P:'))continue;const o=OVR[k];if(!o)continue;if(!(k in OBQ)){OBQ[k]=D.qdb[k]?D.qdb[k].slice():null;OBC[k]=D.dbc[k]?D.dbc[k].slice():null}
     const q=(OBQ[k]||[null,null,null,null,null,null,null,null,null,null,null]).slice(),c=(OBC[k]||[null,null,'',null,null]).slice();
     if(o.L!=null){q[0]=o.L;q[4]=o.L}if(o.W!=null){q[1]=o.W;q[5]=o.W}if(o.toc!==undefined){q[2]=o.toc;c[3]=o.toc}if(o.boc!==undefined){q[3]=o.boc;c[4]=o.boc}if(o.H!=null)q[6]=o.H;
     if(o.r!=null){q[9]=o.r;c[0]=o.r}if(o.c!=null){q[10]=o.c;c[1]=o.c}if(o.phi!=null){q[8]=o.phi;c[2]=o.phi+'-'+((c[2]||'').split('-')[1]||'PVC')}
-    D.qdb[k]=q;if(c[0]&&c[1])(D.dbc=D.dbc||{})[k]=c;OVK.add(k)}}
+    D.qdb[k]=q;if(c[0]&&c[1])(D.dbc=D.dbc||{})[k]=c;OVK.add(k)}
+  // quantities follow the shape saved on the layout (CORE.layoutShape): a duct bank with an outline size from the drawing and a four-point shape
+  // saved by the team uses the shape's length and width, as the shape editor measures them, where they differ by more than 2 cm. What is set by
+  // hand above wins, field by field; the status sheet's own figures (4, 5) stay. SHQ = the duct banks that follow their shape now.
+  SHQ=new Set();for(const k in POS){const p=POS[k],o=OVR[k]||{},it=byKey[k];if(!p||!Array.isArray(p.f)||p.f.length!==4||!it||it.type!=='DB'||it.added||(o.L!=null&&o.W!=null))continue;
+    const b=k in OBQ?OBQ[k]:D.qdb[k];if(!b||b[0]==null||b[1]==null)continue;const d=quadDims(p.f);if(!(Math.abs(d.L-b[0])>0.02||Math.abs(d.W-b[1])>0.02))continue;
+    if(!(k in OBQ)){OBQ[k]=D.qdb[k].slice();OBC[k]=D.dbc[k]?D.dbc[k].slice():null}const q=D.qdb[k].slice();if(o.L==null)q[0]=+d.L.toFixed(3);if(o.W==null)q[1]=+d.W.toFixed(3);D.qdb[k]=q;OVK.add(k);SHQ.add(k)}}
+// the log lines of the duct banks whose quantities changed when that rule began (the core's list), for as long as each follows its shape;
+// duRows = every line of the log that no person wrote: these and the corrections read from the drawings (DUL)
+function shapeRows(){const S=window.CORE.layoutShape,out=[];if(!S||!Array.isArray(S.list)||window.__PJ)return out;const t=Date.parse(S.at),kd=((window.CORE.drawingUpdate||{}).kind||{}).size||'',sz=a=>a[0].toFixed(2)+' × '+a[1].toFixed(2);
+  for(const k of S.list){const b=OBQ[k],q=(D.qdb||{})[k];if(SHQ.has(k)&&b&&q)out.push({t,by:SHBY,k:kd,id:k,from:sz(b),v:sz(q)})}return out}
+function duRows(){return DUL.concat(shapeRows())}
 {hkAfter('applyAdded',function(){applyOvr()});}
 {const _pi=pInv;pInv=function(p){const v=_pi(p),o=OVR['P:'+p.id];if(!o||!v)return v;return Object.assign({},v,o.b0!=null?{b0:o.b0,s0:'U'}:{},o.b1!=null?{b1:o.b1,s1:'U'}:{})}}
 {hkBefore('restoreKey',function(k,s){if(k==='scope.ovr'){try{OVR=(s?JSON.parse(s):{})||{}}catch(_){OVR={}}setTimeout(()=>{if(INS.open)renderInsp()},0)}});}
 const isDB=k=>{const it=byKey[k];return it&&it.type==='DB'};
 function itemProps(k){const it=byKey[k],q=dbQ(k),c=dbc(k),Q=(D.qdb||{})[k]||[],B=OBQ[k]!==undefined?(OBQ[k]||[]):Q,o=OVR[k]||{};
   return {L:q&&q.L,W:q&&q.W,toc:q&&q.toc,boc:q&&q.boc,H:q&&q.H,r:(c&&c[0])||Q[9]||null,c:(c&&c[1])||Q[10]||null,phi:Q[8]||(c&&parseFloat(c[2]))||null,
-    src:(()=>{const s={L:o.L!=null?'M':B[0]!=null?'CAD':B[4]!=null?'Sheet':'',W:o.W!=null?'M':B[1]!=null?'CAD':B[5]!=null?'Sheet':'',toc:o.toc!==undefined?'M':B[2]!=null?'CAD':q&&q.toc!=null?'Calc':'',boc:o.boc!==undefined?'M':B[3]!=null?'CAD':q&&q.lsrc==='trench'?'Trench':q&&q.lsrc==='std'?'Std':'',H:o.H!=null?'M':(B[2]!=null&&B[3]!=null)?'CAD':B[6]!=null?'Sheet':'',r:o.r!=null?'M':'CAD',c:o.c!=null?'M':'CAD',phi:o.phi!=null?'M':'CAD'};if(it&&it.added)for(const f in s)if(s[f]==='CAD')s[f]='Site';return s})()}}
+    src:(()=>{const s={L:o.L!=null?'M':SHQ.has(k)?'Site':B[0]!=null?'CAD':B[4]!=null?'Sheet':'',W:o.W!=null?'M':SHQ.has(k)?'Site':B[1]!=null?'CAD':B[5]!=null?'Sheet':'',toc:o.toc!==undefined?'M':B[2]!=null?'CAD':q&&q.toc!=null?'Calc':'',boc:o.boc!==undefined?'M':B[3]!=null?'CAD':q&&q.lsrc==='trench'?'Trench':q&&q.lsrc==='std'?'Std':'',H:o.H!=null?'M':(B[2]!=null&&B[3]!=null)?'CAD':B[6]!=null?'Sheet':'',r:o.r!=null?'M':'CAD',c:o.c!=null?'M':'CAD',phi:o.phi!=null?'M':'CAD'};if(it&&it.added)for(const f in s)if(s[f]==='CAD')s[f]='Site';return s})()}}
 // ---- validation ----
 const AREAS_BB=()=>(D.areas||[]).map(a=>a.bbox);
 function valProps(k,v){const E=[],Wn=[];const n=x=>x!=null&&!isNaN(x);
@@ -29,10 +40,11 @@ function valProps(k,v){const E=[],Wn=[];const n=x=>x!=null&&!isNaN(x);
   return {E,W:Wn}}
 function valTag(tag,self){const E=[],Wn=[];if(!tag){E.push('Write the tag.');return {E,W:Wn}}
   if(byKey[tag]&&tag!==self)E.push(short(tag)+' already exists on the drawing.');if(ADDI.some(a=>a.tag===tag&&a.tag!==self))E.push(short(tag)+' is already an added item.');
-  if(!/^MM5100790U-[A-Z]+-[A-Z]+-\d{3}[A-Z]?$/.test(tag)&&!/^\d{6}-[A-Z]+-\d{3}$/.test(tag))Wn.push('Tag format is unusual (expected like EY-DB-123).');return {E,W:Wn}}
+  if(!new RegExp('^'+PRJ.itemPrefix+'[A-Z]+-[A-Z]+-\\d{3}[A-Z]?$').test(tag)&&!/^\d{6}-[A-Z]+-\d{3}$/.test(tag))Wn.push('Tag format is unusual (expected like '+TG.sample.rule+').');return {E,W:Wn}}
 const inArea=(e,n)=>AREAS_BB().some(b=>e>=b[0]-30&&e<=b[1]+30&&n>=b[2]-30&&n<=b[3]+30);
 // ---- history ----
-function histOf(id){const L=[];for(const key in SYN.logs){const by=key.slice(key.indexOf('_')+1);(SYN.logs[key]||[]).forEach(e=>{if(e.id===id||(e.id&&String(e.id).startsWith(id+'|')))L.push(Object.assign({by},e))})}return L.sort((a,b)=>b.t-a.t).slice(0,30)}
+function histOf(id){const L=[];for(const key in SYN.logs){const by=key.slice(key.indexOf('_')+1);(SYN.logs[key]||[]).forEach(e=>{if(e.id===id||(e.id&&String(e.id).startsWith(id+'|')))L.push(Object.assign({by},e))})}duRows().forEach(e=>{if(e.id===id)L.push(e)}); // and its lines that no person wrote: a correction read from the drawings, the size of its saved shape
+  return L.sort((a,b)=>b.t-a.t).slice(0,30)}
 const stl=v=>({N:'Not started',Y:'Excavated',R:'Backfilled'}[v]||ST_LABEL[v]||v);
 function histHtml(id){if(!SYN.db)return '<p class="muted">History is kept in the online version.</p>';const L=histOf(id);if(!L.length)return '<p class="muted">No changes recorded.</p>';
   return `<table class="htab">${L.map(e=>`<tr><td class="mono">${esc(new Date(e.t).toLocaleString(undefined,{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}))}</td><td data-uid="${esc(e.by)}">…</td><td>${esc(e.k||'')}${e.v!=null?': '+(e.from?esc(stl(e.from))+' → ':'')+esc(stl(e.v)):''}</td></tr>`).join('')}</table>`}
@@ -64,7 +76,7 @@ function renderInsp(){const p=inspPop();if(!INS.open){p.hidden=true;return}p.hid
    ${dbAll&&one?`<div class="imeta">Net concrete ${f2(tot)} m³${OVR[k]?` · edited ${esc(OVR[k].d||'')}`:''}</div>`:''}
    ${warnHtml()}
    ${ro?'':`<div class="iact">${one?`<button class="btn" data-idup="1">Duplicate</button>`:''}<span style="flex:1"></span>${dbAll?`<button class="btn" data-ix="1">Cancel</button><button class="btn pri" data-isave="1">${one?'Save':'Apply to '+ks.length}</button>`:''}</div>`}
-   ${dupMode?`<div class="idup"><label>New tag<input type="text" id="duptag" value="${esc(dupMode.tag)}" autocomplete="off"></label><p class="muted">Click on the map where the copy goes. Esc cancels.</p></div>`:''}
+   ${dupMode?`<div class="idup"><label>New tag<input type="text" id="duptag" value="${esc(dupMode.tag)}" autocomplete="off"></label><p class="muted">Click on the layout where the copy goes. Esc cancels.</p></div>`:''}
    ${one?`<div class="ihs">History</div>${histHtml(k)}`:''}`;
   try{syNames(p)}catch(_){}}
 function warnHtml(){const w=INS.warn;if(!w||(!w.E.length&&!w.W.length))return '';
@@ -107,19 +119,19 @@ document.getElementById('view').addEventListener('click',e=>{if(e.target.closest
 // ---- duplicate ----
 let dupMode=null;
 function nextTag(k){const m=k.match(/^(.*-)(\d+)([A-Z]?)$/);if(!m)return k+'-COPY';let n=+m[2];for(let i=0;i<999;i++){n++;const t=m[1]+String(n).padStart(m[2].length,'0');if(!byKey[t]&&!ADDI.some(a=>normTag(a.tag)===t))return t}return k+'-COPY'}
-function startDup(k){if(document.body.classList.contains('ro')){toast('View only');return}document.getElementById('info').hidden=true;dupMode={src:k,tag:short(nextTag(k))};renderInsp();cv.style.cursor='copy';toast('Click on the map where the copy goes')}
+function startDup(k){if(document.body.classList.contains('ro')){toast('View only');return}document.getElementById('info').hidden=true;dupMode={src:k,tag:short(nextTag(k))};renderInsp();cv.style.cursor='copy';toast('Click on the layout where the copy goes')}
 function placeDup(e,n){const k=dupMode.src,it=byKey[k],tag=normTag(document.getElementById('duptag')?document.getElementById('duptag').value:dupMode.tag);const vt=valTag(tag);
   if(vt.E.length){INS.warn=vt;renderInsp();return}if(!inArea(e,n)){toast('That point is outside the site areas');return}
   let f=footOf(k);if(!f||f.length<3){const h=0.6;f=[[it.e-h,it.n-h],[it.e+h,it.n-h],[it.e+h,it.n+h],[it.e-h,it.n+h]]}const c=polyC(f),poly=f.map(q=>[+(q[0]-c[0]+e).toFixed(3),+(q[1]-c[1]+n).toFixed(3)]);
   const P=itemProps(k),dq=quadDims(poly),src=ADDI.find(a=>normTag(a.tag)===k);
-  const rec={id:'X'+Date.now().toString(36),tag,kind:it.type==='DB'?'DB':'Pit',st:'Not Cast',poly,L:+dq.L.toFixed(3),W:+dq.W.toFixed(3),ang:+dq.ang.toFixed(4),note:'Copy of '+short(k),added:today(),date:today(),by:(SYN&&SYN.uid)||null};
+  const rec={id:'X'+Date.now().toString(36),tag,kind:it.type==='DB'?'DB':'Pit',st:STV.nc,poly,L:+dq.L.toFixed(3),W:+dq.W.toFixed(3),ang:+dq.ang.toFixed(4),note:'Copy of '+short(k),added:today(),date:today(),by:(SYN&&SYN.uid)||null};
   if(rec.kind==='DB'){Object.assign(rec,{toc:P.toc??null,boc:P.boc??null,r:P.r||null,c:P.c||null,phi:P.phi||null,size:src&&src.size||(P.phi?P.phi+'-PVC':'')})}
   ADDI.push(rec);save('scope.addi',ADDI);dupMode=null;cv.style.cursor='';render();const ni=byKey[tag];if(ni){focusKey=tag;showInfo(ni);openInsp([tag])}toast(short(tag)+' added as a copy of '+short(k))}
 // ---- measure ----
 let MEAS=null,SNAPH=null;const osn=(x,y)=>{const h=cornerSnap(x,y);SNAPH=h.t?h:null;return h.p};
 function measBtn(){const nb=document.getElementById('notebtn');if(!nb||document.getElementById('measbtn'))return;const b=document.createElement('button');b.className='btn';b.id='measbtn';b.title='Measure distance and area (snaps like CAD)';b.textContent='Measure';nb.parentNode.insertBefore(b,nb.nextSibling);b.onclick=()=>measSet(!MEAS)}
 function measSet__base(on){MEAS=on?{pts:[],hov:null,closed:false}:null;const b=document.getElementById('measbtn');if(b)b.classList.toggle('on',!!on);if(on){try{if(addMode)setAdd(false)}catch(_){}if(INS.open)closeInsp();document.getElementById('info').hidden=true;cv.style.cursor='crosshair'}else cv.style.cursor='';measPop();draw()}
-function measSet(){const h=HK.measSet,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=measSet__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return r} // hooks: docs/PATCHES.md
+function measSet(){return hkRun('measSet',measSet__base,this,arguments,true)} // hooks: docs/PATCHES.md
 function measCalc(){const P=MEAS.pts;let L=0;for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);let A=null,per=null;
   if(P.length>=3){let s=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];s+=a[0]*b[1]-b[0]*a[1]}A=Math.abs(s)/2;per=L+Math.hypot(P[0][0]-P[P.length-1][0],P[0][1]-P[P.length-1][1])}return {L,A,per}}
 function measPop(){let p=document.getElementById('measpop');if(!p){p=document.createElement('div');p.className='pop measpop';p.id='measpop';document.getElementById('mapwrap').appendChild(p)}if(!MEAS){p.hidden=true;return}p.hidden=false;const m=measCalc(),P=MEAS.pts;
@@ -151,5 +163,4 @@ document.addEventListener('keydown',e=>{if(!MEAS||(e.target.closest&&e.target.cl
 measBtn();applyOvr();buildPParts();render();
 
 try{Object.assign(window.__T,{openInsp,measSet,startDup})}catch(_){}
-
 

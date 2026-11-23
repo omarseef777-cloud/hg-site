@@ -5,7 +5,7 @@
  summaryHtml=function(){const G=liveSummary(),Z=()=>({total:0,cast:0,inst:0,conc:0,concCast:0}),add=(a,b)=>{for(const k in a)a[k]+=b[k]||0;return a};
    const row=(r,cls,lab)=>`<tr class="${cls||''}"><td>${esc(lab||r.tag)}</td>${dnCell(r.total,r.cast,'cast')}${dnCell(r.total,r.inst,'installed')}${dnCell(r.conc,r.concCast,'cast',1)}</tr>`;
    const th=t=>`<colgroup><col style="width:34%"><col><col><col></colgroup><thead><tr><th>${esc(t)}</th><th>Cast no.</th><th>Installed no.</th><th>Concrete m³</th></tr></thead>`;
-   const lab={'UG Pits & Soakaways':'UG pits & soakaways','Valve Pits':'Valve pits','E&I Pits, Etisalat & Earthing':'E&I pits, Etisalat & earthing','Duct Banks':'Duct banks'};
+   const lab={'UG Pits & Soakaways':'UG pits & soakaways','Valve Pits':'Valve pits','E&I Pits, Etisalat & Earthing':'E&I pits, Etisalat & earthing',[SHS.db]:'Duct banks'};
    const types=G.filter(g=>g.title!=='All Pits'&&g.rows.length&&(g.cat==='PIT'||g.cat==='DB'));
    const T=types.reduce((a,g)=>add(a,g.total),Z()),PT=types.filter(g=>g.cat==='PIT').reduce((a,g)=>add(a,g.total),Z());
    let h=`<div class="sec"><h2>By type</h2><div class="scroll"><table class="fx">${th('Type')}<tbody>${types.filter(g=>g.cat==='PIT').map(g=>row(g.total,'',lab[g.title]||g.title)).join('')}${row(PT,'sub','All pits')}${types.filter(g=>g.cat==='DB').map(g=>row(g.total,'',lab[g.title]||g.title)).join('')}${row(T,'tot','Total')}</tbody></table></div></div>`;
@@ -20,7 +20,7 @@
    return `<div class="k4">${kv('Backfilled length',fmt(T.pL+T.cL),'m',`pipe ${fmt(T.pL)} · cable ${fmt(T.cL)}`,'#1f5e8c')}${kv('Backfill',fmt(T.pBf+T.cBf),'m³','','#43a047')}${kv('Sand filling',fmt(T.pSand+T.cSand),'m³','pipe and cable trenches','#c9a227')}${kv('Protection tiles',fmt(T.cTile),'m²','cable trenches','#c45300')}</div>`});
  // Deleted & abortive: counts on top
  wrapRep('deleted',()=>{const R=delRows(),A=R.filter(r=>r.ab);return `<div class="k4">${kv('Deleted items',fmt(R.length),'no.','out of all totals','#5d6872')}${kv('Abortive',fmt(A.length),'no.','cast before deletion','#b71c1c')}${kv('Abortive concrete',fmt1(A.reduce((s,r)=>s+r.conc,0)),'m³','to claim','#c45300')}${kv('Deleted concrete',fmt1(R.reduce((s,r)=>s+r.conc,0)),'m³','all deleted items','#7b4fb3')}</div>`});
- {const s=document.createElement('style');s.textContent='#repv tr.sub td{font-weight:700;background:color-mix(in srgb,var(--accent) 5%,transparent)}';document.head.appendChild(s)}}
+ }
 {const i=repIx('sum');if(i>=0){const _h=REPS[i].h;REPS[i].h=R=>{let h=_h(R).replace('<h2>By work type</h2>','<h2>By type</h2>').replace('<th>Work</th>','<th>Type</th>');try{if(R.Q&&R.Q.db&&Object.keys(R.Q.db).length&&!/<h2>Duct banks<\/h2>/.test(h))h+=`<div class="sec"><h2>Duct banks</h2>${qTable(R.Q.db,'Type')}</div>`}catch(_){}return h}}}
 // report list follows the library order: Design → Site → Progress → Commercial
 {const RG=Object.entries(window.CORE.reportGroups).map(([g,[c,L]])=>[g,c,L]);
@@ -28,4 +28,4 @@
    const used=new Set();RG.forEach(([lab,col,ids])=>{const L=ids.filter(i=>B[i]);if(!L.length)return;const h=document.createElement('div');h.className='lnh';h.style.setProperty('--lc',col);h.textContent=lab;nav.appendChild(h);L.forEach(i=>{nav.appendChild(B[i]);used.add(i)})});
    const rest=Object.keys(B).filter(i=>!used.has(i));if(rest.length){const h=document.createElement('div');h.className='lnh';h.style.setProperty('--lc','#5d6872');h.textContent='Other';nav.appendChild(h);rest.forEach(i=>nav.appendChild(B[i]))}}
  hkAfter('renderReport',function(){try{regroup()}catch(_){}});
- {const s=document.createElement('style');s.textContent='#repv .lnh{margin:12px 0 2px;padding:0 12px;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--lc);display:flex;align-items:center;gap:8px}#repv .lnh::before{content:"";width:4px;height:12px;border-radius:2px;background:var(--lc)}#repv .lnh:first-child{margin-top:0}@media (max-width:820px){#repv .lnh{display:none}}';document.head.appendChild(s)}}
+ }

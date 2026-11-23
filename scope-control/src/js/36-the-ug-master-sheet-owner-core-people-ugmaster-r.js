@@ -1,52 +1,52 @@
-// ================= Waseem's UG master sheet: read it next to the status sheet
-const WSX={sheets:{'Manholes':{h:1,cast:['Wall casting date','Base concrete date']},'Duct Bank':{h:1,cast:['DB casting date']},'Earthing Pits (E65)':{h:1,cast:['Wall casting date']},'Soakaway':{h:2,cast:['P1  DATE','P1 DATE']}}};
-const wsIsW=wb=>!!(wb.Sheets['Manholes']&&wb.Sheets['Duct Bank']&&!wb.Sheets['Pits']);
+// ================= The UG master sheet (owner: CORE.people.ugMaster): read it next to the status sheet
+const WSX={sheets:{[SHU.mh]:{h:1,cast:['Wall casting date','Base concrete date']},[SHU.db]:{h:1,cast:['DB casting date']},[SHU.ep]:{h:1,cast:['Wall casting date']},[SHU.soa]:{h:2,cast:['P1  DATE','P1 DATE']}}};
+const wsIsW=wb=>!!(wb.Sheets[SHU.mh]&&wb.Sheets[SHU.db]&&!wb.Sheets[SHS.pit]);
 const wsD=v=>v instanceof Date&&!isNaN(v)?new Date(v.getTime()-v.getTimezoneOffset()*6e4+432e5).toISOString().slice(0,10):'';
 // sheets that claim a million rows: cut the range to the last row that really has data
 function wsTrim(ws){let mr=0,mc=0;for(const a in ws){if(a[0]==='!')continue;const c=XLSX.utils.decode_cell(a);if(ws[a].v!=null&&ws[a].v!==''){if(c.r>mr)mr=c.r;if(c.c>mc)mc=c.c}}ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:mr,c:mc}})}
 function wsNorm(t){return String(t).replace(/\s*\(.*?\)\s*/g,'').replace(/\s+/g,'').toUpperCase()}
 function wsParse(wb){const out={},del=[];let date=null;
-  try{const d=XLSX.utils.sheet_to_json(wb.Sheets['Dashboard'],{header:1,defval:null});for(const r of d.slice(0,4))for(const c of r||[])if(typeof c==='string'){const m=c.match(/refreshed:\s*([0-9]{1,2}-[A-Za-z]{3}-[0-9]{4})/i);if(m)date=m[1]}}catch(_){}
+  try{const d=XLSX.utils.sheet_to_json(wb.Sheets[SHU.dash],{header:1,defval:null});for(const r of d.slice(0,4))for(const c of r||[])if(typeof c==='string'){const m=c.match(/refreshed:\s*([0-9]{1,2}-[A-Za-z]{3}-[0-9]{4})/i);if(m)date=m[1]}}catch(_){}
   for(const sn in WSX.sheets){const ws=wb.Sheets[sn];if(!ws)continue;wsTrim(ws);const cf=WSX.sheets[sn],rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null}),hdr=(rows[cf.h]||[]).map(h=>h?String(h).trim():'');
     const ix=n=>hdr.findIndex(h=>h.toLowerCase()===n.toLowerCase()),ti=ix('Tag Number');if(ti<0)continue;
-    const iEng=ix('Engineering Status'),iAv=ix('Available at'),iIn=sn==='Soakaway'?ix('Installation date'):ix('Installed at site date'),iU=sn==='Soakaway'?ix('Last Update'):ix('Date of last update'),iRem=ix('REMARKS'),iAq=ix('AQ-DA'),iC=cf.cast.map(ix).filter(i=>i>=0);
+    const iEng=ix('Engineering Status'),iAv=ix('Available at'),iIn=sn===SHU.soa?ix('Installation date'):ix('Installed at site date'),iU=sn===SHU.soa?ix('Last Update'):ix('Date of last update'),iRem=ix('REMARKS'),iAq=ix('AQ-DA'),iC=cf.cast.map(ix).filter(i=>i>=0);
     for(const r of rows.slice(cf.h+1)){const t=r[ti];if(!t)continue;const k=wsNorm(t),eng=String(iEng>=0&&r[iEng]||'').toLowerCase(),rem=String(iRem>=0&&r[iRem]||'').toLowerCase(),av=String(iAv>=0&&r[iAv]||'').toLowerCase();
       if(/delet/.test(eng)||/delet/.test(rem)){del.push(k);continue}
-      let s='Not Cast';const inst=iIn>=0?wsD(r[iIn]):'',cst=iC.map(i=>wsD(r[i])).filter(Boolean).sort().pop()||'';
-      if(inst)s='Installed';else if(cst)s=(sn==='Soakaway'||/yard|storage|site not installed|precast/.test(av))?'Precast Yard':'Casted';
+      let s=STV.nc;const inst=iIn>=0?wsD(r[iIn]):'',cst=iC.map(i=>wsD(r[i])).filter(Boolean).sort().pop()||'';
+      if(inst)s=STV.inst;else if(cst)s=(sn===SHU.soa||/yard|storage|site not installed|precast/.test(av))?STV.yard:STV.cast;
       const ds=[iU>=0?wsD(r[iU]):'',inst,cst].filter(Boolean).sort(),u=(iU>=0&&wsD(r[iU]))||ds.pop()||'';
       out[k]={s,u,sh:sn,aq:iAq>=0&&r[iAq]?String(r[iAq]).trim():'',c:cst,i:inst,x:/situ/.test(av)?1:0}}}
   return {rows:out,del,date}}
-// match a tag of Waseem's sheet to a tag in the program
-function wsKey(k,keys){if(keys.has(k))return k;if(keys.has('MM5100790U-'+k))return 'MM5100790U-'+k;return null}
-// build a status-sheet workbook from the current data + the newer rows of Waseem's sheet
+// match a tag of the UG master sheet to a tag in the program
+function wsKey(k,keys){if(keys.has(k))return k;if(keys.has(PRJ.itemPrefix+k))return PRJ.itemPrefix+k;return null}
+// build a status-sheet workbook from the current data + the newer rows of the UG master sheet
 function wsBuild(P){const keys=new Set(Object.keys(status)),cur=k=>status[k],mU=k=>(META[k]&&META[k].u)||'';const take={},older=[],back=[],extra=[],same=[];
-  for(const wk in P.rows){const k=wsKey(wk,keys),w=P.rows[wk];if(!k){if(w.s!=='Not Cast')extra.push(wk);continue}
+  for(const wk in P.rows){const k=wsKey(wk,keys),w=P.rows[wk];if(!k){if(w.s!==STV.nc)extra.push(wk);continue}
     const c=cur(k);if(w.s===c){same.push(k);continue}
     if(mU(k)&&(!w.u||w.u<=mU(k))){older.push([k,w]);continue}
     if((XR[w.s]||0)<(XR[c]||0)){back.push([k,w]);continue}
     take[k]=w}
-  const SN=['Duct Banks','Pits','Sokaways','Earthing Pits','Etisalat Pits'],grp={};SN.forEach(n=>grp[n]=[['WS'],[],['No.','TAG','Cast Status','Location','Last Update','AQ-DA','RFI Number','Remarks']]);
-  const cl=s=>s==='Installed'?['Casted','Installed']:s==='Precast Yard'?['Casted','Precast Yard']:s==='Casted'?['Casted','']:['',''];
+  const SN=[...SHO],grp={};SN.forEach(n=>grp[n]=[['WS'],[],['No.','TAG','Cast Status','Location','Last Update','AQ-DA','RFI Number','Remarks']]);
+  const cl=s=>s===STV.inst?[STV.cast,STV.inst]:s===STV.yard?[STV.cast,STV.yard]:s===STV.cast?[STV.cast,'']:['',''];
   const dt=s=>{if(!s)return null;const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
-  for(const k of keys){const n=SN.includes(sheet[k])?sheet[k]:'Pits',w=take[k],s=w?w.s:cur(k),m=META[k]||{},u=w?w.u:m.u;const [cs,lo]=cl(s);grp[n].push([grp[n].length-2,k,cs,lo,dt(u),(m.aq&&m.aq[0])||(w&&w.aq)||null,m.rfi||null,m.rem||null])}
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Summary'],['Date: '+(P.date||today())]]),'Summary');
+  for(const k of keys){const n=SN.includes(sheet[k])?sheet[k]:SHS.pit,w=take[k],s=w?w.s:cur(k),m=META[k]||{},u=w?w.u:m.u;const [cs,lo]=cl(s);grp[n].push([grp[n].length-2,k,cs,lo,dt(u),(m.aq&&m.aq[0])||(w&&w.aq)||null,m.rfi||null,m.rem||null])}
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([[SHS.summary],['Date: '+(P.date||today())]]),SHS.summary);
   SN.forEach(n=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(grp[n],{cellDates:true}),n));
   return {wb,take,older,back,extra,same}}
 let WSNOTE=null;
 const wsList=(a,f)=>`<div class="p1l"><table><tbody>${a.slice(0,400).map(f).join('')}</tbody></table></div>`;
 document.getElementById('xl').addEventListener('change',e=>{if(e.__f)return;const inp=e.target,f=inp.files&&inp.files[0];if(!f)return;e.stopImmediatePropagation();
-  (async()=>{let wb=null;try{const buf=await f.arrayBuffer(),nm=XLSX.read(buf,{type:'array',bookSheets:true}).SheetNames||[];if(nm.includes('Manholes')&&nm.includes('Duct Bank')&&!nm.includes('Pits'))wb=XLSX.read(buf,{type:'array',cellDates:true,sheetRows:4000,sheets:['Dashboard','Manholes','Duct Bank','Earthing Pits (E65)','Soakaway']})}catch(_){}
+  (async()=>{let wb=null;try{const buf=await f.arrayBuffer(),nm=XLSX.read(buf,{type:'array',bookSheets:true}).SheetNames||[];if(nm.includes(SHU.mh)&&nm.includes(SHU.db)&&!nm.includes(SHS.pit))wb=XLSX.read(buf,{type:'array',cellDates:true,sheetRows:4000,sheets:[SHU.dash,SHU.mh,SHU.db,SHU.ep,SHU.soa]})}catch(_){}
     const go=(file,synth)=>{const ev=new Event('change');ev.__f=file;ev.__synth=!!synth;inp.dispatchEvent(ev)};
     if(!wb||!wsIsW(wb)){WSNOTE=null;go(f);return}
     const P=wsParse(wb);try{const keys=new Set(Object.keys(status));let n=0;for(const wk in P.rows){const k=wsKey(wk,keys),w=P.rows[wk];if(!k)continue;const e={};if(w.c)e.c=w.c;if(w.i)e.i=w.i;if(w.x)e.x=1;if(Object.keys(e).length){WDT[k]=e;n++}}if(n)save('scope.wdt',WDT)}catch(_){}
-    const B=wsBuild(P),r=([k,w])=>`<tr><td class="mono">${esc(short(k))}</td><td>Program: ${esc(xlLab(status[k]))} (${esc((META[k]&&META[k].u)||'no date')}) · Waseem: ${esc(xlLab(w.s))} (${esc(w.u||'no date')})</td></tr>`;
-    WSNOTE={src:'Waseem sheet',html:`<div class="hint" style="margin-top:6px">Waseem's sheet${P.date?' · refreshed '+esc(P.date):''} · ${Object.keys(P.rows).length} rows read · ${Object.keys(B.take).length} newer updates taken · ${B.same.length} already the same. Items not in his sheet keep their status.</div>`+
+    const B=wsBuild(P),r=([k,w])=>`<tr><td class="mono">${esc(short(k))}</td><td>Program: ${esc(xlLab(status[k]))} (${esc((META[k]&&META[k].u)||'no date')}) · ${esc(PPL.ugMaster)}: ${esc(xlLab(w.s))} (${esc(w.u||'no date')})</td></tr>`;
+    WSNOTE={src:PPL.ugMaster+' sheet',html:`<div class="hint" style="margin-top:6px">${esc(PPL.ugMaster)}'s sheet${P.date?' · refreshed '+esc(P.date):''} · ${Object.keys(P.rows).length} rows read · ${Object.keys(B.take).length} newer updates taken · ${B.same.length} already the same. Items not in his sheet keep their status.</div>`+
       (B.older.length?`<details><summary>Not taken: older than the program (${B.older.length})</summary>${wsList(B.older,r)}</details>`:'')+
-      (B.back.length?`<details open><summary>Not taken: Waseem's sheet is behind (${B.back.length}) · check with him</summary>${wsList(B.back,r)}</details>`:'')+
+      (B.back.length?`<details open><summary>Not taken: ${esc(PPL.ugMaster)}'s sheet is behind (${B.back.length}) · check with him</summary>${wsList(B.back,r)}</details>`:'')+
       (B.extra.length?`<details><summary>In his sheet but not in the program (${B.extra.length})</summary>${wsList(B.extra,k=>`<tr><td class="mono">${esc(k)}</td><td>${esc(xlLab(P.rows[k].s))}</td></tr>`)}</details>`:'')+
       (P.del.length?`<div class="hint">${P.del.length} rows marked Deleted in his sheet were skipped (deletions follow the drawing revisions).</div>`:'')};
-    const out=XLSX.write(B.wb,{type:'array',bookType:'xlsx',cellDates:true});go(new File([out],'Waseem sheet '+(P.date||today())+'.xlsx'),true)})()},true);
+    const out=XLSX.write(B.wb,{type:'array',bookType:'xlsx',cellDates:true});go(new File([out],PPL.ugMaster+' sheet '+(P.date||today())+'.xlsx'),true)})()},true);
 window.__WS={wsParse,wsBuild,wsIsW,T:{}};
 
 const xIdb=(fn)=>new Promise(ok=>{try{const r=indexedDB.open('scope-xl',1);r.onupgradeneeded=()=>r.result.createObjectStore('t');r.onsuccess=()=>{try{fn(r.result.transaction('t',fn.length>1?'readwrite':'readonly').objectStore('t'),ok)}catch(_){ok(null)}};r.onerror=()=>ok(null)}catch(_){ok(null)}});
@@ -66,7 +66,7 @@ async function sheetExportXl(){let JSZ;try{JSZ=await xJSZip()}catch(e){toast(e.m
     const setS=(c,s)=>{clear(c);if(!s)return;c.setAttribute('t','inlineStr');const is=c.ownerDocument.createElementNS(XNS,'is'),t=c.ownerDocument.createElementNS(XNS,'t');t.setAttribute('xml:space','preserve');t.textContent=s;is.appendChild(t);c.appendChild(is)};
     const setN=(c,n)=>{clear(c);const v=c.ownerDocument.createElementNS(XNS,'v');v.textContent=String(n);c.appendChild(v)};
     const cell=(row,col)=>{const ref=xLet(col)+row.getAttribute('r');let prev=null;for(const c of row.getElementsByTagName('c')){const k=xRC(c.getAttribute('r'))[0];if(k===col)return c;if(k>col){prev=c;break}}const c=row.ownerDocument.createElementNS(XNS,'c');c.setAttribute('r',ref);row.insertBefore(c,prev);return c};
-    const rowStat=(cs,loc)=>{cs=String(cs).toLowerCase();loc=String(loc).toLowerCase();return ((cs.includes('cast')&&!/\b(not|no|un)[ -]?cast/.test(cs))||loc)?(loc.includes('install')?'Installed':loc.includes('precast')?'Precast Yard':'Casted'):'Not Cast'};
+    const rowStat=(cs,loc)=>{cs=String(cs).toLowerCase();loc=String(loc).toLowerCase();return ((cs.includes('cast')&&!/\b(not|no|un)[ -]?cast/.test(cs))||loc)?(loc.includes('install')?STV.inst:loc.includes('precast')?STV.yard:STV.cast):STV.nc};
     const seen=new Set(),ren=D.aqren||{},docs={},stats={chg:0,ren:0,add:0,rem:0,keep:0};
     const inWb=new Set();
     for(const nm of XSH){const p=SP[nm];if(!p||!zip.file(p))continue;const d=await rd(p);const rows=[...d.getElementsByTagName('row')],hr=rows.find(r=>r.getAttribute('r')==='3');if(!hr)continue;const H={};[...hr.getElementsByTagName('c')].forEach(c=>{H[String(val(c)).replace(/\s+/g,' ').trim().toLowerCase()]=xRC(c.getAttribute('r'))[0]});
@@ -74,20 +74,20 @@ async function sheetExportXl(){let JSZ;try{JSZ=await xJSZip()}catch(e){toast(e.m
       const data=rows.filter(r=>+r.getAttribute('r')>=4&&val(cell(r,C.tag)).trim());docs[nm]={p,d,C,data,rows};data.forEach(r=>inWb.add(val(cell(r,C.tag)).trim()))}
     let dateS=null;for(const nm in docs){const {C,data}=docs[nm];if(!C.lu)continue;for(const r of data){const c=cell(r,C.lu);if(c.getAttribute('s')&&c.getElementsByTagName('v')[0]&&!c.getAttribute('t')){dateS=c.getAttribute('s');break}}if(dateS)break}
     const rDate=(r,C)=>{if(!C.lu)return null;const c=cell(r,C.lu),v=c.getElementsByTagName('v')[0];if(!v||c.getAttribute('t'))return null;const n=+v.textContent;return isFinite(n)&&n>0?new Date(Date.UTC(1899,11,30)+Math.round(n)*864e5).toISOString().slice(0,10):null};
-    const write=(r,C,k,force)=>{const cur=rowStat(C.cs?val(cell(r,C.cs)):'',C.loc?val(cell(r,C.loc)):''),s=S(k);if(!force){if(cur===s||s==='Unknown')return false;const o=OV[k],rd0=rDate(r,C);if(o&&o.s===s){const od=dOk(o.wd||o.date)||'';if(rd0&&od<rd0){stats.keep++;return false}}else{/* status from another sheet (e.g. Waseem's): write only when its date is newer than the row */if(o)return false;const md=dOk(MT(k).u)||'';if(!md||(rd0&&md<=rd0)){if(md)stats.keep++;return false}}}const cast=s!=='Not Cast';
-      if(C.cs){const c=cell(r,C.cs),v=val(c);if(!cast)setS(c,'');else if(!/cast/i.test(v)||/not/i.test(v))setS(c,'Casted')}
-      if(C.loc)setS(cell(r,C.loc),s==='Installed'?'Installed':s==='Precast Yard'?'Precast Yard':'');
+    const write=(r,C,k,force)=>{const cur=rowStat(C.cs?val(cell(r,C.cs)):'',C.loc?val(cell(r,C.loc)):''),s=S(k);if(!force){if(cur===s||s===STV.unk)return false;const o=OV[k],rd0=rDate(r,C);if(o&&o.s===s){const od=dOk(o.wd||o.date)||'';if(rd0&&od<rd0){stats.keep++;return false}}else{/* status from another sheet (e.g. the UG master): write only when its date is newer than the row */if(o)return false;const md=dOk(MT(k).u)||'';if(!md||(rd0&&md<=rd0)){if(md)stats.keep++;return false}}}const cast=s!==STV.nc;
+      if(C.cs){const c=cell(r,C.cs),v=val(c);if(!cast)setS(c,'');else if(!/cast/i.test(v)||/not/i.test(v))setS(c,STV.cast)}
+      if(C.loc)setS(cell(r,C.loc),s===STV.inst?STV.inst:s===STV.yard?STV.yard:'');
       if(C.lu){const o=OV[k],du=dOk((o&&(o.wd||o.date))||(MT(k).u))||(cast?today():null),c=cell(r,C.lu);if(du){setN(c,xSerial(du));if(!c.getAttribute('s')&&dateS)c.setAttribute('s',dateS)}else clear(c)}return true};
     const note=(r,C,k)=>{if(!C.rem)return;const n=[delOut(k)?((D.aqdel&&D.aqdel[k]&&D.aqdel[k][3])||'Deleted'):null,isAbort(k)?'Abortive':null].filter(Boolean).join(' · ');if(!n)return;const c=cell(r,C.rem),v=val(c);if(!v.includes(n))setS(c,v?v+' · '+n:n)};
     for(const nm in docs){const {C,data}=docs[nm];data.forEach(r=>{const tcell=cell(r,C.tag);let k=val(tcell).trim();if(ren[k]&&revOut(k)&&!inWb.has(ren[k])){const nk=ren[k];setS(tcell,nk);stats.ren++;inWb.add(nk);k=nk;write(r,C,k,true)}else if(write(r,C,k))stats.chg++;seen.add(k);note(r,C,k)})}
     // items in the program but not in the workbook
     const miss=[...new Set([...Object.keys(status),...ADDK])].filter(k=>!seen.has(k)&&!inWb.has(k)&&!revOut(k)&&!(ren[k]&&revOut(k))).sort();
-    for(const k of miss){const nm=XSH.includes(sheet[k])&&docs[sheet[k]]?sheet[k]:(/-DB-/.test(k)?'Duct Banks':'Pits'),o=docs[nm];if(!o)continue;const {d,C,data}=o,last=data[data.length-1],lr=+last.getAttribute('r'),nr=lr+1;
+    for(const k of miss){const nm=XSH.includes(sheet[k])&&docs[sheet[k]]?sheet[k]:(/-DB-/.test(k)?SHS.db:SHS.pit),o=docs[nm];if(!o)continue;const {d,C,data}=o,last=data[data.length-1],lr=+last.getAttribute('r'),nr=lr+1;
       if(!o.si){o.si={};[...d.getElementsByTagName('f')].forEach(f=>{if(f.getAttribute('t')==='shared'&&f.getAttribute('ref')&&f.textContent)o.si[f.getAttribute('si')]={t:f.textContent,r:xRC(f.parentNode.getAttribute('r'))[1]}})}
       const mv=(t,dr)=>t.replace(/("[^"]*")|(\$?)([A-Z]{1,3})(\$?)(\d+)(?![\d(])/g,(m,q,a1,cl,a2,rw)=>q?q:a2?m:a1+cl+a2+(+rw+dr));
       const row=last.cloneNode(true);row.setAttribute('r',nr);[...row.getElementsByTagName('c')].forEach(c=>{const [col]=xRC(c.getAttribute('r'));c.setAttribute('r',xLet(col)+nr);const f=c.getElementsByTagName('f')[0];if(f){let t=f.textContent,base=lr;if(f.getAttribute('t')==='shared'){const m=o.si[f.getAttribute('si')];if(m&&!t){t=m.t;base=m.r}else if(t)base=lr}clear(c);if(t){const nf=d.createElementNS(XNS,'f');nf.textContent=mv(t,nr-base);c.appendChild(nf)}}else clear(c)});
       const after=o.rows.find(r=>+r.getAttribute('r')>lr);last.parentNode.insertBefore(row,after||null);o.rows.push(row);data.push(row);
-      if(C.no){const n=+val(cell(last,C.no))||data.length;setN(cell(row,C.no),n+1)}setS(cell(row,C.tag),k);if(C.ty&&nm==='Duct Banks')setS(cell(row,C.ty),/TAG-NOT/.test(k)?'':famOf(k));else if(C.ty)setS(cell(row,C.ty),val(cell(last,C.ty)));if(C.aq){const a=(MT(k).aq||[]).join(' · ');if(a)setS(cell(row,C.aq),a)}
+      if(C.no){const n=+val(cell(last,C.no))||data.length;setN(cell(row,C.no),n+1)}setS(cell(row,C.tag),k);if(C.ty&&nm===SHS.db)setS(cell(row,C.ty),/TAG-NOT/.test(k)?'':famOf(k));else if(C.ty)setS(cell(row,C.ty),val(cell(last,C.ty)));if(C.aq){const a=(MT(k).aq||[]).join(' · ');if(a)setS(cell(row,C.aq),a)}
       write(row,C,k,true);if(C.rem)setS(cell(row,C.rem),['Added from Scope Control',delOut(k)?'Deleted':null].filter(Boolean).join(' · '));stats.add++;o.grow=(o.grow||0)+1;o.lr0=o.lr0||lr}
     // stretch ranges that ended at the old last row
     for(const nm in docs){const o=docs[nm];if(!o.grow)continue;const L0=o.lr0,L1=L0+o.grow,re=new RegExp('([A-Z]{1,3}\\$?)'+L0+'(?!\\d)','g'),fix=s=>s.replace(re,'$1'+L1);
@@ -107,15 +107,14 @@ async function sheetExportXl(){let JSZ;try{JSZ=await xJSZip()}catch(e){toast(e.m
 {hkAfter('drawTrn',function(){if(!trnDraw)return;const P=trnDraw.pts,h=trnDraw.hov;if(h&&P.length){const l=P[P.length-1];ctx.save();ctx.strokeStyle='#e8590c';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(X(l[0]),Y(l[1]));ctx.lineTo(X(h[0]),Y(h[1]));ctx.stroke();ctx.restore()}ctx.save();ctx.fillStyle='#e8590c';P.forEach(q=>{ctx.beginPath();ctx.arc(X(q[0]),Y(q[1]),3.5,0,7);ctx.fill()});ctx.restore();if(SNAPH)try{drawSnapMark(SNAPH)}catch(_){}});}
 // ---- multi-select on the map: drag a window, Ctrl/Cmd + click to add or remove, one card for all ----
 const MSI=new Set(),MSP=new Set();let MSD_T=0,MSD=null,MSR=null,spaceDn=false;
-{const s=document.createElement('style');s.textContent=`#mapwrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#mapwrap input,#mapwrap textarea,#mapwrap #info .hd h3,#mapwrap #info .mono{-webkit-user-select:text;user-select:text}#mmenu{-webkit-user-select:none;user-select:none}
-.msc .msl{display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow:auto;margin:6px 0}.msc .msl span{font-family:var(--f-mono);font-size:11px;padding:2px 6px;border:1px solid var(--line);border-radius:4px}.msc h4{margin:10px 0 4px;font-size:12px;color:var(--muted);font-weight:600}.msc .stset{display:flex;gap:6px;flex-wrap:wrap}`;document.head.appendChild(s)}
+
 const msOn=()=>MSI.size+MSP.size>0;
 function msSync(){selKeys=MSI.size?new Set(MSI):null;draw()}
 function msiClear(){MSI.clear();MSP.clear();selKeys=null;const el=document.getElementById('info');if(el&&el.dataset.ms){el.hidden=true;delete el.dataset.ms}draw()}
 const partOf=id=>[...(window.__PARTS||[]),...(window.__PP||[])].find(p=>p.id===id);
 function msCard(){const el=document.getElementById('info');if(!msOn()){msiClear();return}const ro=document.body.classList.contains('ro')||!canW(),adm=!SYN.db||SYN.admin,K=[...MSI],P=[...MSP].map(partOf).filter(Boolean);
   const B=(a,v,t)=>`<button class="btn sm" data-${a}="${v}">${t}</button>`;focusKey=null;selPart=null;selPipe=null;el.dataset.ms='1';el.hidden=false;el.classList.remove('min');
-  el.innerHTML=`<div class="hd"><h3>${K.length+P.length} selected</h3><button class="x" data-msx="1" aria-label="Clear selection">×</button></div><div class="msc">${K.length?`<h4>${K.length} item${K.length>1?'s':''}</h4><div class="msl">${K.slice(0,60).map(k=>`<span>${esc(short(k))}</span>`).join('')}${K.length>60?`<span>+${K.length-60}</span>`:''}</div>${ro?'':`<div class="stset">${B('msst','Not Cast','Not cast')}${B('msst','Precast Yard','Precast yard')}${B('msst','Installed','Installed')}</div>`}`:''}
+  el.innerHTML=`<div class="hd"><h3>${K.length+P.length} selected</h3><button class="x" data-msx="1" aria-label="Clear selection">×</button></div><div class="msc">${K.length?`<h4>${K.length} item${K.length>1?'s':''}</h4><div class="msl">${K.slice(0,60).map(k=>`<span>${esc(short(k))}</span>`).join('')}${K.length>60?`<span>+${K.length-60}</span>`:''}</div>${ro?'':`<div class="stset">${B('msst',STV.nc,ST_LABEL[STV.nc])}${B('msst',STV.yard,ST_LABEL[STV.yard])}${B('msst',STV.inst,ST_LABEL[STV.inst])}</div>`}`:''}
     ${P.length?`<h4>${P.length} trench part${P.length>1?'s':''} · ${fmt(P.reduce((s,p)=>s+(p.L||0),0))} m</h4>${ro?'':`<div class="stset">${B('mspt','N','Not started')}${B('mspt','Y','Excavated')}${B('mspt','R','Backfilled')}</div>`}`:''}
     ${msTot(K,P,ro)}${ro?'':stMetaHtml()}<div class="acts" style="margin-top:8px">${K.length&&adm&&!ro?B('msprop','1','Properties'):''}${B('msfit','1','Zoom to selection')}${B('msx','1','Clear')}</div><div class="hint" style="margin-top:6px">Drag left → right: items fully inside · right → left: anything touching. Shift adds, Ctrl removes.</div></div>`;
   const bf=el.querySelector('[data-msbfm]');if(bf)bf.onclick=ev=>{ev.stopPropagation();const v=el.querySelector('#msbfm').value;if(!/^\d{4}-\d\d$/.test(v)){toast('Choose a month first');return}const L=P.filter(x=>pState(x)==='R');L.forEach(x=>{const cur=((EVT[x.id]&&EVT[x.id].L)||[]).filter(q=>q.src!=='Month record');EVT[x.id]={L:cur};evtAdd(x.id,'R',v+'-01','Month record')});evtSave();toast(L.length+' backfilled part'+(L.length===1?'':'s')+' → '+v);msCard()}}
@@ -158,7 +157,7 @@ window.addEventListener('pointerup',e=>{if(MSR&&e.button===2){const R=MSR;R.up=t
   if(!d.add){MSI.clear();MSP.clear()}SI.forEach(k=>MSI.add(k));SP.forEach(k=>MSP.add(k));
   if(!msOn()){toast(cross?'Nothing touches the box':'Nothing fully inside the box');return}msSync();msCard()},true);
 {const _mm=window.__mapMenu;window.__mapMenu=function(e){if(Date.now()-MMSK<600){MMSK=0;return}if(MSR&&MSR.done){MSR=null;return}if(MSR&&!MSR.up){MSR.pend={clientX:e.clientX,clientY:e.clientY,target:cv,button:2,preventDefault(){},stopPropagation(){},stopImmediatePropagation(){}};const R=MSR;setTimeout(()=>{if(MSR===R&&R.pend&&!R.mv){MSR=null;window.__mapMenu(R.pend)}},230);return}MSR=null;const [x,y]=msXY(e),h=mmHit(x,y);
-  if(h&&h.k==='item'&&MSI.size>1&&MSI.has(h.it.key)){const ro=document.body.classList.contains('ro')||!canW(),adm=!SYN.db||SYN.admin,rows=[];if(!ro)rows.push({label:'Status for all',chips:[['Not Cast','Not cast'],['Precast Yard','Precast yard'],['Installed','Installed']].map(([s,t])=>({t,f:()=>msSetSt(s)}))});if(adm&&!ro)rows.push({t:'Properties',f:()=>openInsp([...MSI])});rows.push({t:'Zoom to selection',f:()=>fitKeys([...MSI])},'-',{t:'Clear selection',f:msiClear});mmOpen(e.clientX,e.clientY,`<b>${MSI.size} items selected</b>`,rows);return}
+  if(h&&h.k==='item'&&MSI.size>1&&MSI.has(h.it.key)){const ro=document.body.classList.contains('ro')||!canW(),adm=!SYN.db||SYN.admin,rows=[];if(!ro)rows.push({label:'Status for all',chips:[[STV.nc,ST_LABEL[STV.nc]],[STV.yard,ST_LABEL[STV.yard]],[STV.inst,ST_LABEL[STV.inst]]].map(([s,t])=>({t,f:()=>msSetSt(s)}))});if(adm&&!ro)rows.push({t:'Properties',f:()=>openInsp([...MSI])});rows.push({t:'Zoom to selection',f:()=>fitKeys([...MSI])},'-',{t:'Clear selection',f:msiClear});mmOpen(e.clientX,e.clientY,`<b>${MSI.size} items selected</b>`,rows);return}
   return _mm(e)}}
 document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('#mapwrap,#mmenu')&&!e.target.closest('input,textarea,[contenteditable]'))e.preventDefault()},true);
 // Ctrl / Cmd + click: add or remove the item or trench part under the mouse
@@ -176,13 +175,13 @@ const repIx=id=>REPS.findIndex(r=>r.id===id);
 {const sm=REPS[repIx('sum')];if(sm){const _h=sm.h;sm.h=R=>_h(R)+`<div class="sec"><h2>Pipe trenches</h2>${qTable(R.Q.pipe,'Pipe')}</div><div class="sec"><h2>Cable trenches</h2>${qTable(R.Q.cable,'Type',{tiles:true})}<div class="sel-row" style="margin-top:10px"><button class="btn sm" data-home="mom">Method of measurement →</button></div></div>`;sm.d='Excavation, sand, backfill, tiles · pipe and cable trenches'}}
 ['pipe','cable'].forEach(id=>{const i=repIx(id);if(i>=0)REPS.splice(i,1)});
 {const ck=REPS[repIx('chk')];if(ck){const _h=ck.h;ck.h=R=>{const bad=[],turned=[];items.forEach(it=>{if(it.type!=='DB'||!showIt(it))return;const f=footOf(it.key);if(!f||f.length<4)return;const q=dbQ(it.key),A=dbAxis(it.key,f,q&&q.L);if(q&&q.L&&Math.min(Math.abs(A.e1-q.L),Math.abs(A.e2-q.L))>0.3)bad.push(it.key);else if(A.len+0.05<A.w)turned.push(it.key)});
-  const row=(t,L)=>`<tr><td>${t}</td><td class="${L.length?'warn':''}">${L.length?`<a href="#" data-show="${esc(L.join(','))}">${L.length} · Show on map</a>`:'0'}</td></tr>`;
+  const row=(t,L)=>`<tr><td>${t}</td><td class="${L.length?'warn':''}">${L.length?`<a href="#" data-show="${esc(L.join(','))}">${L.length} · Show on layout</a>`:'0'}</td></tr>`;
   return _h(R).replace('</tbody></table></div></div>',row('Duct banks whose outline does not match the duct bank length (L)',bad)+row('Duct banks where the ducts run across the short side (check the outline direction)',turned)+'</tbody></table></div></div>')}}}
-function dbDucts(){const P={},C={n:0,nc:0,t:0,c:0,miss:0};new Set([...Object.keys(status),...ADDK]).forEach(k=>{if(!isDB(k)||!pass(k))return;const p=itemProps(k),q=dbQ(k),s=S(k),cast=s!=='Not Cast'&&s!=='Unknown',L=p.L,n=(p.r||0)*(p.c||0),ph=p.phi?Math.round(p.phi):null,cc=(q&&q.net)||0;
+function dbDucts(){const P={},C={n:0,nc:0,t:0,c:0,miss:0};new Set([...Object.keys(status),...ADDK]).forEach(k=>{if(!isDB(k)||!pass(k))return;const p=itemProps(k),q=dbQ(k),s=S(k),cast=s!==STV.nc&&s!==STV.unk,L=p.L,n=(p.r||0)*(p.c||0),ph=p.phi?Math.round(p.phi):null,cc=(q&&q.net)||0;
   C.n++;C.t+=cc;if(cast){C.nc++;C.c+=cc}if(!L||!n||!ph){C.miss++;return}const r=P[ph]=P[ph]||{t:0,d:0,db:0,dbc:0};r.t+=n*L;r.db++;if(cast){r.d+=n*L;r.dbc++}});return {P,C}}
 
 // report cells in the Earthworks style: total on top, done under it
-{const st=document.createElement('style');st.textContent=`.rlay>#repbody{width:100%;min-width:0;box-sizing:border-box}#repbody .sec .scroll>table{width:100%}`;document.head.appendChild(st)}
+
 const dnCell=(t,d,w,dec)=>{const f=v=>dec?fmt1(v):fmt(v);return `<td>${f(t)}${t?`<div class="dn">${f(d)} ${w} · ${pc(d,t)}%</div>`:''}</td>`};
 summaryHtml=function(){const G=liveSummary();
   const row=(r,cls,lab)=>`<tr class="${cls||''}"><td>${esc(lab||r.tag)}</td>${dnCell(r.total,r.cast,'cast')}${dnCell(r.total,r.inst,'installed')}${dnCell(r.conc,r.concCast,'cast',1)}</tr>`;
@@ -195,12 +194,17 @@ summaryHtml=function(){const G=liveSummary();
    <div class="sec"><h2>Concrete</h2><div class="scroll"><table><thead><tr><th></th><th>Duct banks</th><th>Concrete m³</th></tr></thead><tbody><tr class="tot"><td>Duct banks</td>${dnCell(C.n,C.nc,'cast')}${dnCell(C.t,C.c,'cast',1)}</tr></tbody></table></div></div>`}};if(i>=0)REPS[i]=ent;else REPS.push(ent)}
 // site log: filter by person and by kind, search, every item is a link
 const LOGF={by:'',k:'',q:''};
+// the log: logRows = what people saved (SYN.logs); logAll = that and the lines no person wrote (duRows: the corrections read from the drawings and
+// the sizes of saved shapes, from CORE.drawingUpdate and CORE.layoutShape), by time.
+// The Updates log, the log on Home and an item's history show both; what is counted from the people's log (the week's trench lines) reads logRows.
 const logRows=()=>{const rows=[];for(const key in SYN.logs){const by=key.slice(key.indexOf('_')+1);(SYN.logs[key]||[]).forEach(e=>rows.push(Object.assign({by},e)))}return rows.sort((a,b)=>b.t-a.t)};
+const logAll=()=>logRows().concat(duRows()).sort((a,b)=>b.t-a.t);
+window.__DU={rows:()=>logAll(),hist:id=>histOf(id),props:k=>itemProps(k),shapeBy:SHBY,whoShape:SHWHO,drawBy:DUBY,dec:()=>decCats().map(c=>[c.t,c.L.map(x=>String(x.tag||x.id))]),who:DUWHO,q:k=>dbQ(k),foot:k=>footOf(k),at:k=>{const it=byKey[k];return it?[it.e,it.n,it.area]:null},st:k=>D.status[k],pos:k=>POS[k]||null,n:()=>items.length};
 const logNm=id=>id?short(String(id).split('|')[0])+(String(id).includes('|')?' · '+String(id).split('|').slice(1).join(' '):''):'';
 const logV=v=>({N:'Not started',Y:'Excavated',R:'Backfilled'}[v]||ST_LABEL[v]||v||'');
 const logTarget=id=>{if(!id)return null;const s=String(id);if(byKey[s])return {k:'item',id:s};const p=[...(window.__PARTS||[]),...(window.__PP||[])].find(x=>x.id===s||x.id===s.split('|')[0]);if(p)return {k:'part',p};const k0=normTag(s.split('|')[0]);if(byKey[k0])return {k:'item',id:k0};return null};
 {const i=repIx('log');if(i>=0)REPS[i].h=()=>{if(!SYN.db)return `<div class="sec"><h2>Updates log</h2><p class="hint">Online only</p></div>`;
-  const all=logRows(),people=[...new Set(all.map(r=>r.by))],kinds=[...new Set(all.map(r=>r.k).filter(Boolean))].sort(),q=LOGF.q.toLowerCase();
+  const all=logAll(),people=[...new Set(all.map(r=>r.by))],kinds=[...new Set(all.map(r=>r.k).filter(Boolean))].sort(),q=LOGF.q.toLowerCase();
   const rows=all.filter(r=>(!LOGF.by||r.by===LOGF.by)&&(!LOGF.k||r.k===LOGF.k)&&(!q||logNm(r.id).toLowerCase().includes(q)||String(r.k||'').toLowerCase().includes(q)));
   const cnt=u=>all.filter(r=>r.by===u).length;
   return `<div class="sec"><h2>Updates log <span class="hint" style="font-size:14px">${rows.length} of ${all.length} changes</span></h2>
@@ -208,7 +212,7 @@ const logTarget=id=>{if(!id)return null;const s=String(id);if(byKey[s])return {k
    <div class="sel-row" style="gap:8px;flex-wrap:wrap"><input type="search" id="logq" value="${esc(LOGF.q)}" placeholder="Search item or change" aria-label="Search the log" style="flex:1 1 200px;min-width:0;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink)"><select id="logk" aria-label="Kind of change" style="font:inherit;padding:6px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink)"><option value="">All changes</option>${kinds.map(k=>`<option ${LOGF.k===k?'selected':''}>${esc(k)}</option>`).join('')}</select></div>
    <div class="scroll" style="margin-top:8px"><table><thead><tr><th>When</th><th>Who</th><th>What</th><th>Item / part</th><th>Now</th></tr></thead><tbody>
    ${rows.slice(0,500).map(r=>{const tg=logTarget(r.id),nm=esc(logNm(r.id));return `<tr><td>${esc(new Date(r.t).toLocaleString(undefined,{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}))}</td><td data-uid="${esc(r.by)}">…</td><td>${esc(r.k||'')}</td><td>${tg?`<a href="#" class="loglink" data-logk="${esc(String(r.id))}">${nm}</a>`:nm}</td><td>${r.from?esc(logV(r.from))+' → ':''}${esc(logV(r.v))}</td></tr>`}).join('')||'<tr><td colspan="5">No updates match</td></tr>'}</tbody></table></div></div>`}}
-{const s=document.createElement('style');s.textContent='.loglink{color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:2px}';document.head.appendChild(s)}
+
 const repv=document.getElementById('repv');
 repv.addEventListener('click',e=>{const sw=e.target.closest('#repbody [data-show]');if(sw){e.preventDefault();const ks=sw.dataset.show.split(',').filter(Boolean);goView('dash');selKeys=new Set(ks);fitKeys(ks);draw();return}const b=e.target.closest('[data-logby]');if(b){LOGF.by=b.dataset.logby;renderReport();return}const a=e.target.closest('[data-logk]');if(a){e.preventDefault();const t=logTarget(a.dataset.logk);if(!t)return;goView('dash');if(t.k==='item')focusTag(t.id);else{const p=t.p;if(p.pts){const xs=p.pts.map(q=>q[0]),ys=p.pts.map(q=>q[1]);fitBox(Math.min(...xs)-10,Math.max(...xs)+10,Math.min(...ys)-10,Math.max(...ys)+10);showPipe(p)}else{fitBox(Math.min(p.x0,p.x1)-10,Math.max(p.x0,p.x1)+10,Math.min(p.y0,p.y1)-10,Math.max(p.y0,p.y1)+10);showPart(p)}}}});
 repv.addEventListener('input',e=>{if(e.target.id==='logq'){LOGF.q=e.target.value;clearTimeout(LOGF.t);LOGF.t=setTimeout(()=>{const st=e.target.selectionStart;renderReport();const i=document.getElementById('logq');if(i){i.focus();try{i.setSelectionRange(st,st)}catch(_){}}},250)}});
@@ -225,10 +229,5 @@ function dbAxis(k,poly,L){let bi=0,bl=0;for(let i=0;i<poly.length;i++){const a=p
   let pit=null,pd=4;items.forEach(it=>{if(it.type==='DB'||it.key===k)return;const dd=Math.hypot(it.e-c[0],it.n-c[1]);if(dd<pd){pd=dd;pit=[(it.e-c[0])/(dd||1),(it.n-c[1])/(dd||1)]}});
   if(pit)return R(par(u1,pit)>=par(u2,pit)?u1:u2,'pit');return R(u1,'longest')}
 
-
 // header: wrap the controls under the title when the page is narrow (e.g. Ask panel open) instead of squeezing the title
-{const st=document.createElement('style');st.textContent=`.top.top{display:flex;flex-wrap:wrap;align-items:stretch}
-.top.top>.brand{flex:100 1 400px;min-width:0;border-right:0;border-bottom:1px solid var(--frame);margin-bottom:-1px}
-.top.top>.controls{flex:1 1 auto;min-width:0;border-left:1px solid var(--frame);margin-left:-1px}
-@media (max-width:860px){.top.top>.brand{flex-basis:100%}}`;document.head.appendChild(st)}
 

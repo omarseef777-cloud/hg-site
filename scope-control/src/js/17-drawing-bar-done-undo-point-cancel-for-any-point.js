@@ -10,10 +10,9 @@ function drawJob(){if(SEC.draw)return {n:SEC.draw.pts.length,min:2,lab:'Section'
   mw.appendChild(b);
   const run=(e,f)=>{e.preventDefault();e.stopPropagation();const j=drawJob();if(!j)return;f(j);draw()};
   b.addEventListener('pointerdown',e=>e.stopPropagation());
-  b.addEventListener('click',e=>{if(e.target.closest('[data-dbd]'))run(e,j=>{if(j.n<j.min){toast('Tap at least '+j.min+' points on the map');return}j.done()});
+  b.addEventListener('click',e=>{if(e.target.closest('[data-dbd]'))run(e,j=>{if(j.n<j.min){toast('Tap at least '+j.min+' points on the layout');return}j.done()});
     else if(e.target.closest('[data-dbu]'))run(e,j=>{if(j.n)j.undo()});else if(e.target.closest('[data-dbc]'))run(e,j=>{j.cancel();toast(j.lab+' cancelled')})})}
 function drawBarUpd(){const b=document.getElementById('drawbar');if(!b)return;const j=drawJob();const on=!!j&&!document.body.classList.contains('pres');b.hidden=!on;if(!on)return;
   b.querySelector('.dbl').textContent=j.lab+' · '+j.n+' point'+(j.n===1?'':'s');b.querySelector('[data-dbd]').disabled=j.n<j.min;b.querySelector('[data-dbu]').disabled=!j.n}
 {const _dr=draw;draw=function(){_dr();drawBarUpd()}}
-
 

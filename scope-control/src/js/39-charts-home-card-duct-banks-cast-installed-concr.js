@@ -4,9 +4,9 @@ let WDT=LS('scope.wdt',{})||{};SYMAP['scope.wdt']={doc:'cfg/wdt',t:'whole',adm:1
 const WDT0=(window.SCOPE&&window.SCOPE.wdt0)||{};
 const chDel=k=>{const d=window.__delOut;return !!(d&&(d.has?d.has(k):d[k]))};
 function chDates(k){const w=Object.assign({},WDT0[k]||{},WDT[k]||{}),s=S(k),L=(EVT&&EVT[k]&&EVT[k].L)||[],mu=dOk((MT(k)||{}).u)||null;
-  const ev=ss=>L.filter(e=>ss.includes(e.s)&&e.wd).map(e=>e.wd).sort()[0]||null,cast=s!=='Not Cast'&&s!=='Unknown';
-  let c=null,i=null;if(cast)c=w.c||ev(['Casted','Precast Yard','Installed'])||w.i||mu;
-  const inst=s==='Installed'||(cast&&!!w.x);if(inst)i=w.i||(w.x?c:null)||ev(['Installed'])||mu||c;
+  const ev=ss=>L.filter(e=>ss.includes(e.s)&&e.wd).map(e=>e.wd).sort()[0]||null,cast=s!==STV.nc&&s!==STV.unk;
+  let c=null,i=null;if(cast)c=w.c||ev([STV.cast,STV.yard,STV.inst])||w.i||mu;
+  const inst=s===STV.inst||(cast&&!!w.x);if(inst)i=w.i||(w.x?c:null)||ev([STV.inst])||mu||c;
   return {c,i,cast,inst}}
 const chM=d=>d?d.slice(0,7):null,chML=m=>{const [y,mo]=m.split('-');return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2)};
 function chMonths(list){let a=list.filter(Boolean).sort()[0];const end=today().slice(0,7);if(!a||a>end)a=end;const M=[];let [y,m]=a.split('-').map(Number);while(true){const k=y+'-'+String(m).padStart(2,'0');M.push(k);if(k>=end)break;m++;if(m>12){m=1;y++}}return M}
@@ -45,7 +45,7 @@ function chRender(){const {DB,ALL,G}=chData(),PT=ALL.filter(d=>!d.db);const allP
   if(CHS==='pits'||CHS==='db'){const L=CHS==='pits'?PT:DB,c=cnt(L),M=chMonths([...Object.keys(c.mc),...Object.keys(c.mi)]),nm=CHS==='pits'?'Pits':'Duct banks';
     const T=SUMT[CHS],dc=c.nc-c.uc,di=c.ni-c.ui;
     h=`<div class="k4">${kcard(nm+' cast',T.cast,T.total,'no.',CHC.cast)}${kcard(nm+' installed',T.inst,T.total,'no.',CHC.inst)}</div><div class="sec"><h2>${nm}</h2>
-     ${chSvg(CHS,M,[{name:'Cast',col:CHC.cast,m:c.mc},{name:'Installed',col:CHC.inst,m:c.mi}],T.total,'no.')}
+     ${chSvg(CHS,M,[{name:'Cast',col:CHC.cast,m:c.mc},{name:ST_LABEL[STV.inst],col:CHC.inst,m:c.mi}],T.total,'no.')}
      <div class="cund">${T.cast-dc>0||T.inst-di>0?`No work date: ${[T.cast-dc>0?fmt(T.cast-dc)+' cast':'',T.inst-di>0?fmt(T.inst-di)+' installed':''].filter(Boolean).join(' · ')}`:''}</div></div>`}
   else{const qd={},qp={};let uq=0;ALL.forEach(d=>{if(d.cast){const m=chM(d.c);if(m){const o=d.db?qd:qp;o[m]=(o[m]||0)+d.q}else uq+=d.q}});const qTp=allP.conc||0,qTd=TD('conc'),qT=qTp+qTd,cp=allP.concCast||0,cd=TD('concCast'),qC=cp+cd;
     const M=chMonths([...Object.keys(qd),...Object.keys(qp)]),qAll={};M.forEach(m=>qAll[m]=(qd[m]||0)+(qp[m]||0));const sd=cd,sp=cp;
@@ -56,20 +56,13 @@ function chRender(){const {DB,ALL,G}=chData(),PT=ALL.filter(d=>!d.db);const allP
 const chEl=document.createElement('div');chEl.className='ovl rep';chEl.id='chv';chEl.hidden=true;
 chEl.innerHTML=`<div class="rbar"><h1>Charts</h1></div><div class="rlay"><nav class="rnavs" id="chnav" aria-label="Charts"></nav><div id="chb" class="wrap" style="max-width:1040px;padding:18px 16px 40px;box-sizing:border-box;width:100%"></div></div>`;
 chEl.addEventListener('click',e=>{const b=e.target.closest('[data-chs]');if(b){CHS=b.dataset.chs;try{localStorage.setItem('scope.chsel',CHS)}catch(_){}chRender();return}if(e.target.closest('#chlib')){try{DV.sec='lib'}catch(_){}goView('docs')}});document.body.appendChild(chEl);
-{const st=document.createElement('style');st.textContent=`#chv .sec{margin-bottom:18px}#chv .ckp{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 12px}#chv .ckp>div{flex:1 1 140px;border:1px solid var(--line,#dfe3ea);border-radius:10px;padding:10px 12px;background:var(--card,#fff)}
-#chv .ckp b{display:block;font:700 22px/1.1 var(--f-display,inherit)}#chv .ckp span{font-size:12px;color:var(--muted,#667085);text-transform:uppercase;letter-spacing:.04em}#chv .ckp em{float:right;font-style:normal;font-size:13px;color:var(--muted,#667085);margin-top:-22px}
-#chv .clg{display:flex;gap:16px;font-size:13px;margin:2px 0 6px;color:var(--ink,#1f2937)}#chv .clg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}#chv .clg i.dsh{background:repeating-linear-gradient(90deg,#98a2b3 0 4px,transparent 4px 7px)}
-#chv .cbox{position:relative}#chv svg{width:100%;height:auto;display:block;overflow:visible}#chv .cg{stroke:#e6e9ef;stroke-width:1}#chv .ca{stroke:#98a2b3;stroke-width:1}#chv .cs{stroke:#98a2b3;stroke-width:1.5;stroke-dasharray:5 4}
-#chv .ct{font-size:11.5px;fill:#667085}#chv .cl{font-size:12.5px;fill:#344054;font-weight:600}#chv .cl .cn{font-weight:400;fill:#667085}#chv .cx{stroke:#98a2b3;stroke-width:1}
-#chv .ctip{position:absolute;pointer-events:none;background:#111827;color:#fff;font-size:12.5px;line-height:1.45;padding:8px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-100%);box-shadow:0 6px 18px rgba(0,0,0,.18)}#chv .ctip b{font-weight:600}#chv .ctip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
-#chv .ctab{margin-top:8px;font-size:13px}#chv .ctab summary{cursor:pointer;color:var(--muted,#667085)}#chv .ctab table{width:100%}#chv .ctab2{margin-top:18px;border-top:1px solid var(--line,#dfe3ea);padding-top:14px}#chv .ctab2 h2{font-family:var(--f-display);font-size:18px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em}#chv .ctab2 td,#chv .ctab2 th{text-align:right}#chv .ctab2 td:first-child,#chv .ctab2 th:first-child{text-align:left}#chv .csw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}#chv .ctab2 .hint{margin-top:6px}#chv .k4{margin-bottom:14px}#chv .cund{font-size:12.5px;color:var(--muted,#667085);margin-top:6px}`;document.head.appendChild(st)}
+
 chEl.addEventListener('mousemove',e=>{const bx=e.target.closest('.cbox');chEl.querySelectorAll('.cbox').forEach(c=>{if(c!==bx){c.querySelector('.ctip').hidden=true;c.querySelector('.cx').style.display='none'}});if(!bx)return;
   const C=CHD[bx.dataset.ch],sv=bx.querySelector('svg'),R=sv.getBoundingClientRect(),sx=C.W/R.width,x=(e.clientX-R.left)*sx;if(x<C.l-12||x>C.l+C.pw+12){bx.querySelector('.ctip').hidden=true;bx.querySelector('.cx').style.display='none';return}
   let i=0,bd=1e9;C.M.forEach((m,j)=>{const d=Math.abs(C.X(j)-x);if(d<bd){bd=d;i=j}});const ln=bx.querySelector('.cx');ln.setAttribute('x1',C.X(i));ln.setAttribute('x2',C.X(i));ln.style.display='';
   const tp=bx.querySelector('.ctip');tp.innerHTML=`<b>${chML(C.M[i])}</b>`+C.series.map((s,j)=>`<div><i style="background:${s.col}"></i>${esc(s.name)}: <b>${C.f(C.cum[j][i])}</b> ${C.unit} · +${C.f(s.m[C.M[i]]||0)}</div>`).join('');tp.hidden=false;tp.style.left=(C.X(i)/sx)+'px';tp.style.top=(e.clientY-R.top-14)+'px'});
 chEl.addEventListener('mouseleave',()=>chEl.querySelectorAll('.ctip').forEach(t=>t.hidden=true));
 {const _gv=goView;goView=function(v){chEl.hidden=v!=='charts';_gv(v==='charts'?'__none':v);if(v==='charts'){document.body.classList.add('ovopen');chRender()}}}
-{const lg=document.getElementById('hlog');const b=document.createElement('button');b.className='hcard';b.id='hcht';b.setAttribute('data-home','charts');b.innerHTML=`<span class="ic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span><h2>Charts</h2><p>Pits, duct banks and concrete cast by month.</p><span class="go">Open →</span>`;(lg||document.querySelector('.hcard[data-home="rep"]')).after(b)}
 {let rt=0;window.addEventListener('resize',()=>{if(chEl.hidden)return;clearTimeout(rt);rt=setTimeout(chRender,200)})}
 window.__CH={chData,chRender};
 

@@ -8,5 +8,5 @@
  // page titles and home cards: same names as the library
  const setT=(sel,txt)=>{const e=document.querySelector(sel);if(e)e.textContent=txt};
  
- {const s=document.createElement('style');s.textContent='#decv #decb{max-width:1100px;margin:0 auto;padding:18px 16px 40px}';document.head.appendChild(s)}}
+ }
 

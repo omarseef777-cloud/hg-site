@@ -1,12 +1,12 @@
 // ================= Site mode: phone layout + GPS =================
-// Plant grid → WGS84: drawing note 3 – datum E5000 N2000 = UTM 39N E689280 N2669710; plant north is 15° west of true north.
-const GDAT={pe:5000,pn:2000,ue:689280,un:2669710,lat:24.128487742884907,lon:52.862591837461416,rot:15};
+// Plant grid → WGS84: the datum (drawing note 3) is CORE.site.datum.
+const GDAT=SITE.datum;
 function ll2utm(lat,lon,zone){const a=6378137,f=1/298.257223563,k0=0.9996,e2=f*(2-f),ep2=e2/(1-e2),r=Math.PI/180;const p=lat*r,l=lon*r,l0=((zone-1)*6-177)*r;
   const sp=Math.sin(p),cp=Math.cos(p),N=a/Math.sqrt(1-e2*sp*sp),T=Math.tan(p)**2,C=ep2*cp*cp,A=cp*(l-l0);
   const M=a*((1-e2/4-3*e2*e2/64-5*e2**3/256)*p-(3*e2/8+3*e2*e2/32+45*e2**3/1024)*Math.sin(2*p)+(15*e2*e2/256+45*e2**3/1024)*Math.sin(4*p)-(35*e2**3/3072)*Math.sin(6*p));
   return [k0*N*(A+(1-T+C)*A**3/6+(5-18*T+T*T+72*C-58*ep2)*A**5/120)+500000,k0*(M+N*Math.tan(p)*(A*A/2+(5-T+9*C+4*C*C)*A**4/24+(61-58*T+T*T+600*C-330*ep2)*A**6/720))]}
-const GBETA=(()=>{const u0=ll2utm(GDAT.lat,GDAT.lon,39),u1=ll2utm(GDAT.lat+0.01,GDAT.lon,39);return Math.atan2(u1[0]-u0[0],u1[1]-u0[1])-GDAT.rot*Math.PI/180})();
-function ll2plant(lat,lon){const u=ll2utm(lat,lon,39),gx=u[0]-GDAT.ue,gy=u[1]-GDAT.un,c=Math.cos(GBETA),s=Math.sin(GBETA);return [GDAT.pe+gx*c-gy*s,GDAT.pn+gx*s+gy*c]}
+const GBETA=(()=>{const u0=ll2utm(GDAT.lat,GDAT.lon,GDAT.zone),u1=ll2utm(GDAT.lat+0.01,GDAT.lon,GDAT.zone);return Math.atan2(u1[0]-u0[0],u1[1]-u0[1])-GDAT.rot*Math.PI/180})();
+function ll2plant(lat,lon){const u=ll2utm(lat,lon,GDAT.zone),gx=u[0]-GDAT.ue,gy=u[1]-GDAT.un,c=Math.cos(GBETA),s=Math.sin(GBETA);return [GDAT.pe+gx*c-gy*s,GDAT.pn+gx*s+gy*c]}
 window.__GPS={ll2plant,ll2utm};
 const GPS={on:false,w:null,raw:null,pos:null,acc:null,first:true,off:LS('scope.gpsoff',[0,0]),err:null};
 const siteBB=(()=>{let a=1e9,b=-1e9,c=1e9,d=-1e9;D.items.forEach(r=>{a=Math.min(a,r[2]);b=Math.max(b,r[2]);c=Math.min(c,r[3]);d=Math.max(d,r[3])});return [a,b,c,d]})();
@@ -48,10 +48,10 @@ document.getElementById('info').addEventListener('click',e=>{const t=e.target;
 function siteOn__base(on){document.body.classList.toggle('site',on);if(on)document.body.classList.add('ro');else syBadge();if(focusKey&&byKey[focusKey]&&!document.getElementById('info').hidden)showInfo(byKey[focusKey]);if(on){goView('dash');try{if(pipeMode)setPipe(null);if(cableMode)setCable(null);setEdit(false);setBox(false)}catch(_){}}
   else{const r=document.getElementById('siteres');if(r)r.hidden=true}
   try{localStorage.setItem('scope.site',on?'1':'0')}catch(_){}setTimeout(()=>{resize();draw()},30);gpsUi()}
-function siteOn(){const h=HK.siteOn,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=siteOn__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function siteOn(){return hkRun('siteOn',siteOn__base,this,arguments,false)} // hooks: docs/PATCHES.md
 {hkAfter('syBadge',function(){if(document.body.classList.contains('site'))document.body.classList.add('ro')});}
-document.getElementById('info').addEventListener('click',e=>{if(!document.body.classList.contains('site'))return;if(e.target.closest('.sitest'))return;if(e.target.closest('[data-setst],[data-pst],[data-move],[data-unmove],[data-planone],[data-xone],[data-sarea],select,input')){e.stopImmediatePropagation();e.preventDefault()}},{capture:true});
-document.getElementById('info').addEventListener('change',e=>{if(document.body.classList.contains('site')&&!e.target.closest('.sitest'))e.stopImmediatePropagation()},{capture:true});
+document.getElementById('info').addEventListener('click',e=>{if(!document.body.classList.contains('site'))return;if(e.target.closest('.sitest')&&canW())return;if(e.target.closest('[data-setst],[data-pst],[data-qst],[data-move],[data-unmove],[data-planone],[data-xone],[data-sarea],select,input')){e.stopImmediatePropagation();e.preventDefault()}},{capture:true});
+document.getElementById('info').addEventListener('change',e=>{if(document.body.classList.contains('site')&&!(e.target.closest('.sitest')&&canW()))e.stopImmediatePropagation()},{capture:true});
 {const mw=document.getElementById('mapwrap');const bar=document.createElement('div');bar.id='sitebar';bar.className='sitebar';
   bar.innerHTML=`<button class="sb" data-sitehome="1" aria-label="Home"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></button>
   <input id="siteq" type="search" placeholder="Search tag" autocomplete="off" enterkeyhint="search">
@@ -61,9 +61,9 @@ document.getElementById('info').addEventListener('change',e=>{if(document.body.c
   const lp=document.createElement('div');lp.id='locpan';lp.className='locpan';lp.hidden=true;
   lp.innerHTML=`<div class="lphd"><b>Your position</b><button class="x" data-locx="1" aria-label="Close">×</button></div>
   <p>Location access is not available inside the Claude app. Take it from Google Maps:</p>
-  <ol><li>Open Google Maps and tap the blue dot (or press and hold where you stand).</li><li>Copy the coordinates, e.g. <span class="mono">24.12543, 52.86108</span>.</li><li>Paste them here.</li></ol>
-  <input id="locin" type="text" inputmode="decimal" placeholder="24.12543, 52.86108" autocomplete="off">
-  <div class="lpact"><button class="btn" data-locoff="1">Clear</button><button class="btn pri" data-locok="1">Show on map</button></div>`;mw.appendChild(lp);
+  <ol><li>Open Google Maps and tap the blue dot (or press and hold where you stand).</li><li>Copy the coordinates, e.g. <span class="mono">${SITE.example}</span>.</li><li>Paste them here.</li></ol>
+  <input id="locin" type="text" inputmode="decimal" placeholder="${SITE.example}" autocomplete="off">
+  <div class="lpact"><button class="btn" data-locoff="1">Clear</button><button class="btn pri" data-locok="1">Show on layout</button></div>`;mw.appendChild(lp);
   lp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lp.querySelector('[data-locok]').click()}});
   const nb=document.createElement('div');nb.id='sitenear';nb.className='sitenear';nb.hidden=true;mw.appendChild(nb);
   const zb=document.createElement('div');zb.className='sitezoom';zb.innerHTML='<button class="sb" data-sz="1" aria-label="Zoom in">+</button><button class="sb" data-sz="-1" aria-label="Zoom out">−</button>';mw.appendChild(zb);
@@ -72,7 +72,7 @@ document.getElementById('info').addEventListener('change',e=>{if(document.body.c
   mw.addEventListener('click',e=>{const t=e.target;
     if(t.closest('[data-gps]')){if(GPS.on&&GPS.pos&&!GPS.pasted){gpsCenter();return}if(GPS.on&&!GPS.pasted){gpsStop();return}if(GPS.pasted||GPS.err){locPanel();return}gpsStart();return}
     if(t.closest('[data-locx]')){document.getElementById('locpan').hidden=true;return}
-    if(t.closest('[data-locok]')){const ll=parseLL(document.getElementById('locin').value);if(!ll){toast('Paste the two numbers from Google Maps, e.g. 24.12543, 52.86108');return}document.getElementById('locpan').hidden=true;setPasted(ll);return}
+    if(t.closest('[data-locok]')){const ll=parseLL(document.getElementById('locin').value);if(!ll){toast('Paste the two numbers from Google Maps, e.g. '+SITE.example);return}document.getElementById('locpan').hidden=true;setPasted(ll);return}
     if(t.closest('[data-locoff]')){GPS.on=false;GPS.pasted=false;GPS.pos=null;document.getElementById('locpan').hidden=true;gpsUi();draw();return}
     if(t.closest('[data-sitehome]')){siteOn(false);goView('home');return}
     if(t.closest('[data-siteexit]')){siteOn(false);return}

@@ -1,6 +1,6 @@
 // ================= Add missing items (pits / duct banks) drawn on site =================
 let ADDI=LS('scope.addi',[]);const ADDK=new Set(),ADDS=new Set();window.__ADDK=ADDK;
-const normTag=t=>{t=String(t||'').trim().toUpperCase().replace(/\s+/g,'');if(t&&!/^MM\d/.test(t)&&/^[A-Z]+-[A-Z]+-\d+/.test(t))t='MM5100790U-'+t;return t};
+const normTag=t=>{t=String(t||'').trim().toUpperCase().replace(/\s+/g,'');if(t&&!/^MM\d/.test(t)&&/^[A-Z]+-[A-Z]+-\d+/.test(t))t=PRJ.itemPrefix+t;return t};
 const polyC=P=>[P.reduce((a,p)=>a+p[0],0)/P.length,P.reduce((a,p)=>a+p[1],0)/P.length];
 function applyAdded__base(){
   for(const k of ADDK){const i=items.findIndex(x=>x.key===k);if(i>=0)items.splice(i,1);delete byKey[k];if(!ADDS.has(k)){delete status[k];delete sheet[k]}if(D.foot)delete D.foot[k];if(D.qdb)delete D.qdb[k];if(D.dbc)delete D.dbc[k]}
@@ -8,15 +8,15 @@ function applyAdded__base(){
   (ADDI||[]).concat((D.aqadd||[]).filter(s=>!(ADDI||[]).some(a=>a.id===s.id)&&!((window.__REV||{})[s.tag]||{}).x)).forEach(a0=>{if(!a0||!a0.tag||!a0.poly)return;const a=Object.assign({},a0,{tag:normTag(a0.tag)});if(byKey[a.tag])return;const c=polyC(a.poly);const inSheet=a.tag in status;
     const ar=(D.areas||[]).find(r=>c[0]>=r.bbox[0]&&c[0]<=r.bbox[1]&&c[1]>=r.bbox[2]&&c[1]<=r.bbox[3]);
     const it={key:a.tag,type:a.ty||(a.kind==='DB'?'DB':'Pit'),e:c[0],n:c[1],area:ar?ar.id:'',added:a};items.push(it);byKey[a.tag]=it;
-    if(inSheet){ADDS.add(a.tag);it.inSheet=1}else{status[a.tag]=a.st||'Not Cast';sheet[a.tag]=a.grp||(a.kind==='DB'?'Duct Banks':'Pits')}(D.foot=D.foot||{})[a.tag]=a.poly;
+    if(inSheet){ADDS.add(a.tag);it.inSheet=1}else{status[a.tag]=a.st||STV.nc;sheet[a.tag]=a.grp||(a.kind==='DB'?SHS.db:SHS.pit)}(D.foot=D.foot||{})[a.tag]=a.poly;
     if(a.kind==='DB'){(D.qdb=D.qdb||{})[a.tag]=[a.L,a.W,a.toc??null,a.boc??null,null,null,a.hs??null,null,a.phi||null,a.r||null,a.c||null];
       if(a.r&&a.c)(D.dbc=D.dbc||{})[a.tag]=[a.r,a.c,a.size||'',a.toc??null,a.boc??null]}
     ADDK.add(a.tag)})}
-function applyAdded(){const h=HK.applyAdded,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=applyAdded__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function applyAdded(){return hkRun('applyAdded',applyAdded__base,this,arguments,false)} // hooks: docs/PATCHES.md
 {hkBefore('render',function(){applyAdded();});}
 {const _st=sumTotals;sumTotals=function(){const t=_st();
-  for(const k of ADDK){if(!inCatKey(k)||ADDS.has(k))continue;const o=OV[k];if(o){const p=o.prev,s=o.s;const wc=p!=='Not Cast'&&p!=='Unknown',ic=s!=='Not Cast';t.cast-=ic-wc;t.toCast+=ic-wc;t.inst-=(s==='Installed')-(p==='Installed');t.toInst+=(s==='Installed')-(p==='Installed')}
-    const s=S(k),cast=s!=='Not Cast'&&s!=='Unknown',inst=s==='Installed';t.total++;t.cast+=cast;t.toCast+=!cast;t.inst+=inst;t.toInst+=!inst;
+  for(const k of ADDK){if(!inCatKey(k)||ADDS.has(k))continue;const o=OV[k];if(o){const p=o.prev,s=o.s;const wc=p!==STV.nc&&p!==STV.unk,ic=s!==STV.nc;t.cast-=ic-wc;t.toCast+=ic-wc;t.inst-=(s===STV.inst)-(p===STV.inst);t.toInst+=(s===STV.inst)-(p===STV.inst)}
+    const s=S(k),cast=s!==STV.nc&&s!==STV.unk,inst=s===STV.inst;t.total++;t.cast+=cast;t.toCast+=!cast;t.inst+=inst;t.toInst+=!inst;
     const q=dbQ(k);const cc=q&&q.net!=null?q.net:concOf(k);t.conc+=cc;if(cast)t.concCast+=cc}
   return t}}
 // ---- drawing tool ----
@@ -38,7 +38,7 @@ function addPop(){let p=document.getElementById('addpop');if(!p){p=document.crea
 function setAdd__base(on,edit){addMode=on;addPts=[];addEdit=edit||null;const b=document.getElementById('addbtn');if(b)b.classList.toggle('on',on);
   if(on){try{if(pipeMode)setPipe(null);if(cableMode)setCable(null);setEdit(false);setBox(false);if(noteMode)setNote(false)}catch(_){}moveKey=null;cv.style.cursor='crosshair';
     if(edit){addPts=edit.poly.map(q=>q.slice())}}else cv.style.cursor='';renderAdd();draw()}
-function setAdd(){const h=HK.setAdd,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=setAdd__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function setAdd(){return hkRun('setAdd',setAdd__base,this,arguments,false)} // hooks: docs/PATCHES.md
 function addShape(){if(addPts.length<4)return null;if(addEdit&&addEdit._typed)return {poly:addPts,...quadDims(addPts)};return ADDOPT.sq?rectFrom(addPts,{al:ADDOPT.al}):{poly:addPts.map(q=>[+q[0].toFixed(3),+q[1].toFixed(3)]),...quadDims(addPts),snapped:false}}
 function renderAdd(){const p=addPop();if(!addMode){p.hidden=true;return}p.hidden=false;const sh=addShape();const e=addEdit||{};const kind=e.kind||'Pit';
   p.innerHTML=`<div class="row" style="margin:0;justify-content:space-between"><h4>${addEdit&&addEdit.tag?'Edit '+esc(short(addEdit.tag)):'Add missing item'}</h4><button class="x" data-acl="1" style="border:0;background:none;font-size:18px;cursor:pointer">×</button></div>
@@ -47,8 +47,8 @@ function renderAdd(){const p=addPop();if(!addMode){p.hidden=true;return}p.hidden
   ${sh?`<div class="sect" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"><label>Length m<input type="number" step="0.01" data-adim="L" value="${sh.L.toFixed(2)}"></label><label>Width m<input type="number" step="0.01" data-adim="W" value="${sh.W.toFixed(2)}"></label><label>Angle °<input type="number" step="0.5" data-adim="A" value="${((((sh.ang*180/Math.PI)%180)+180)%180).toFixed(1)}"></label></div>${sh.snapped?'<div class="hint">✓ aligned with the nearest drawing line</div>':''}`:''}
   <div class="sect" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
    <label>Type<select data-af="kind"><option ${kind==='Pit'?'selected':''}>Pit</option><option ${kind==='DB'?'selected':''} value="DB">Duct bank</option></select></label>
-   <label>Status<select data-af="st">${['Not Cast','Precast Yard','Casted','Installed'].map(s=>`<option value="${s}" ${(e.st||'Not Cast')===s?'selected':''}>${ST_LABEL[s]}</option>`).join('')}</select></label>
-   <label style="grid-column:1/-1">Tag<input type="text" data-af="tag" placeholder="e.g. MM5100790U-IY-DB-701" value="${esc(e.tag||'')}"></label>
+   <label>Status<select data-af="st">${[STV.nc,STV.yard,STV.cast,STV.inst].map(s=>`<option value="${s}" ${(e.st||STV.nc)===s?'selected':''}>${ST_LABEL[s]}</option>`).join('')}</select></label>
+   <label style="grid-column:1/-1">Tag<input type="text" data-af="tag" placeholder="e.g. ${PRJ.itemPrefix}${TG.sample.add}" value="${esc(e.tag||'')}"></label>
    <label class="adb">Rows of ducts<input type="number" min="0" data-af="r" value="${e.r??''}"></label><label class="adb">Columns<input type="number" min="0" data-af="c" value="${e.c??''}"></label>
    <label class="adb">Duct size<input type="text" data-af="size" placeholder="160-PVC" value="${esc(e.size||'')}"></label><label class="adb">Duct Ø mm<input type="number" data-af="phi" value="${e.phi??''}"></label>
    <label class="adb">TOC m<input type="number" step="0.001" data-af="toc" value="${e.toc??''}"></label><label class="adb">BOC m<input type="number" step="0.001" data-af="boc" value="${e.boc??''}"></label>
@@ -62,7 +62,7 @@ function drawAdd__base(){if(!addMode||!addPts.length)return;const sh=addShape();
   ctx.fillStyle=css('--accent');addPts.forEach(q=>{ctx.beginPath();ctx.arc(X(q[0]),Y(q[1]),3.5,0,7);ctx.fill()});
   if(sh){ctx.globalAlpha=.25;ctx.fillStyle='#8e24aa';ctx.beginPath();sh.poly.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));ctx.closePath();ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle='#8e24aa';ctx.lineWidth=2;ctx.stroke()}
   ctx.restore()}
-function drawAdd(){const h=HK.drawAdd,a=arguments;if(h)for(let i=h.b.length-1;i>=0;i--)h.b[i].apply(this,a);const r=drawAdd__base.apply(this,a);if(h)for(const f of h.a)f.apply(this,a);return undefined} // hooks: docs/PATCHES.md
+function drawAdd(){return hkRun('drawAdd',drawAdd__base,this,arguments,false)} // hooks: docs/PATCHES.md
 {hkAfter('drawNotes',function(){try{drawAdd()}catch(e){console.warn(e)}});}
 document.addEventListener('click',e=>{const t=e.target;if(!t.closest||!t.closest('#addpop'))return;
   if(t.closest('[data-acl]')){setAdd(false);return}
@@ -125,7 +125,6 @@ cv.addEventListener('pointermove',e=>{if(!addMode)return;const r=cv.getBoundingC
   if(addDragI>=0){e.stopImmediatePropagation();const h=cornerSnap(x,y);addHover=h;addPts[addDragI]=h.p;addEdit=Object.assign(addEdit||{},readAddForm(),{_typed:true});draw();return}
   if(e.buttons)return;const hv=addPts.length<4?cornerSnap(x,y):(hitHandle(x,y)>=0?null:null);addHover=hv;cv.style.cursor=hitHandle(x,y)>=0?'move':'crosshair';draw()},{capture:true});
 cv.addEventListener('pointerup',e=>{if(!addMode||addDragI<0)return;e.stopImmediatePropagation();addDragI=-1;addHover=null;renderAdd();draw()},{capture:true});
-
 
 // ---- drag the ends of the selected pipe run (any mode) ----
 const pEndHit=(x,y)=>{if(!selPipe||document.body.classList.contains('ro')||addMode||pipeDraw)return -1;const P=selPipe.pts,L=P.map((_,i)=>i);for(const i of L){if(Math.hypot(X(P[i][0])-x,Y(P[i][1])-y)<10)return i}return -1};

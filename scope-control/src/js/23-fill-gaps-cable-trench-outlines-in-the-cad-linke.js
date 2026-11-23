@@ -229,7 +229,7 @@ function gfClick(e){const t=e.target;if(t.closest('[data-gfx]')){gfSet(false);re
   const r=t.closest('[data-gfi]');if(r){const c=gfFind(r.dataset.gfi);if(c){GF.sel=c.id;gfZoom(c);gfPan()}}}
 function gfTagSet(c,v){const tag=tfTag(v);if(!tag){toast('Enter the trench tag');return false}
   const ex=(D.trn||[]).find(t=>t[0]===tag);if(ex){c.tag=tag;c.sys=ex[1];if(Math.abs(+ex[2]-c.W)>0.06)toast(short(tag)+' is W '+f2(+ex[2])+' – the outline is W '+f2(c.W));return true}
-  const m=/^MM\d+U-(EY|EYL|IY)-BD-W(\d+)-\d+$/.exec(tag);if(!m){toast('Unknown tag – use the full cable trench tag, e.g. IY-BD-W1000-026');return false}
+  const m=new RegExp('^MM\\d+U-('+TG.trench.join('|')+')-BD-W(\\d+)-\\d+$').exec(tag);if(!m){toast('Unknown tag – use the full cable trench tag, e.g. '+TG.sample.trenchFull);return false}
   c.tag=tag;c.sys=m[1];c.newW=+(+m[2]/1000).toFixed(2);return true}
 var gfBak=false;
 // a new piece is cut where it would lie on a piece added in the same go
